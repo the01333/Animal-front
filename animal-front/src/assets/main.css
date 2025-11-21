@@ -1,0 +1,109 @@
+@import './base.css';
+
+#app {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Element Plus 全局样式优化 */
+:root {
+  --el-color-primary: #409EFF;
+  --el-color-success: #67C23A;
+  --el-color-warning: #E6A23C;
+  --el-color-danger: #F56C6C;
+  --el-color-info: #909399;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 页面过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 卡片阴影动画 */
+.el-card {
+  transition: all 0.3s ease;
+}
+
+.el-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 按钮动画优化 */
+.el-button {
+  transition: all 0.3s ease;
+}
+
+.el-button:hover {
+  transform: translateY(-2px);
+}
+
+.el-button:active {
+  transform: translateY(0);
+}
+
+/* 图片加载动画 */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.image-loading {
+  animation: shimmer 1.2s ease-in-out infinite;
+  background: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+  background-size: 800px 104px;
+}
+
+/* 响应式字体大小 */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1025px) {
+  html {
+    font-size: 16px;
+  }
+}
