@@ -195,6 +195,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '@/stores/user'
 import { Star, CirclePlus, Document, Service, Share, ArrowLeft } from '@element-plus/icons-vue'
 import { getPetDetail } from '@/api/pet'
 import { addPetFavorite, removePetFavorite, isPetFavorited } from '@/api/favorite'
@@ -204,6 +206,8 @@ import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
+const { isLoggedIn } = storeToRefs(userStore)
 
 const pet = ref<Pet | null>(null)
 const defaultImage = 'https://via.placeholder.com/500x400?text=宠物图片'
@@ -296,6 +300,11 @@ const healthTagType = computed(() => {
 })
 
 const applyForAdoption = () => {
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录后再申请领养')
+    router.push('/login')
+    return
+  }
   if (pet.value) {
     router.push(`/apply/${pet.value.id}`)
   }
@@ -333,6 +342,10 @@ const fetchPetDetail = async () => {
 }
 
 const toggleFavorite = async () => {
+  if (!isLoggedIn.value) {
+    router.push('/login')
+    return
+  }
   if (!pet.value) return
   const id = pet.value.id
   try {
@@ -361,6 +374,10 @@ const toggleFavorite = async () => {
 }
 
 const toggleLike = async () => {
+  if (!isLoggedIn.value) {
+    router.push('/login')
+    return
+  }
   if (!pet.value) return
   const id = pet.value.id
   try {

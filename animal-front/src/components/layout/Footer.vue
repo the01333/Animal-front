@@ -107,7 +107,7 @@
 
 <style scoped>
 .footer {
-  background: #409EFF;
+  background: #4f9ae4;
   color: white;
   padding: 40px 20px 20px;
   margin-top: 40px;
@@ -173,7 +173,7 @@
 .footer-bottom {
   text-align: center;
   padding-top: 20px;
-  color: rgba(255, 255, 255, 0.8);
+  color: white;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -181,7 +181,7 @@
 }
 
 :deep(.el-divider) {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(237, 218, 218, 0.2);
 }
 
 :deep(.el-link.el-link--info) {
@@ -190,6 +190,10 @@
 
 :deep(.el-link.el-link--info:hover) {
   color: #ffd04b;
+}
+
+:deep(.el-text.el-text--info) {
+  color: white !important;
 }
 
 @media (max-width: 768px) {

@@ -8,7 +8,7 @@
         :key="category.id"
         class="category-item"
         :class="{ active: activeCategory === category.id }"
-        @click="activeCategory = category.id"
+        @click="handleCategoryChange(category.id)"
       >
         {{ category.name }}
       </div>
@@ -76,6 +76,12 @@ const categories = ref([
 
 // 激活的分类
 const activeCategory = ref('all')
+
+// 监听分类变化，重置分页
+const handleCategoryChange = (categoryId: string) => {
+  activeCategory.value = categoryId
+  currentPage.value = 1
+}
 
 // 分页数据
 const currentPage = ref(1)
@@ -280,6 +286,11 @@ onMounted(() => {
 .btn-pagination:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-pagination:hover:not(:disabled) {
+  background-color: #359c6d;
 }
 
 .page-info {

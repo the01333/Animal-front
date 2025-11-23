@@ -6,7 +6,7 @@
     <div class="stories-filter">
       <div class="filter-group">
         <label for="category">分类:</label>
-        <select id="category" v-model="filters.category">
+        <select id="category" v-model="filters.category" @change="handleFilterChange">
           <option value="">全部</option>
           <option value="success">成功领养</option>
           <option value="reunion">失散重聚</option>
@@ -18,6 +18,7 @@
         <input 
           type="text" 
           v-model="filters.keyword" 
+          @input="handleFilterChange"
           placeholder="搜索故事标题或内容..." 
           class="search-input"
         />
@@ -160,6 +161,11 @@ const resetFilters = () => {
     category: '',
     keyword: ''
   }
+  currentPage.value = 1
+}
+
+// 监听过滤条件变化，重置分页
+const handleFilterChange = () => {
   currentPage.value = 1
 }
 
@@ -362,6 +368,11 @@ onMounted(() => {
 .btn-pagination:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-pagination:hover:not(:disabled) {
+  background-color: #359c6d;
 }
 
 .page-info {

@@ -42,6 +42,16 @@ export function getAdoptionStatuses(): Promise<ApiResponse<Record<string, string
 }
 
 /**
+ * 获取健康状态选项
+ */
+export function getHealthStatuses(): Promise<ApiResponse<Record<string, string>>> {
+  return request({
+    url: '/dict/healthStatuses',
+    method: 'get'
+  })
+}
+
+/**
  * 获取所有字典数据
  */
 export function getAllDictData(): Promise<ApiResponse<DictData>> {

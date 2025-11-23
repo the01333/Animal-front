@@ -172,12 +172,16 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Search, RefreshLeft, Male, Female, Calendar, ScaleToOriginal, Star, View } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '@/stores/user'
 import { getPetList } from '@/api/pet'
 import { getAllDictData } from '@/api/dict'
 import type { Pet, PetQuery } from '@/types'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const userStore = useUserStore()
+const { isLoggedIn } = storeToRefs(userStore)
 
 const loading = ref(false)
 const petList = ref<Pet[]>([])
@@ -257,6 +261,11 @@ function goToDetail(id: number) {
 
 // 申请领养
 function applyAdoption(petId: number) {
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录后再申请领养')
+    router.push('/login')
+    return
+  }
   router.push(`/apply/${petId}`)
 }
 
