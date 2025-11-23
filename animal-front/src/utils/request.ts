@@ -23,8 +23,9 @@ service.interceptors.request.use(
     // 获取token
     const token = localStorage.getItem('token')
     if (token) {
-      // Sa-Token 默认从 Authorization header 中获取 token
-      config.headers['Authorization'] = token
+      // Sa-Token 从 Authorization header 中获取 token
+      // 使用 Bearer 前缀是 HTTP 标准做法
+      config.headers['Authorization'] = `Bearer ${token}`
     }
     return config
   },
@@ -40,9 +41,11 @@ service.interceptors.response.use(
   (response: AxiosResponse) => {
     NProgress.done()
     const { code, message, data } = response.data
+    console.log('🔍 响应拦截器 - 原始响应:', response.data)
 
     // 根据业务状态码处理
     if (code === 200 || code === 0) {
+      console.log('✅ 响应成功，返回数据:', response.data)
       return response.data
     } else if (code === 401) {
       ElMessage.error('未授权,请重新登录')
@@ -51,6 +54,7 @@ service.interceptors.response.use(
       window.location.href = '/#/login'
       return Promise.reject(new Error(message || '未授权'))
     } else {
+      console.error('❌ 业务错误:', message)
       ElMessage.error(message || '请求失败')
       return Promise.reject(new Error(message || '请求失败'))
     }

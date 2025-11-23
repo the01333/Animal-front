@@ -193,17 +193,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '@/stores/user'
 import { Star, CirclePlus, Document, Service, Share, ArrowLeft } from '@element-plus/icons-vue'
 import { getPetDetail } from '@/api/pet'
-import { addPetFavorite, removePetFavorite, isPetFavorited } from '@/api/favorite'
-import { likePet, unlikePet, isPetLiked } from '@/api/like'
+import { addPetFavorite, removePetFavorite, isPetFavorited, getPetFavoriteCount } from '@/api/favorite'
+import { likePet, unlikePet, isPetLiked, getPetLikeCount } from '@/api/like'
 import type { Pet } from '@/types'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
+const { isLoggedIn } = storeToRefs(userStore)
 
 const pet = ref<Pet | null>(null)
 const defaultImage = 'https://via.placeholder.com/500x400?text=宠物图片'
@@ -296,6 +300,11 @@ const healthTagType = computed(() => {
 })
 
 const applyForAdoption = () => {
+  if (!isLoggedIn.value) {
+    ElMessage.warning('请先登录后再申请领养')
+    router.push('/login')
+    return
+  }
   if (pet.value) {
     router.push(`/apply/${pet.value.id}`)
   }
@@ -311,6 +320,8 @@ const contactHousekeeper = () => {
 
 const favored = ref(false)
 const liked = ref(false)
+const favoriteCount = ref(0)
+const likeCount = ref(0)
 
 const fetchPetDetail = async () => {
   const petId = parseInt(route.params.id as string)
@@ -320,10 +331,40 @@ const fetchPetDetail = async () => {
       const detail = res.data as Pet & { images: string[] | string }
       detail.images = typeof detail.images === 'string' ? JSON.parse(detail.images || '[]') : detail.images
       pet.value = detail
-      const favRes = await isPetFavorited(petId)
-      favored.value = !!favRes.data
-      const likeRes = await isPetLiked(petId)
-      liked.value = !!likeRes.data
+      
+      // 获取收藏和点赞数量（无需认证，所有用户都能看到）
+      try {
+        const favCountRes = await getPetFavoriteCount(petId)
+        favoriteCount.value = favCountRes.data || 0
+      } catch (e) {
+        favoriteCount.value = 0
+      }
+      
+      try {
+        const likeCountRes = await getPetLikeCount(petId)
+        likeCount.value = likeCountRes.data || 0
+      } catch (e) {
+        likeCount.value = 0
+      }
+      
+      // 只有登录用户才能查询是否已收藏或点赞
+      if (isLoggedIn.value) {
+        try {
+          const favRes = await isPetFavorited(petId)
+          favored.value = !!favRes.data
+        } catch (e) {
+          // 获取收藏状态失败，保持默认值
+          favored.value = false
+        }
+        
+        try {
+          const likeRes = await isPetLiked(petId)
+          liked.value = !!likeRes.data
+        } catch (e) {
+          // 获取点赞状态失败，保持默认值
+          liked.value = false
+        }
+      }
     } else {
       ElMessage.error(res.message || '获取宠物详情失败')
     }
@@ -333,6 +374,10 @@ const fetchPetDetail = async () => {
 }
 
 const toggleFavorite = async () => {
+  if (!isLoggedIn.value) {
+    router.push('/login')
+    return
+  }
   if (!pet.value) return
   const id = pet.value.id
   try {
@@ -361,6 +406,10 @@ const toggleFavorite = async () => {
 }
 
 const toggleLike = async () => {
+  if (!isLoggedIn.value) {
+    router.push('/login')
+    return
+  }
   if (!pet.value) return
   const id = pet.value.id
   try {
@@ -388,9 +437,55 @@ const toggleLike = async () => {
   }
 }
 
+/**
+ * 更新点赞和收藏状态（仅当登录时）
+ */
+const updateLikeAndFavoriteStatus = async () => {
+  if (!pet.value) return
+  const petId = pet.value.id
+  
+  console.log('🔄 更新点赞和收藏状态, isLoggedIn:', isLoggedIn.value)
+  
+  if (isLoggedIn.value) {
+    try {
+      console.log('📝 查询是否已收藏...')
+      const favRes = await isPetFavorited(petId)
+      console.log('✅ 收藏状态:', favRes.data)
+      favored.value = !!favRes.data
+    } catch (e) {
+      console.error('❌ 查询收藏状态失败:', e)
+      favored.value = false
+    }
+    
+    try {
+      console.log('📝 查询是否已点赞...')
+      const likeRes = await isPetLiked(petId)
+      console.log('✅ 点赞状态:', likeRes.data)
+      liked.value = !!likeRes.data
+    } catch (e) {
+      console.error('❌ 查询点赞状态失败:', e)
+      liked.value = false
+    }
+  } else {
+    // 未登录时重置状态
+    console.log('🔄 未登录，重置状态')
+    favored.value = false
+    liked.value = false
+  }
+}
+
 onMounted(() => { 
   fetchPetDetail()
 })
+
+// 监听登录状态变化，重新查询点赞和收藏状态
+watch(() => isLoggedIn.value, (newVal) => {
+  console.log('👁️ 登录状态变化:', newVal)
+  // 如果已经加载了宠物详情，重新查询点赞和收藏状态
+  if (pet.value) {
+    updateLikeAndFavoriteStatus()
+  }
+}, { immediate: false })
 </script>
 
 <style scoped>

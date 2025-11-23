@@ -26,7 +26,7 @@ export function getPetDetail(id: number): Promise<ApiResponse<Pet>> {
 /**
  * 创建宠物（管理员）
  */
-export function createPet(data: Partial<Pet>): Promise<ApiResponse<void>> {
+export function createPet(data: Partial<Pet>): Promise<ApiResponse<Pet>> {
   return request({
     url: '/pet',
     method: 'post',

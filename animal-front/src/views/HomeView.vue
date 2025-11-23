@@ -12,7 +12,7 @@
           </div>
           <h1 class="hero-title">为流浪动物寻找温暖的家</h1>
           <p class="hero-description">
-            i宠园致力于连接爱心领养者与需要关爱的小动物，让每一只宠物都能找到属于自己的幸福家庭。
+            i宠园致力于连接爱心领养者与流浪小动物，让每一只动物都能找到属于自己的幸福家庭。
           </p>
           <div class="hero-buttons">
             <el-button class="hero-btn hero-btn-primary" size="large" @click="$router.push('/pets')">
@@ -457,14 +457,17 @@ function getStatusText(status: string) {
 }
 
 .hero-background {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ffd89b 0%, #ffe8cc 20%, #fff5e6 40%, #ffe8cc 60%, #ffc966 80%, #ffb84d 100%);
+  background-size: 300% 300%;
   border-radius: 24px;
   overflow: hidden;
   position: relative;
-  min-height: 500px;
+  padding: 100px 60px;
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: heroGradient 8s ease-in-out infinite;
+  box-shadow: 0 20px 60px rgba(255, 200, 102, 0.3);
 }
 
 .hero-overlay {
@@ -490,7 +493,7 @@ function getStatusText(status: string) {
 
 .hero-icon-wrapper {
   margin-bottom: 30px;
-  animation: float 3s ease-in-out infinite;
+  animation: float 3s ease-in-out infinite, glow 4s ease-in-out infinite;
 }
 
 @keyframes float {
@@ -522,24 +525,105 @@ function getStatusText(status: string) {
   }
 }
 
+@keyframes heroGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(255, 200, 102, 0.5));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 25px rgba(255, 200, 102, 0.8));
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes textGlow {
+  0%, 100% {
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  50% {
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 20px rgba(255, 200, 102, 0.15);
+  }
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.95;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes buttonPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 200, 102, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 200, 102, 0);
+  }
+}
+
 .hero-title {
   font-size: 48px;
   margin: 0 0 25px 0;
   font-weight: 700;
-  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: #2c2c2c;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   letter-spacing: 1px;
   line-height: 1.3;
+  animation: slideInDown 0.8s ease-out, textGlow 3s ease-in-out infinite;
 }
 
 .hero-description {
   font-size: 20px;
   margin: 0 0 45px 0;
   line-height: 1.8;
-  opacity: 0.95;
+  color: #444444;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  animation: slideInUp 0.8s ease-out 0.2s both, fadeInOut 4s ease-in-out infinite 0.2s;
 }
 
 .hero-buttons {
@@ -554,14 +638,15 @@ function getStatusText(status: string) {
   height: 56px;
   padding: 0 36px;
   font-size: 17px;
-  font-weight: 600;
-  border-radius: 28px;
   border: none;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
+  border-radius: 28px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
   align-items: center;
   gap: 10px;
+  animation: slideInUp 0.8s ease-out 0.4s both, buttonPulse 2s ease-in-out infinite 0.4s;
 }
 
 .hero-btn:hover {
@@ -720,7 +805,7 @@ function getStatusText(status: string) {
   height: 48px;
   font-size: 16px;
   font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #bca0d8 100%);
   border: none;
   transition: all 0.3s ease;
 }
@@ -769,14 +854,14 @@ function getStatusText(status: string) {
 }
 
 :deep(.el-carousel__arrow) {
-  background-color: rgba(102, 126, 234, 0.8);
+  background-color: rgba(139, 157, 240, 0.8);
   width: 45px;
   height: 45px;
   font-size: 18px;
 }
 
 :deep(.el-carousel__arrow):hover {
-  background-color: #667eea;
+  background-color: #879bf6;
 }
 
 .view-all {
@@ -802,7 +887,7 @@ function getStatusText(status: string) {
 .step-number {
   min-width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #b896da 100%);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -885,7 +970,7 @@ function getStatusText(status: string) {
 }
 
 .action-card {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #f093fb 0%, #f95f73 100%);
   border: none;
   border-radius: 16px;
 }

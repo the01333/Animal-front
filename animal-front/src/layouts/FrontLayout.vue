@@ -9,12 +9,15 @@
       </router-view>
     </main>
     <Footer />
+    <!-- AI客服助手 -->
+    <AIChatWidget />
   </div>
 </template>
 
 <script setup lang="ts">
 import Navbar from '@/components/layout/Navbar.vue'
 import Footer from '@/components/layout/Footer.vue'
+import AIChatWidget from '@/components/AIChatWidget.vue'
 </script>
 
 <style scoped lang="scss">
@@ -22,7 +25,9 @@ import Footer from '@/components/layout/Footer.vue'
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #fffbf5 0%, #fff8f0 25%, #fffcf9 50%, #fff8f0 75%, #fffbf5 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
 }
 
 .main-content {
@@ -41,6 +46,20 @@ import Footer from '@/components/layout/Footer.vue'
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 </style>
 

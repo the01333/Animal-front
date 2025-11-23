@@ -14,19 +14,13 @@
         <el-form-item label="类型">
           <el-select v-model="queryForm.category" placeholder="全部" clearable>
             <el-option label="全部" value="" />
-            <el-option label="猫咪" value="cat" />
-            <el-option label="狗狗" value="dog" />
-            <el-option label="兔子" value="rabbit" />
-            <el-option label="鸟类" value="bird" />
-            <el-option label="其他" value="other" />
+            <el-option v-for="(label, value) in dictData.petCategories" :key="value" :label="label" :value="value" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="queryForm.adoptionStatus" placeholder="全部" clearable>
             <el-option label="全部" value="" />
-            <el-option label="可领养" value="available" />
-            <el-option label="待审核" value="pending" />
-            <el-option label="已领养" value="adopted" />
+            <el-option v-for="(label, value) in dictData.adoptionStatuses" :key="value" :label="label" :value="value" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -98,9 +92,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="180">
+        <el-table-column label="创建时间" width="120">
           <template #default="{ row }">
-            {{ formatDate(row.createdTime) }}
+            {{ formatDate(row.createTime, 'YYYY-MM-DD') }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
@@ -134,6 +128,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPetList, deletePet } from '@/api/pet'
+import { getAllDictData } from '@/api/dict'
 import type { Pet } from '@/types'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/format'
@@ -146,6 +141,12 @@ const tableData = ref<Pet[]>([])
 const total = ref(0)
 const selectedIds = ref<number[]>([])
 
+// 字典数据
+const dictData = ref({
+  petCategories: {} as Record<string, string>,
+  adoptionStatuses: {} as Record<string, string>
+})
+
 const queryForm = reactive({
   name: '',
   category: '',
@@ -153,6 +154,18 @@ const queryForm = reactive({
   current: 1,
   size: 10
 })
+
+// 加载字典数据
+async function loadDictData() {
+  try {
+    const res = await getAllDictData()
+    if (res.code === 200) {
+      dictData.value = res.data
+    }
+  } catch (error) {
+    console.error('加载字典数据失败:', error)
+  }
+}
 
 // 获取列表
 async function fetchList() {
@@ -355,6 +368,7 @@ function getAdoptionStatusText(status: string) {
 }
 
 onMounted(() => {
+  loadDictData()
   fetchList()
 })
 </script>

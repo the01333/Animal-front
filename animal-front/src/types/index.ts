@@ -50,6 +50,7 @@ export interface Pet {
   color?: string
   weight?: number
   description?: string
+  personality?: string
   healthStatus: 'healthy' | 'sick' | 'injured' | 'recovering'
   adoptionStatus: 'available' | 'pending' | 'adopted'
   images?: string[]

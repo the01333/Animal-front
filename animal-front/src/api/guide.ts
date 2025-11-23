@@ -89,3 +89,43 @@ export function unfavoriteGuide(id: number, userId: number): Promise<ApiResponse
     params: { userId }
   })
 }
+
+/**
+ * 获取指南点赞数量（无需认证）
+ */
+export function getGuideLikeCount(id: number): Promise<ApiResponse<number>> {
+  return request({
+    url: `/guide/${id}/like/count`,
+    method: 'get'
+  })
+}
+
+/**
+ * 获取指南收藏数量（无需认证）
+ */
+export function getGuideFavoriteCount(id: number): Promise<ApiResponse<number>> {
+  return request({
+    url: `/guide/${id}/favorite/count`,
+    method: 'get'
+  })
+}
+
+/**
+ * 检查用户是否已点赞指南（需要认证）
+ */
+export function isGuideLiked(id: number): Promise<ApiResponse<boolean>> {
+  return request({
+    url: `/guide/${id}/like/check`,
+    method: 'get'
+  })
+}
+
+/**
+ * 检查用户是否已收藏指南（需要认证）
+ */
+export function isGuideFavorited(id: number): Promise<ApiResponse<boolean>> {
+  return request({
+    url: `/guide/${id}/favorite/check`,
+    method: 'get'
+  })
+}
