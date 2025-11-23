@@ -86,10 +86,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ChatDotRound, Close, User } from '@element-plus/icons-vue'
-import { chatWithAIStream, getWelcomeMessage, type ChatMessage } from '@/api/ai'
+import { chatWithAIMemoryStream, getWelcomeMessage, type ChatMessage } from '@/api/ai'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
 
 const isExpanded = ref(false)
 const messages = ref<ChatMessage[]>([])
@@ -97,6 +99,15 @@ const userInput = ref('')
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const unreadCount = ref(0)
+const sessionId = ref<string>('')
+
+// 获取用户登录状态
+const userStore = useUserStore()
+const { isLoggedIn } = storeToRefs(userStore)
+
+// localStorage 键名
+const SESSION_ID_KEY = 'ai_chat_session_id'
+const MESSAGES_KEY = 'ai_chat_messages'
 
 // 切换聊天窗口
 const toggleChat = () => {
@@ -120,6 +131,21 @@ const toggleChat = () => {
 // 发送消息
 const sendMessage = async () => {
   if (!userInput.value.trim() || isLoading.value) return
+
+  // ⚠️ 在发送消息前检查登录状态
+  const token = localStorage.getItem('token')
+  if (!token) {
+    ElMessage({
+      message: '当前未登录，请先登录',
+      type: 'warning',
+      duration: 3000,
+      onClose: () => {
+        // 用户关闭提示后，跳转到登录页
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+      }
+    })
+    return
+  }
 
   const content = userInput.value.trim()
   
@@ -146,11 +172,12 @@ const sendMessage = async () => {
       timestamp: Date.now()
     })
 
-    // 调用流式AI服务
+    // 调用流式AI服务（使用会话记忆）
     console.log('📤 发送消息:', content)
+    console.log('📋 当前会话ID:', sessionId.value)
     let fullContent = ''
     
-    await chatWithAIStream(content, (chunk: string) => {
+    const newSessionId = await chatWithAIMemoryStream(content, sessionId.value, (chunk: string) => {
       fullContent += chunk
       // 更新AI消息内容
       if (messages.value[aiMessageIndex]) {
@@ -159,8 +186,57 @@ const sendMessage = async () => {
       // 滚动到底部
       scrollToBottom()
     })
+    
+    // 更新会话ID（后端可能创建了新会话）
+    if (newSessionId && newSessionId !== sessionId.value) {
+      console.log('✅ 更新会话ID:', sessionId.value, '->', newSessionId)
+      sessionId.value = newSessionId
+    }
+
+    // 保存会话到 localStorage
+    saveSession()
+    console.log('💾 会话已保存到 localStorage, sessionId:', sessionId.value)
 
     console.log('✅ 流式对话完成:', fullContent)
+    console.log('📋 会话ID:', sessionId.value)
+    console.log('📝 完整内容长度:', fullContent.length)
+    
+    // 流完成后，保存AI回复到数据库
+    // 注意：用户消息已在后端 chatWithMemoryStream 中保存，这里只需保存AI回复
+    if (sessionId.value && fullContent.trim()) {
+      try {
+        console.log('🔄 开始保存AI回复...')
+        const token = localStorage.getItem('token')
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json'
+        }
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+        
+        const response = await fetch('/api/ai/service/save-message', {
+          method: 'POST',
+          headers,
+          credentials: 'include',
+          body: JSON.stringify({
+            sessionId: sessionId.value,
+            role: 'assistant',
+            content: fullContent
+          })
+        })
+        
+        const result = await response.json()
+        if (result.code === 200) {
+          console.log('💾 AI回复已保存到 Cassandra')
+        } else {
+          console.warn('⚠️ 保存AI回复失败:', result.message)
+        }
+      } catch (saveError) {
+        console.error('❌ 保存AI回复错误:', saveError)
+      }
+    } else {
+      console.warn('⚠️ 跳过保存: sessionId=', sessionId.value, ', fullContent.length=', fullContent.length)
+    }
   } catch (error: any) {
     console.error('❌ AI服务错误:', error)
     
@@ -169,11 +245,39 @@ const sendMessage = async () => {
       messages.value.pop()
     }
     
+    // 处理登录过期错误
+    if (error.message?.includes('登录信息已过期')) {
+      ElMessage({
+        message: '当前登录信息已过期，请重新登录',
+        type: 'warning',
+        duration: 3000,
+        onClose: () => {
+          // 清除本地存储
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          // 跳转到登录页
+          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+        }
+      })
+    }
+    // 处理未登录错误
+    else if (error.message?.includes('未登录')) {
+      ElMessage({
+        message: '当前未登录，请先登录',
+        type: 'warning',
+        duration: 3000,
+        onClose: () => {
+          // 清除本地存储
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          // 跳转到登录页
+          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+        }
+      })
+    }
     // 处理限流错误
-    if (error.message?.includes('429')) {
+    else if (error.message?.includes('429') || error.message?.includes('过于频繁')) {
       ElMessage.warning('请求过于频繁，请稍后再试')
-    } else if (error.message?.includes('过于频繁')) {
-      ElMessage.warning(error.message)
     } else {
       ElMessage.error('服务暂时不可用，请稍后重试')
     }
@@ -215,23 +319,171 @@ const formatTime = (timestamp?: number): string => {
   return `${hours}:${minutes}`
 }
 
-onMounted(() => {
+// 保存会话到 localStorage
+const saveSession = () => {
+  if (sessionId.value) {
+    localStorage.setItem(SESSION_ID_KEY, sessionId.value)
+  }
+  if (messages.value.length > 0) {
+    localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages.value))
+  }
+}
+
+// 从 localStorage 恢复会话
+const restoreSession = async () => {
+  const savedSessionId = localStorage.getItem(SESSION_ID_KEY)
+  
+  if (savedSessionId) {
+    sessionId.value = savedSessionId
+    console.log('✅ 恢复会话ID:', sessionId.value)
+    
+    // 从后端获取完整的聊天记录
+    try {
+      const token = localStorage.getItem('token')
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
+      const response = await fetch(`/api/ai/service/session/${savedSessionId}/messages`, {
+        method: 'GET',
+        headers,
+        credentials: 'include'
+      })
+      
+      const result = await response.json()
+      console.log('📥 后端返回的原始数据:', result.data)
+      if (result.code === 200 && result.data) {
+        // 将后端返回的消息转换为前端格式
+        messages.value = result.data.map((msg: any) => {
+          // 处理时间戳：后端返回的是格式化字符串如 "2025-11-23 17:40:00"
+          let timestamp = Date.now()
+          if (msg.timestamp) {
+            // 如果是字符串格式的时间戳，需要转换
+            if (typeof msg.timestamp === 'string') {
+              timestamp = new Date(msg.timestamp).getTime()
+            } else if (typeof msg.timestamp === 'number') {
+              // 如果已经是毫秒级时间戳
+              timestamp = msg.timestamp > 10000000000 ? msg.timestamp : msg.timestamp * 1000
+            }
+          }
+          
+          // 处理内容：后端可能返回了双重转义的JSON字符串
+          let content = msg.content
+          if (typeof content === 'string' && content.startsWith('"') && content.endsWith('"')) {
+            try {
+              // 尝试解析JSON字符串，恢复原始内容
+              content = JSON.parse(content)
+            } catch (e) {
+              // 如果解析失败，保持原样
+              console.warn('⚠️ 内容解析失败，使用原始内容')
+            }
+          }
+          
+          return {
+            role: msg.role,
+            content,
+            timestamp
+          }
+        })
+        console.log('✅ 从后端恢复聊天记录:', messages.value.length, '条消息')
+        
+        // 同时保存到 localStorage
+        localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages.value))
+      }
+    } catch (e) {
+      console.error('❌ 从后端恢复聊天记录失败:', e)
+      
+      // 降级方案：从 localStorage 恢复
+      const savedMessages = localStorage.getItem(MESSAGES_KEY)
+      if (savedMessages) {
+        try {
+          messages.value = JSON.parse(savedMessages)
+          console.log('✅ 从本地存储恢复聊天记录:', messages.value.length, '条消息')
+        } catch (parseError) {
+          console.error('❌ 恢复本地聊天记录失败:', parseError)
+        }
+      }
+    }
+  }
+}
+
+// 清空会话（登出时调用，真正删除后端数据）
+const clearSession = async () => {
+  const currentSessionId = sessionId.value
+  
+  // 清空前端数据
+  sessionId.value = ''
+  messages.value = []
+  localStorage.removeItem(SESSION_ID_KEY)
+  localStorage.removeItem(MESSAGES_KEY)
+  
+  // 从后端删除会话及其所有消息
+  if (currentSessionId) {
+    try {
+      const token = localStorage.getItem('token')
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
+      const response = await fetch(`/api/ai/service/session/${currentSessionId}`, {
+        method: 'DELETE',
+        headers,
+        credentials: 'include'
+      })
+      
+      const result = await response.json()
+      if (result.code === 200) {
+        console.log('🗑️ 会话已从后端删除')
+      } else {
+        console.warn('⚠️ 后端删除会话失败:', result.message)
+      }
+    } catch (e) {
+      console.error('❌ 删除后端会话失败:', e)
+    }
+  }
+  
+  console.log('🗑️ 会话已清空')
+}
+
+// 监听登出事件
+watch(() => isLoggedIn.value, (newVal) => {
+  if (!newVal) {
+    // 用户已登出，清空会话
+    clearSession()
+  }
+})
+
+onMounted(async () => {
+  // 如果已登录，恢复会话
+  if (isLoggedIn.value) {
+    await restoreSession()
+  }
+  
+  // 如果没有消息，添加欢迎消息
+  if (messages.value.length === 0) {
+    messages.value.push({
+      role: 'assistant',
+      content: getWelcomeMessage(),
+      timestamp: Date.now()
+    })
+  }
   // 初始化时不自动打开
 })
 </script>
 
 <style scoped>
-.ai-chat-widget {
+/* 浮动按钮 */
+.chat-button {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 9999;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-/* 浮动按钮 */
-.chat-button {
-  position: relative;
+  z-index: 999;
 }
 
 .floating-btn {
@@ -292,9 +544,10 @@ onMounted(() => {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 400px;
-  height: 600px;
+  width: 500px;
+  height: 650px;
   max-height: calc(100vh - 40px);
+  max-width: calc(100vw - 40px);
   background: white;
   border-radius: 12px;
   box-shadow: 0 5px 40px rgba(0, 0, 0, 0.16);
@@ -302,6 +555,7 @@ onMounted(() => {
   flex-direction: column;
   animation: slideUp 0.3s ease;
   overflow: hidden;
+  z-index: 1000;
 }
 
 @keyframes slideUp {
@@ -419,7 +673,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-width: 280px;
+  max-width: 380px;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .message.user .message-content {

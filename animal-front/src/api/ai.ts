@@ -33,6 +33,7 @@ export async function chatWithAIStream(
   const response = await fetch('/api/ai/service/chat-stream', {
     method: 'POST',
     headers,
+    credentials: 'include',
     body: JSON.stringify({ content })
   })
 
@@ -65,13 +66,10 @@ export async function chatWithAIStream(
       for (let i = 0; i < lines.length - 1; i++) {
         const line = lines[i].trim()
         if (line.startsWith('data:')) {
-          // 提取 data: 后面的内容（JSON格式的字符串）
           const jsonStr = line.substring(5).trim()
           if (jsonStr) {
             try {
-              // 解析JSON字符串，恢复转义的换行符等特殊字符
               const data = JSON.parse(jsonStr)
-              // data 现在是解析后的字符串，可以直接使用
               onChunk(data)
             } catch (e) {
               console.warn('Failed to parse JSON:', jsonStr, e)
@@ -115,17 +113,37 @@ export async function chatWithAIMemoryStream(
     'Content-Type': 'application/json',
   }
   if (token) {
-    headers['Authorization'] = token
+    headers['Authorization'] = `Bearer ${token}`
   }
 
   const response = await fetch('/api/ai/service/chat-with-memory-stream', {
     method: 'POST',
     headers,
+    credentials: 'include',
     body: JSON.stringify({ 
       content,
       sessionId: sessionId || ''
     })
   })
+
+  // 处理 401 未授权错误（登录过期或未登录）
+  if (response.status === 401) {
+    console.warn('登录验证失败: 401')
+    
+    // 从响应体中获取错误信息
+    let errorMessage = '登录信息已过期，请重新登录'
+    try {
+      const errorData = await response.json()
+      if (errorData.message) {
+        errorMessage = errorData.message
+      }
+    } catch (e) {
+      // 忽略 JSON 解析错误
+    }
+    
+    // 抛出错误，让调用者处理
+    throw new Error(errorMessage)
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`)
@@ -138,7 +156,7 @@ export async function chatWithAIMemoryStream(
 
   const decoder = new TextDecoder()
   let buffer = ''
-  let sessionIdFromResponse = sessionId
+  let sessionIdFromResponse = sessionId || ''
   
   try {
     while (true) {
@@ -189,7 +207,16 @@ export async function chatWithAIMemoryStream(
     reader.releaseLock()
   }
   
-  return sessionIdFromResponse || ''
+  // 如果没有 sessionId，从响应头中获取
+  if (!sessionIdFromResponse) {
+    const sessionIdFromHeader = response.headers.get('X-Session-Id')
+    if (sessionIdFromHeader) {
+      sessionIdFromResponse = sessionIdFromHeader
+    }
+  }
+  
+  console.log('📤 返回的 sessionId:', sessionIdFromResponse)
+  return sessionIdFromResponse
 }
 
 /**

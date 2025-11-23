@@ -10,6 +10,16 @@ export function removePetFavorite(petId: number): Promise<ApiResponse<void>> {
   return request({ url: `/favorite/${petId}`, method: 'delete' })
 }
 
+/**
+ * 获取宠物收藏数量（无需认证）
+ */
+export function getPetFavoriteCount(petId: number): Promise<ApiResponse<number>> {
+  return request({ url: `/favorite/count/${petId}`, method: 'get' })
+}
+
+/**
+ * 检查是否已收藏（需要认证）
+ */
 export function isPetFavorited(petId: number): Promise<ApiResponse<boolean>> {
   return request({ url: `/favorite/check/${petId}`, method: 'get' })
 }

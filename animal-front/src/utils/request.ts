@@ -23,8 +23,9 @@ service.interceptors.request.use(
     // 获取token
     const token = localStorage.getItem('token')
     if (token) {
-      // Sa-Token 默认从 Authorization header 中获取 token
-      config.headers['Authorization'] = token
+      // Sa-Token 从 Authorization header 中获取 token
+      // 使用 Bearer 前缀是 HTTP 标准做法
+      config.headers['Authorization'] = `Bearer ${token}`
     }
     return config
   },

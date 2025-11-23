@@ -49,9 +49,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getGuideDetail, getAllGuides, likeGuide as likeGuideAPI, unlikeGuide as unlikeGuideAPI, favoriteGuide as favoriteGuideAPI, unfavoriteGuide as unfavoriteGuideAPI, type GuideVO } from '@/api/guide'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '@/stores/user'
+import { getGuideDetail, getAllGuides, likeGuide as likeGuideAPI, unlikeGuide as unlikeGuideAPI, favoriteGuide as favoriteGuideAPI, unfavoriteGuide as unfavoriteGuideAPI, getGuideLikeCount, getGuideFavoriteCount, isGuideLiked, isGuideFavorited, type GuideVO } from '@/api/guide'
 import { marked } from 'marked'
 import { ElMessage } from 'element-plus'
 
@@ -72,6 +74,10 @@ const likeCount = ref(0)
 // 收藏状态
 const isCollected = ref(false)
 
+// 获取用户登录状态和用户信息
+const userStore = useUserStore()
+const { isLoggedIn, userInfo } = storeToRefs(userStore)
+
 // 默认图片
 const defaultImage = 'https://via.placeholder.com/100x100?text=指南'
 
@@ -86,7 +92,7 @@ const renderedContent = computed(() => {
 
 // 点赞指南
 const likeGuide = async () => {
-  if (!currentUserId.value) {
+  if (!isLoggedIn.value || !userInfo.value?.id) {
     ElMessage.warning('请先登录')
     return
   }
@@ -95,11 +101,11 @@ const likeGuide = async () => {
   
   try {
     if (isLiked.value) {
-      await unlikeGuideAPI(guide.value.id, currentUserId.value)
+      await unlikeGuideAPI(guide.value.id, userInfo.value.id)
       isLiked.value = false
       likeCount.value--
     } else {
-      await likeGuideAPI(guide.value.id, currentUserId.value)
+      await likeGuideAPI(guide.value.id, userInfo.value.id)
       isLiked.value = true
       likeCount.value++
     }
@@ -116,7 +122,7 @@ const shareGuide = () => {
 
 // 收藏指南
 const collectGuide = async () => {
-  if (!currentUserId.value) {
+  if (!isLoggedIn.value || !userInfo.value?.id) {
     ElMessage.warning('请先登录')
     return
   }
@@ -125,11 +131,11 @@ const collectGuide = async () => {
   
   try {
     if (isCollected.value) {
-      await unfavoriteGuideAPI(guide.value.id, currentUserId.value)
+      await unfavoriteGuideAPI(guide.value.id, userInfo.value.id)
       isCollected.value = false
       ElMessage.success('已取消收藏')
     } else {
-      await favoriteGuideAPI(guide.value.id, currentUserId.value)
+      await favoriteGuideAPI(guide.value.id, userInfo.value.id)
       isCollected.value = true
       ElMessage.success('已收藏')
     }
@@ -148,16 +154,35 @@ const viewRelatedGuide = (id: number) => {
 const fetchGuideDetail = async () => {
   try {
     const guideId = parseInt(route.params.id as string)
-    const response = await getGuideDetail(guideId, currentUserId.value || undefined)
+    const response = await getGuideDetail(guideId)
     guide.value = response.data as GuideVO
     
     if (guide.value) {
-      // 从响应中获取点赞状态和点赞数
-      isLiked.value = guide.value.liked || false
-      likeCount.value = guide.value.likeCount || 0
+      // 总是获取点赞数量（无需认证）
+      try {
+        const likeCountRes = await getGuideLikeCount(guideId)
+        likeCount.value = likeCountRes.data || 0
+      } catch (e) {
+        likeCount.value = 0
+      }
       
-      // 从响应中获取收藏状态
-      isCollected.value = guide.value.favorited || false
+      // 只有登录用户才能从数据库查询是否已点赞或收藏
+      if (isLoggedIn.value) {
+        try {
+          const likedRes = await isGuideLiked(guideId)
+          isLiked.value = likedRes.data || false
+          const favoritedRes = await isGuideFavorited(guideId)
+          isCollected.value = favoritedRes.data || false
+        } catch (e) {
+          console.error('查询用户状态失败:', e)
+          isLiked.value = false
+          isCollected.value = false
+        }
+      } else {
+        // 未登录时重置状态
+        isLiked.value = false
+        isCollected.value = false
+      }
       
       // 获取所有指南用于显示相关指南
       const allGuidesResponse = await getAllGuides()
@@ -172,26 +197,39 @@ const fetchGuideDetail = async () => {
   }
 }
 
-onMounted(() => {
-  // 从localStorage获取当前用户ID
-  const userInfo = localStorage.getItem('userInfo')
-  console.log('localStorage userInfo:', userInfo)
+// 更新点赞和收藏状态（仅当登录时）
+const updateLikeAndFavoriteStatus = async () => {
+  if (!guide.value) return
+  const guideId = guide.value.id
   
-  if (userInfo) {
+  if (isLoggedIn.value) {
     try {
-      const user = JSON.parse(userInfo)
-      console.log('解析后的用户信息:', user)
-      currentUserId.value = user.id || user.userId
-      console.log('当前用户ID:', currentUserId.value)
+      const likedRes = await isGuideLiked(guideId)
+      isLiked.value = likedRes.data || false
+      const favoritedRes = await isGuideFavorited(guideId)
+      isCollected.value = favoritedRes.data || false
     } catch (e) {
-      console.error('解析用户信息失败:', e)
+      console.error('查询用户状态失败:', e)
+      isLiked.value = false
+      isCollected.value = false
     }
   } else {
-    console.warn('localStorage中没有userInfo')
+    // 未登录时重置状态
+    isLiked.value = false
+    isCollected.value = false
   }
-  
+}
+
+onMounted(() => {
   fetchGuideDetail()
 })
+
+// 监听登录状态变化，重新查询点赞和收藏状态
+watch(() => isLoggedIn.value, (newVal) => {
+  if (guide.value) {
+    updateLikeAndFavoriteStatus()
+  }
+}, { immediate: false })
 </script>
 
 <style scoped>

@@ -53,9 +53,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getStoryDetail, getAllStories, likeStory as likeStoryAPI, unlikeStory as unlikeStoryAPI, favoriteStory as favoriteStoryAPI, unfavoriteStory as unfavoriteStoryAPI, type StoryVO } from '@/api/story'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '@/stores/user'
+import { getStoryDetail, getAllStories, likeStory as likeStoryAPI, unlikeStory as unlikeStoryAPI, favoriteStory as favoriteStoryAPI, unfavoriteStory as unfavoriteStoryAPI, getStoryLikeCount, getStoryFavoriteCount, isStoryLiked, isStoryFavorited, type StoryVO } from '@/api/story'
 import { marked } from 'marked'
 import { ElMessage } from 'element-plus'
 
@@ -76,6 +78,10 @@ const likeCount = ref(0)
 // 收藏状态
 const isCollected = ref(false)
 
+// 获取用户登录状态和用户信息
+const userStore = useUserStore()
+const { isLoggedIn, userInfo } = storeToRefs(userStore)
+
 // 默认图片
 const defaultImage = 'https://via.placeholder.com/100x100?text=故事'
 
@@ -90,7 +96,7 @@ const renderedContent = computed(() => {
 
 // 点赞故事
 const likeStory = async () => {
-  if (!currentUserId.value) {
+  if (!isLoggedIn.value || !userInfo.value?.id) {
     ElMessage.warning('请先登录')
     return
   }
@@ -99,11 +105,11 @@ const likeStory = async () => {
   
   try {
     if (isLiked.value) {
-      await unlikeStoryAPI(story.value.id, currentUserId.value)
+      await unlikeStoryAPI(story.value.id, userInfo.value.id)
       isLiked.value = false
       likeCount.value--
     } else {
-      await likeStoryAPI(story.value.id, currentUserId.value)
+      await likeStoryAPI(story.value.id, userInfo.value.id)
       isLiked.value = true
       likeCount.value++
     }
@@ -120,7 +126,7 @@ const shareStory = () => {
 
 // 收藏故事
 const collectStory = async () => {
-  if (!currentUserId.value) {
+  if (!isLoggedIn.value || !userInfo.value?.id) {
     ElMessage.warning('请先登录')
     return
   }
@@ -129,11 +135,11 @@ const collectStory = async () => {
   
   try {
     if (isCollected.value) {
-      await unfavoriteStoryAPI(story.value.id, currentUserId.value)
+      await unfavoriteStoryAPI(story.value.id, userInfo.value.id)
       isCollected.value = false
       ElMessage.success('已取消收藏')
     } else {
-      await favoriteStoryAPI(story.value.id, currentUserId.value)
+      await favoriteStoryAPI(story.value.id, userInfo.value.id)
       isCollected.value = true
       ElMessage.success('已收藏')
     }
@@ -152,16 +158,35 @@ const viewRelatedStory = (id: number) => {
 const fetchStoryDetail = async () => {
   try {
     const storyId = parseInt(route.params.id as string)
-    const response = await getStoryDetail(storyId, currentUserId.value || undefined)
+    const response = await getStoryDetail(storyId)
     story.value = response.data as StoryVO
     
     if (story.value) {
-      // 从响应中获取点赞状态和点赞数
-      isLiked.value = story.value.liked || false
-      likeCount.value = story.value.likes
+      // 总是获取点赞数量（无需认证）
+      try {
+        const likeCountRes = await getStoryLikeCount(storyId)
+        likeCount.value = likeCountRes.data || 0
+      } catch (e) {
+        likeCount.value = 0
+      }
       
-      // 从响应中获取收藏状态
-      isCollected.value = story.value.favorited || false
+      // 只有登录用户才能从数据库查询是否已点赞或收藏
+      if (isLoggedIn.value) {
+        try {
+          const likedRes = await isStoryLiked(storyId)
+          isLiked.value = likedRes.data || false
+          const favoritedRes = await isStoryFavorited(storyId)
+          isCollected.value = favoritedRes.data || false
+        } catch (e) {
+          console.error('查询用户状态失败:', e)
+          isLiked.value = false
+          isCollected.value = false
+        }
+      } else {
+        // 未登录时重置状态
+        isLiked.value = false
+        isCollected.value = false
+      }
       
       // 获取所有故事用于显示相关故事
       const allStoriesResponse = await getAllStories()
@@ -176,26 +201,40 @@ const fetchStoryDetail = async () => {
   }
 }
 
-onMounted(() => {
-  // 从localStorage获取当前用户ID
-  const userInfo = localStorage.getItem('userInfo')
-  console.log('localStorage userInfo:', userInfo)
+// 更新点赞和收藏状态（仅当登录时）
+const updateLikeAndFavoriteStatus = async () => {
+  if (!story.value) return
+  const storyId = story.value.id
   
-  if (userInfo) {
+  if (isLoggedIn.value) {
     try {
-      const user = JSON.parse(userInfo)
-      console.log('解析后的用户信息:', user)
-      currentUserId.value = user.id || user.userId
-      console.log('当前用户ID:', currentUserId.value)
+      const likedRes = await isStoryLiked(storyId)
+      isLiked.value = likedRes.data || false
+      const favoritedRes = await isStoryFavorited(storyId)
+      isCollected.value = favoritedRes.data || false
     } catch (e) {
-      console.error('解析用户信息失败:', e)
+      console.error('查询用户状态失败:', e)
+      isLiked.value = false
+      isCollected.value = false
     }
   } else {
-    console.warn('localStorage中没有userInfo')
+    // 未登录时重置状态
+    isLiked.value = false
+    isCollected.value = false
   }
-  
+}
+
+onMounted(() => {
   fetchStoryDetail()
+  updateLikeAndFavoriteStatus()
 })
+
+// 监听登录状态变化，重新查询点赞和收藏状态
+watch(() => isLoggedIn.value, (newVal) => {
+  if (story.value) {
+    updateLikeAndFavoriteStatus()
+  }
+}, { immediate: false })
 </script>
 
 <style scoped>

@@ -79,3 +79,43 @@ export function unfavoriteStory(id: number, userId: number): Promise<ApiResponse
     params: { userId }
   })
 }
+
+/**
+ * 获取故事点赞数量（无需认证）
+ */
+export function getStoryLikeCount(id: number): Promise<ApiResponse<number>> {
+  return request({
+    url: `/story/${id}/like/count`,
+    method: 'get'
+  })
+}
+
+/**
+ * 获取故事收藏数量（无需认证）
+ */
+export function getStoryFavoriteCount(id: number): Promise<ApiResponse<number>> {
+  return request({
+    url: `/story/${id}/favorite/count`,
+    method: 'get'
+  })
+}
+
+/**
+ * 检查用户是否已点赞故事（需要认证）
+ */
+export function isStoryLiked(id: number): Promise<ApiResponse<boolean>> {
+  return request({
+    url: `/story/${id}/like/check`,
+    method: 'get'
+  })
+}
+
+/**
+ * 检查用户是否已收藏故事（需要认证）
+ */
+export function isStoryFavorited(id: number): Promise<ApiResponse<boolean>> {
+  return request({
+    url: `/story/${id}/favorite/check`,
+    method: 'get'
+  })
+}
