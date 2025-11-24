@@ -66,3 +66,14 @@ export function getRecommendedPets(limit: number = 6): Promise<ApiResponse<Pet[]
   })
 }
 
+/**
+ * 获取随机宠物图片列表（后端已随机处理）
+ */
+export function getRandomPetImages(limit: number = 6): Promise<ApiResponse<string[]>> {
+  return request({
+    url: '/pet/images/random',
+    method: 'get',
+    params: { limit }
+  })
+}
+

@@ -151,8 +151,9 @@
       </template>
 
       <el-space wrap :size="15">
-        <el-image v-for="n in 6" :key="n" :src="`https://via.placeholder.com/200x200?text=照片${n}`"
-          :preview-src-list="galleryImages" :initial-index="n - 1" fit="cover" class="gallery-image" lazy />
+        <!-- 只显示随机宠物图片（不包括当前宠物的图片） -->
+        <el-image v-for="(image, index) in randomPetImages.slice(0, 6)" :key="`random-${index}`" :src="image"
+          fit="cover" class="gallery-image" lazy @click="() => { imageViewerIndex = index; imageViewerVisible = true }" />
       </el-space>
     </el-card>
 
@@ -190,6 +191,18 @@
       </el-button>
     </el-empty>
   </div>
+
+  <!-- 图片预览器 -->
+  <div v-if="imageViewerVisible && allGalleryImages.length > 0" class="image-viewer-overlay" @click="imageViewerVisible = false">
+    <div class="image-viewer-container" @click.stop>
+      <button class="close-btn" @click="imageViewerVisible = false">
+        <el-icon :size="24">
+          <Close />
+        </el-icon>
+      </button>
+      <img :src="allGalleryImages[imageViewerIndex]" :alt="`图片 ${imageViewerIndex + 1}`" class="viewer-image" />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -197,8 +210,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
-import { Star, CirclePlus, Document, Service, Share, ArrowLeft } from '@element-plus/icons-vue'
-import { getPetDetail } from '@/api/pet'
+import { Star, CirclePlus, Document, Service, Share, ArrowLeft, Close, Loading, Grid, Clock, User, MagicStick, Warning, Picture, QuestionFilled } from '@element-plus/icons-vue'
+import { getPetDetail, getRandomPetImages } from '@/api/pet'
 import { addPetFavorite, removePetFavorite, isPetFavorited, getPetFavoriteCount } from '@/api/favorite'
 import { likePet, unlikePet, isPetLiked, getPetLikeCount } from '@/api/like'
 import type { Pet } from '@/types'
@@ -220,6 +233,17 @@ const galleryImages = ref([
   'https://via.placeholder.com/800x600?text=照片5',
   'https://via.placeholder.com/800x600?text=照片6'
 ])
+
+// 随机推荐宠物
+const recommendedPets = ref<Pet[]>([])
+const randomPetImages = ref<string[]>([])
+
+// 图片预览
+const imageViewerVisible = ref(false)
+const imageViewerIndex = ref(0)
+const allGalleryImages = computed(() => {
+  return randomPetImages.value
+})
 
 const adoptionNotices = ref([
   {
@@ -322,6 +346,17 @@ const favored = ref(false)
 const liked = ref(false)
 const favoriteCount = ref(0)
 const likeCount = ref(0)
+
+// 获取随机宠物图片
+const fetchRandomPetImages = async () => {
+  try {
+    const response = await getRandomPetImages(6)
+    randomPetImages.value = response.data || []
+    console.log('✅ 获取随机宠物图片成功，共', randomPetImages.value.length, '张')
+  } catch (error) {
+    console.error('❌ 获取随机宠物图片失败:', error)
+  }
+}
 
 const fetchPetDetail = async () => {
   const petId = parseInt(route.params.id as string)
@@ -475,8 +510,18 @@ const updateLikeAndFavoriteStatus = async () => {
 }
 
 onMounted(() => { 
+  fetchRandomPetImages()
   fetchPetDetail()
 })
+
+// 监听路由参数变化，当宠物ID改变时重新加载数据
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    console.log('🔄 宠物ID变化，重新加载数据:', newId)
+    fetchRandomPetImages()
+    fetchPetDetail()
+  }
+}, { immediate: false })
 
 // 监听登录状态变化，重新查询点赞和收藏状态
 watch(() => isLoggedIn.value, (newVal) => {
@@ -592,6 +637,69 @@ watch(() => isLoggedIn.value, (newVal) => {
 .gallery-image:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 图片预览器样式 */
+.image-viewer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.image-viewer-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.viewer-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s;
+  z-index: 2001;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .pet-not-found {

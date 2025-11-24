@@ -32,19 +32,19 @@
                 <el-icon>
                   <Message />
                 </el-icon>
-                <span>邮箱: adopt@petlove.com</span>
+                <span>邮箱: linyyccc@gmail.com</span>
               </div>
               <div class="contact-item">
                 <el-icon>
                   <Iphone />
                 </el-icon>
-                <span>电话: 400-123-4567</span>
+                <span>电话: 1306318xxxx</span>
               </div>
               <div class="contact-item">
                 <el-icon>
                   <Location />
                 </el-icon>
-                <span>地址: 北京市朝阳区宠物街1号</span>
+                <span>地址: 福建省漳州市东山县宠物街1号</span>
               </div>
             </el-space>
           </div>

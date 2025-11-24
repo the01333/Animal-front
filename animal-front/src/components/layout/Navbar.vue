@@ -29,12 +29,12 @@
       <div class="nav-right">
         <template v-if="isLoggedIn">
           <el-dropdown trigger="hover" @command="handleUserCommand">
-            <span class="user-entry">
+            <div class="user-entry">
               <el-avatar :size="32" :src="userAvatar">
                 <UserFilled />
               </el-avatar>
               <span class="user-name">{{ displayName }}</span>
-            </span>
+            </div>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">
@@ -306,10 +306,19 @@ function getSliderPosition(): number {
   color: #666;
   font-weight: 500;
   transition: all 0.3s;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .user-entry:hover {
   color: #ff8c42;
+}
+
+.user-entry:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 .user-name {
@@ -318,6 +327,47 @@ function getSliderPosition(): number {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
+}
+
+/* 移除头像的边框和背景 */
+:deep(.el-avatar) {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-dropdown-selfdefine:focus .el-avatar) {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.user-entry .el-avatar) {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+}
+
+/* 移除 dropdown 触发器的焦点样式 */
+:deep(.el-dropdown-trigger:focus) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.el-dropdown-trigger:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 移除所有可能的边框 */
+:deep(.user-entry:focus-within) {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+:deep(.el-avatar img) {
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .auth-btn {
