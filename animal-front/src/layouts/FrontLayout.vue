@@ -2,9 +2,9 @@
   <div class="front-layout">
     <Navbar />
     <main class="main-content">
-      <router-view v-slot="{ Component }">
+      <router-view v-slot="{ Component }" :key="$route.fullPath">
         <transition name="fade" mode="out-in">
-          <component :is="Component" />
+          <component :is="Component" :key="$route.fullPath" />
         </transition>
       </router-view>
     </main>

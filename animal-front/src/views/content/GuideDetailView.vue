@@ -84,11 +84,24 @@ const defaultImage = 'https://via.placeholder.com/100x100?text=指南'
 // 相关指南
 const relatedGuides = ref<GuideVO[]>([])
 
+// 宠物图片池
+const petImages = ref<string[]>([])
+
 // 渲染后的Markdown内容
 const renderedContent = computed(() => {
   if (!guide.value) return ''
   return marked(guide.value.content)
 })
+
+// 为指南分配随机宠物图片
+const assignPetImagesToGuides = (guides: GuideVO[]) => {
+  if (petImages.value.length === 0) return guides
+  
+  return guides.map(guide => ({
+    ...guide,
+    image: petImages.value[Math.floor(Math.random() * petImages.value.length)]
+  }))
+}
 
 // 点赞指南
 const likeGuide = async () => {
@@ -150,6 +163,27 @@ const viewRelatedGuide = (id: number) => {
   router.push(`/guide/${id}`)
 }
 
+// 获取宠物图片池
+const fetchPetImages = async () => {
+  try {
+    const response = await getPetList({ current: 1, size: 100 })
+    const pets = response.data?.records as Pet[] || []
+    
+    // 收集所有宠物的封面图片
+    const images: string[] = []
+    pets.forEach(pet => {
+      if (pet.coverImage) {
+        images.push(pet.coverImage)
+      }
+    })
+    
+    petImages.value = images
+    console.log('✅ 获取宠物图片成功，共', images.length, '张')
+  } catch (error) {
+    console.error('获取宠物图片失败:', error)
+  }
+}
+
 // 获取指南详情
 const fetchGuideDetail = async () => {
   try {
@@ -187,10 +221,12 @@ const fetchGuideDetail = async () => {
       // 获取所有指南用于显示相关指南
       const allGuidesResponse = await getAllGuides()
       const allGuides = allGuidesResponse.data as GuideVO[]
-      // 获取同分类的其他指南作为相关指南
-      relatedGuides.value = allGuides
-        .filter(g => g.category === guide.value?.category && g.id !== guide.value?.id)
-        .slice(0, 3)
+      // 获取所有其他指南作为相关指南（不限制数量）
+      let filteredGuides = allGuides
+        .filter(g => g.id !== guide.value?.id)
+      
+      // 为指南分配随机宠物图片
+      relatedGuides.value = assignPetImagesToGuides(filteredGuides)
     }
   } catch (error) {
     console.error('获取指南详情失败:', error)
@@ -221,7 +257,17 @@ const updateLikeAndFavoriteStatus = async () => {
 }
 
 onMounted(() => {
+  fetchPetImages()
   fetchGuideDetail()
+})
+
+// 监听路由参数变化，当指南ID变化时重新加载
+watch(() => route.params.id, () => {
+  // 滚动到页面顶部
+  window.scrollTo(0, 0)
+  // 重新加载指南详情
+  fetchGuideDetail()
+  updateLikeAndFavoriteStatus()
 })
 
 // 监听登录状态变化，重新查询点赞和收藏状态
@@ -345,8 +391,9 @@ watch(() => isLoggedIn.value, (newVal) => {
 
 .related-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0;
 }
 
 .related-item {
@@ -354,24 +401,34 @@ watch(() => isLoggedIn.value, (newVal) => {
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: all 0.3s ease;
+  background-color: white;
 }
 
 .related-item:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: #ff9800;
 }
 
 .related-item img {
   width: 100%;
   height: 120px;
   object-fit: cover;
+  display: block;
 }
 
 .related-item h4 {
-  padding: 0.5rem;
+  padding: 0.75rem;
   margin: 0;
   color: #333;
   font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.related-item:hover h4 {
+  color: #ff9800;
 }
 
 .guide-not-found {

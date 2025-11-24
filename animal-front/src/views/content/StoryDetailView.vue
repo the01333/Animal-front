@@ -88,11 +88,24 @@ const defaultImage = 'https://via.placeholder.com/100x100?text=故事'
 // 相关故事
 const relatedStories = ref<StoryVO[]>([])
 
+// 宠物图片池
+const petImages = ref<string[]>([])
+
 // 渲染后的Markdown内容
 const renderedContent = computed(() => {
   if (!story.value) return ''
   return marked(story.value.content)
 })
+
+// 为故事分配随机宠物图片
+const assignPetImagesToStories = (stories: StoryVO[]) => {
+  if (petImages.value.length === 0) return stories
+  
+  return stories.map(story => ({
+    ...story,
+    image: petImages.value[Math.floor(Math.random() * petImages.value.length)]
+  }))
+}
 
 // 点赞故事
 const likeStory = async () => {
@@ -154,6 +167,27 @@ const viewRelatedStory = (id: number) => {
   router.push(`/story/${id}`)
 }
 
+// 获取宠物图片池
+const fetchPetImages = async () => {
+  try {
+    const response = await getPetList({ current: 1, size: 100 })
+    const pets = response.data?.records as Pet[] || []
+    
+    // 收集所有宠物的封面图片
+    const images: string[] = []
+    pets.forEach(pet => {
+      if (pet.coverImage) {
+        images.push(pet.coverImage)
+      }
+    })
+    
+    petImages.value = images
+    console.log('✅ 获取宠物图片成功，共', images.length, '张')
+  } catch (error) {
+    console.error('获取宠物图片失败:', error)
+  }
+}
+
 // 获取故事详情
 const fetchStoryDetail = async () => {
   try {
@@ -191,10 +225,12 @@ const fetchStoryDetail = async () => {
       // 获取所有故事用于显示相关故事
       const allStoriesResponse = await getAllStories()
       const allStories = allStoriesResponse.data as StoryVO[]
-      // 获取其他故事作为相关故事
-      relatedStories.value = allStories
+      // 获取所有其他故事作为相关故事（不限制数量）
+      let filteredStories = allStories
         .filter(s => s.id !== story.value?.id)
-        .slice(0, 2)
+      
+      // 为故事分配随机宠物图片
+      relatedStories.value = assignPetImagesToStories(filteredStories)
     }
   } catch (error) {
     console.error('获取故事详情失败:', error)
@@ -225,6 +261,16 @@ const updateLikeAndFavoriteStatus = async () => {
 }
 
 onMounted(() => {
+  fetchPetImages()
+  fetchStoryDetail()
+  updateLikeAndFavoriteStatus()
+})
+
+// 监听路由参数变化，当故事ID变化时重新加载
+watch(() => route.params.id, () => {
+  // 滚动到页面顶部
+  window.scrollTo(0, 0)
+  // 重新加载故事详情
   fetchStoryDetail()
   updateLikeAndFavoriteStatus()
 })
@@ -339,8 +385,9 @@ watch(() => isLoggedIn.value, (newVal) => {
 
 .related-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0;
 }
 
 .related-item {
@@ -348,24 +395,34 @@ watch(() => isLoggedIn.value, (newVal) => {
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: all 0.3s ease;
+  background-color: white;
 }
 
 .related-item:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: #ff9800;
 }
 
 .related-item img {
   width: 100%;
   height: 120px;
   object-fit: cover;
+  display: block;
 }
 
 .related-item h4 {
-  padding: 0.5rem;
+  padding: 0.75rem;
   margin: 0;
   color: #333;
   font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.related-item:hover h4 {
+  color: #ff9800;
 }
 
 .story-not-found {

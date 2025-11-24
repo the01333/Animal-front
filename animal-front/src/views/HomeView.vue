@@ -27,7 +27,7 @@
               </el-icon>
               <span>领养指南</span>
             </el-button>
-            <el-button class="hero-btn hero-btn-warning" size="large" @click="$router.push('/ai-chat')">
+            <el-button class="hero-btn hero-btn-warning" size="large" @click="openAIChatWidget">
               <el-icon>
                 <ChatDotRound />
               </el-icon>
@@ -242,6 +242,7 @@ import { ElMessage } from 'element-plus'
 import { Search, Reading, ChatDotRound, ArrowRight, View, Star, List, Sunny, Orange, Calendar } from '@element-plus/icons-vue'
 import { Reading as ReadingIcon, Document, UserFilled, ChatLineRound, CircleCheck, CircleCheckFilled } from '@element-plus/icons-vue'
 import { getRecommendedPets } from '@/api/pet'
+import { getAllStories } from '@/api/story'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -354,23 +355,48 @@ onMounted(async () => {
   }
   
   loadFeaturedPets()
+  loadStories()
 })
 
-// TODO: 暂时写死，后续对接接口
-const stories = ref([
-  {
-    id: 1,
-    title: '小黑的幸福新家',
-    excerpt: '曾经流浪街头的小黑，如今有了温暖的家和爱它的主人。每天早晨，它都会在主人床边撒娇，陪伴主人度过美好的时光...',
-    image: 'http://localhost:9000/animal-adopt/救助1.png'
-  },
-  {
-    id: 2,
-    title: '从救助站到家庭',
-    excerpt: '志愿者如何帮助一只受伤的狗狗找到永久家庭。经过数月的悉心照料和康复训练，它终于迎来了属于自己的温暖家庭...',
-    image: 'http://localhost:9000/animal-adopt/救助2.png'
+// 故事数据
+const stories = ref<any[]>([])
+
+// 加载故事 - 随机获取两篇
+async function loadStories() {
+  try {
+    console.log('📝 开始加载故事...')
+    const res = await getAllStories()
+    console.log('📝 故事API响应:', res)
+    
+    if (res.code === 200 && res.data) {
+      const allStories = res.data as any[]
+      console.log('📝 获取到故事总数:', allStories.length)
+      
+      if (allStories.length === 0) {
+        console.warn('⚠️ 没有故事数据')
+        return
+      }
+      
+      // 随机打乱故事列表
+      const shuffled = [...allStories].sort(() => Math.random() - 0.5)
+      
+      // 取前两个故事
+      stories.value = shuffled.slice(0, 2).map(story => ({
+        id: story.id,
+        title: story.title,
+        excerpt: story.excerpt || story.content?.substring(0, 100) || '',
+        image: story.image || 'http://localhost:9000/animal-adopt/救助1.png'
+      }))
+      
+      console.log('✅ 随机加载故事成功，共', stories.value.length, '篇:', stories.value)
+    } else {
+      console.error('❌ API返回错误:', res)
+    }
+  } catch (error) {
+    console.error('❌ 加载故事失败:', error)
+    // 加载失败不影响首页显示
   }
-])
+}
 
 const adoptionSteps = ref([
   {
@@ -442,6 +468,13 @@ function getStatusText(status: string) {
     adopted: '已领养'
   }
   return textMap[status] || status
+}
+
+// 打开AI聊天小窗口
+function openAIChatWidget() {
+  // 触发全局事件或直接修改状态来打开AI聊天窗口
+  const event = new CustomEvent('openAIChat')
+  window.dispatchEvent(event)
 }
 </script>
 

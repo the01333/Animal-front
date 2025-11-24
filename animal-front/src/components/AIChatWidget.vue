@@ -473,6 +473,15 @@ onMounted(async () => {
       timestamp: Date.now()
     })
   }
+  
+  // 监听来自首页的打开事件
+  window.addEventListener('openAIChat', () => {
+    isExpanded.value = true
+    nextTick(() => {
+      scrollToBottom()
+    })
+  })
+  
   // 初始化时不自动打开
 })
 </script>

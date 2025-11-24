@@ -169,9 +169,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { Search, RefreshLeft, Male, Female, Calendar, ScaleToOriginal, Star, View } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import { getPetList } from '@/api/pet'
@@ -180,6 +180,7 @@ import type { Pet, PetQuery } from '@/types'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const { isLoggedIn } = storeToRefs(userStore)
 
@@ -329,6 +330,14 @@ onMounted(() => {
   loadDictData()
   fetchPetList()
 })
+
+// 监听路由变化，当返回到列表页时重新加载数据
+watch(() => route.path, (newPath) => {
+  if (newPath === '/pets') {
+    console.log('🔄 返回宠物列表页，重新加载数据')
+    fetchPetList()
+  }
+}, { immediate: false })
 </script>
 
 <style scoped lang="scss">
