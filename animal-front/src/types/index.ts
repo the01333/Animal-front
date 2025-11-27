@@ -73,6 +73,7 @@ export interface Pet {
   personality?: string
   healthStatus: 'healthy' | 'sick' | 'injured' | 'recovering'
   adoptionStatus: 'available' | 'pending' | 'adopted'
+  adoptionStatusText?: string
   images?: string[]
   coverImage?: string
   location?: string
@@ -100,8 +101,10 @@ export interface AdoptionApplication {
   petName?: string
   petCoverImage?: string
   petCategory?: string
+  petCategoryText?: string
   petGender?: number
   petAdoptionStatus?: string
+  petAdoptionStatusText?: string
   userId: number
   applicantUsername?: string
   applicantNickname?: string
@@ -119,6 +122,7 @@ export interface AdoptionApplication {
   contactPhone?: string
   contactAddress?: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+  statusText?: string
   reviewComment?: string
   reviewTime?: string
   reviewerId?: number

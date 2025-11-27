@@ -3,10 +3,12 @@
     <el-card shadow="never">
       <template #header>
         <div class="card-header">
-          <span>认证审核</span>
+          <span>审核列表</span>
           <div class="header-actions">
             <el-button :loading="loading" type="primary" @click="fetchList">
-              <el-icon><Refresh /></el-icon>
+              <el-icon>
+                <Refresh />
+              </el-icon>
               刷新
             </el-button>
           </div>
@@ -33,11 +35,15 @@
           </el-col>
           <el-col :span="8" class="search-actions">
             <el-button type="primary" @click="handleSearch">
-              <el-icon><Search /></el-icon>
+              <el-icon>
+                <Search />
+              </el-icon>
               搜索
             </el-button>
             <el-button @click="handleReset">
-              <el-icon><RefreshLeft /></el-icon>
+              <el-icon>
+                <RefreshLeft />
+              </el-icon>
               重置
             </el-button>
           </el-col>
@@ -64,33 +70,18 @@
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleView(row)">详情</el-button>
-            <el-button
-              type="success"
-              link
-              @click="handleReview(row, 'approved')"
-              :disabled="row.status !== 'pending'"
-            >通过</el-button>
-            <el-button
-              type="danger"
-              link
-              @click="handleReview(row, 'rejected')"
-              :disabled="row.status !== 'pending'"
-            >拒绝</el-button>
+            <el-button type="success" link @click="handleReview(row, 'approved')"
+              :disabled="row.status !== 'pending'">通过</el-button>
+            <el-button type="danger" link @click="handleReview(row, 'rejected')"
+              :disabled="row.status !== 'pending'">拒绝</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <div class="pagination">
-        <el-pagination
-          background
-          layout="total, sizes, prev, pager, next, jumper"
-          :current-page="queryForm.current"
-          :page-size="queryForm.size"
-          :page-sizes="[10, 20, 30, 50]"
-          :total="total"
-          @current-change="handlePageChange"
-          @size-change="handleSizeChange"
-        />
+        <el-pagination background layout="total, sizes, prev, pager, next, jumper" :current-page="queryForm.current"
+          :page-size="queryForm.size" :page-sizes="[10, 20, 30, 50]" :total="total" @current-change="handlePageChange"
+          @size-change="handleSizeChange" />
       </div>
     </el-card>
 
@@ -115,48 +106,25 @@
       <div class="image-group" v-if="currentRecord">
         <div class="image-item">
           <div class="label">身份证正面</div>
-          <el-image
-            v-if="currentRecord.idCardFrontUrl"
-            :src="processImageUrl(currentRecord.idCardFrontUrl)"
-            fit="cover"
-            :preview-src-list="[processImageUrl(currentRecord.idCardFrontUrl)]"
-          />
+          <el-image v-if="currentRecord.idCardFrontUrl" :src="processImageUrl(currentRecord.idCardFrontUrl)" fit="cover"
+            :preview-src-list="[processImageUrl(currentRecord.idCardFrontUrl)]" />
           <div v-else class="placeholder">暂无图片</div>
         </div>
         <div class="image-item">
           <div class="label">身份证反面</div>
-          <el-image
-            v-if="currentRecord.idCardBackUrl"
-            :src="processImageUrl(currentRecord.idCardBackUrl)"
-            fit="cover"
-            :preview-src-list="[processImageUrl(currentRecord.idCardBackUrl)]"
-          />
+          <el-image v-if="currentRecord.idCardBackUrl" :src="processImageUrl(currentRecord.idCardBackUrl)" fit="cover"
+            :preview-src-list="[processImageUrl(currentRecord.idCardBackUrl)]" />
           <div v-else class="placeholder">暂无图片</div>
         </div>
       </div>
     </el-drawer>
 
-    <el-dialog
-      v-model="reviewDialogVisible"
-      :title="reviewForm.status === 'approved' ? '通过认证' : '拒绝认证'"
-      width="420px"
-    >
+    <el-dialog v-model="reviewDialogVisible" :title="reviewForm.status === 'approved' ? '通过认证' : '拒绝认证'" width="420px">
       <el-form :model="reviewForm" label-width="80px">
         <el-form-item v-if="reviewForm.status === 'rejected'" label="拒绝原因">
-          <el-input
-            v-model="reviewForm.rejectReason"
-            type="textarea"
-            rows="4"
-            placeholder="请输入拒绝原因"
-          />
+          <el-input v-model="reviewForm.rejectReason" type="textarea" rows="4" placeholder="请输入拒绝原因" />
         </el-form-item>
-        <el-alert
-          v-else
-          type="success"
-          show-icon
-          :closable="false"
-          title="确认通过该用户的认证申请吗？"
-        />
+        <el-alert v-else type="success" show-icon :closable="false" title="确认通过该用户的认证申请吗？" />
       </el-form>
       <template #footer>
         <el-button @click="reviewDialogVisible = false">取消</el-button>

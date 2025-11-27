@@ -1,44 +1,3 @@
-.pet-details h3 {
-  margin: 0 0 0.35rem;
-  color: #111827;
-  font-size: 1.2rem;
-}
-
-.pet-details p {
-  margin: 0;
-  color: #6b7280;
-  font-size: 0.95rem;
-}
-
-.pet-details span {
-  display: inline-block;
-  margin-top: 0.25rem;
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.pet-details .status-available {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
-}
-
-.pet-details .status-pending {
-  background: rgba(245, 158, 11, 0.16);
-  color: #92400e;
-}
-
-.pet-details .status-adopted {
-  background: rgba(156, 163, 175, 0.22);
-  color: #374151;
-}
-
-.pet-details .status-unknown {
-  background: rgba(148, 163, 184, 0.25);
-  color: #475569;
-}
-
 <template>
   <div class="apply-container">
     <div class="apply-header">
@@ -155,14 +114,18 @@
               <label>家庭成员：</label>
               <div class="family-members">
                 <div v-for="(member, index) in applicationForm.familyMembers" :key="index" class="member-item">
-                  <input v-model="member.name" type="text" placeholder="姓名" required />
-                  <input v-model.number="member.age" type="number" placeholder="年龄" min="0" required />
-                  <button type="button" class="btn-remove" @click="removeFamilyMember(index)"
-                    :disabled="applicationForm.familyMembers.length === 1">
+                  <div class="member-fields">
+                    <input v-model="member.name" type="text" placeholder="姓名" required />
+                    <input v-model.number="member.age" type="number" placeholder="年龄" min="0" required />
+                  </div>
+                  <button v-if="applicationForm.familyMembers.length > 1 && index > 0" type="button" class="btn-remove"
+                    @click="removeFamilyMember(index)">
                     删除
                   </button>
                 </div>
-                <button type="button" class="btn-add-member" @click="addFamilyMember">添加家庭成员</button>
+                <div class="family-members-actions">
+                  <button type="button" class="btn-add-member" @click="addFamilyMember">+ 添加家庭成员</button>
+                </div>
               </div>
             </div>
 
@@ -175,69 +138,97 @@
 
         <!-- 步骤 3 -->
         <div v-if="currentStep === 3" class="form-step experience-step">
-          <h2>养宠经验</h2>
-          <form @submit.prevent="nextStep">
-            <div class="form-group">
-              <label for="hasPetExperience">是否有养宠经验：</label>
-              <select id="hasPetExperience" v-model="applicationForm.hasPetExperience" required>
-                <option value="">请选择</option>
-                <option value="yes">是</option>
-                <option value="no">否</option>
-              </select>
+          <div class="experience-header">
+            <div>
+              <h2>养宠经验</h2>
+              <p>告诉我们您对宠物的了解与准备程度，有助于评估是否匹配这只毛孩子。</p>
             </div>
-
-            <div v-if="applicationForm.hasPetExperience === 'yes'" class="form-group">
-              <label for="currentPets">目前饲养的宠物：</label>
-              <textarea id="currentPets" v-model="applicationForm.currentPets" rows="3"
-                placeholder="请描述您目前饲养的宠物情况"></textarea>
+            <span class="experience-badge">Step 3 / 养护计划</span>
+          </div>
+          <form @submit.prevent="nextStep" class="experience-layout">
+            <div class="experience-side-card">
+              <h3>填写指南</h3>
+              <p>建议尽量具体描述，能加分的常见内容：</p>
+              <ul>
+                <li>过往照料经历与心得</li>
+                <li>对饮食、医疗、陪伴的计划</li>
+                <li>家庭支持情况与时间安排</li>
+              </ul>
             </div>
+            <div class="experience-fields">
+              <div class="form-group inline">
+                <label for="hasPetExperience">是否有养宠经验：</label>
+                <select id="hasPetExperience" v-model="applicationForm.hasPetExperience" required>
+                  <option value="">请选择</option>
+                  <option value="yes">是</option>
+                  <option value="no">否</option>
+                </select>
+              </div>
 
-            <div class="form-group">
-              <label for="petKnowledge">对宠物知识的了解：</label>
-              <textarea id="petKnowledge" v-model="applicationForm.petKnowledge" rows="3"
-                placeholder="请描述您对宠物饲养、健康、行为等方面的知识了解" required></textarea>
-            </div>
+              <div v-if="applicationForm.hasPetExperience === 'yes'" class="form-group">
+                <label for="currentPets">目前饲养的宠物：</label>
+                <textarea id="currentPets" v-model="applicationForm.currentPets" rows="3"
+                  placeholder="请描述宠物品种、性格、照料频次等情况"></textarea>
+              </div>
 
-            <div class="form-group">
-              <label for="reason">申请领养的原因：</label>
-              <textarea id="reason" v-model="applicationForm.reason" rows="3" placeholder="请详细说明您申请领养这只宠物的原因"
-                required></textarea>
-            </div>
+              <div class="form-group">
+                <label for="petKnowledge">对宠物知识的了解：</label>
+                <textarea id="petKnowledge" v-model="applicationForm.petKnowledge" rows="3"
+                  placeholder="例如：疫苗驱虫、饮食搭配、行为训练等" required></textarea>
+              </div>
 
-            <div class="step-actions">
-              <button type="button" class="btn-prev" @click="prevStep">上一步</button>
-              <button type="submit" class="btn-next">下一步</button>
+              <div class="form-group">
+                <label for="reason">申请领养的原因：</label>
+                <textarea id="reason" v-model="applicationForm.reason" rows="3"
+                  placeholder="分享您选择这只宠物的原因，以及未来生活规划" required></textarea>
+              </div>
+
+              <div class="step-actions">
+                <button type="button" class="btn-prev" @click="prevStep">上一步</button>
+                <button type="submit" class="btn-next">下一步</button>
+              </div>
             </div>
           </form>
         </div>
 
         <!-- 步骤 4 -->
-        <div v-if="currentStep === 4" class="form-step">
-          <h2>承诺与协议</h2>
+        <div v-if="currentStep === 4" class="form-step agreement-step">
           <div class="agreement-content">
-            <h3>领养承诺书</h3>
-            <div class="agreement-text">
-              <p>我承诺：</p>
-              <ol>
-                <li>我会为宠物提供安全、舒适的生活环境。</li>
-                <li>我会按时为宠物接种疫苗并定期体检。</li>
-                <li>我会善待宠物，绝不虐待或遗弃。</li>
-                <li>如因特殊原因无法继续饲养，我会联系救助站协助处理。</li>
-                <li>我会遵守相关法律法规，文明养宠。</li>
-              </ol>
-              <p>我理解：</p>
-              <ol>
-                <li>领养是严肃的承诺，需要长期责任。</li>
-                <li>救助站有权对领养申请进行审核。</li>
-                <li>如发现违反承诺的行为，救助站有权收回宠物。</li>
-              </ol>
+            <div class="agreement-hero">
+              <div class="agreement-icon">🤝</div>
+              <div>
+                <p class="agreement-eyebrow">Step 4 / 守护承诺</p>
+                <h2>承诺与协议</h2>
+                <p>请认真阅读以下条款，确保您与家人都已做好长期守护这只毛孩子的准备。</p>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="applicationForm.agreeAgreement" required />
-                我已阅读并同意以上领养承诺书
-              </label>
+            <div class="agreement-columns">
+              <div class="agreement-box">
+                <h3>我承诺</h3>
+                <ol>
+                  <li>我会为宠物提供安全、舒适的生活环境。</li>
+                  <li>我会按时为宠物接种疫苗并定期体检。</li>
+                  <li>我会善待宠物，绝不虐待或遗弃。</li>
+                  <li>如因特殊原因无法继续饲养，我会联系救助站协助处理。</li>
+                  <li>我会遵守相关法律法规，文明养宠。</li>
+                </ol>
+              </div>
+              <div class="agreement-box">
+                <h3>我理解</h3>
+                <ol>
+                  <li>领养是严肃的承诺，需要长期责任。</li>
+                  <li>救助站有权对领养申请进行审核。</li>
+                  <li>如发现违反承诺的行为，救助站有权收回宠物。</li>
+                </ol>
+              </div>
             </div>
+            <div class="commitment-quote">
+              “每一次领养，都是对生命的再次托付。感谢你愿意伸出双手给予它新的家。”
+            </div>
+            <label class="checkbox-label agreement-check">
+              <input type="checkbox" v-model="applicationForm.agreeAgreement" required />
+              <span>我已阅读并同意以上领养承诺书</span>
+            </label>
           </div>
 
           <div class="step-actions">
@@ -282,6 +273,11 @@ interface FamilyMember {
   age: number | null
 }
 
+interface LivingTypeOption {
+  label: string
+  value: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
@@ -321,17 +317,35 @@ const steps = [
   { key: 'success', label: '提交完成' }
 ]
 
-const DEFAULT_LIVING_TYPES = [
+const REMOVED_LIVING_TYPE_VALUES = new Set(['other', 'school', 'kindergarten'])
+const REMOVED_LIVING_TYPE_LABELS = new Set(['其他', '学校', '幼儿园'])
+
+const filterLivingTypeItems = (list: LivingTypeOption[]) =>
+  list.filter(
+    (item) =>
+      item &&
+      !REMOVED_LIVING_TYPE_VALUES.has(item.value) &&
+      !REMOVED_LIVING_TYPE_LABELS.has(item.label)
+  )
+
+const DEFAULT_LIVING_TYPES: LivingTypeOption[] = filterLivingTypeItems([
   { label: '别墅/独栋', value: 'house' },
   { label: '公寓', value: 'apartment' },
-  { label: '宿舍', value: 'dormitory' },
-  { label: '其他', value: 'other' }
-]
+  { label: '宿舍', value: 'dormitory' }
+])
 const LIVING_TYPE_STORAGE_KEY = 'custom_living_types'
-const livingTypeOptions = ref([...DEFAULT_LIVING_TYPES])
+const livingTypeOptions = ref<LivingTypeOption[]>([...DEFAULT_LIVING_TYPES])
 const showAddLivingTypeInput = ref(false)
 const newLivingTypeName = ref('')
 const livingTypeError = ref('')
+
+const ensureLivingTypeValid = () => {
+  if (!applicationForm.value.livingType) return
+  const exists = livingTypeOptions.value.some((item) => item.value === applicationForm.value.livingType)
+  if (!exists) {
+    applicationForm.value.livingType = ''
+  }
+}
 
 const petImage = computed(() => {
   if (!pet.value) return defaultImage
@@ -400,7 +414,8 @@ const loadLivingTypeOptions = () => {
           merged.push(item)
         }
       })
-      livingTypeOptions.value = merged
+      livingTypeOptions.value = filterLivingTypeItems(merged)
+      ensureLivingTypeValid()
     }
   } catch (error) {
     console.warn('解析居住类型失败', error)
@@ -408,7 +423,9 @@ const loadLivingTypeOptions = () => {
 }
 
 const saveCustomLivingTypes = () => {
-  const custom = livingTypeOptions.value.filter((item) => !DEFAULT_LIVING_TYPES.find((def) => def.value === item.value))
+  const custom = filterLivingTypeItems(
+    livingTypeOptions.value.filter((item) => !DEFAULT_LIVING_TYPES.find((def) => def.value === item.value))
+  )
   localStorage.setItem(LIVING_TYPE_STORAGE_KEY, JSON.stringify(custom))
 }
 
@@ -435,7 +452,7 @@ const confirmAddLivingType = () => {
     livingTypeError.value = '该类型已存在'
     return
   }
-  livingTypeOptions.value.push({ label: name, value })
+  livingTypeOptions.value = filterLivingTypeItems([...livingTypeOptions.value, { label: name, value }])
   applicationForm.value.livingType = value
   saveCustomLivingTypes()
   cancelAddLivingType()
@@ -616,6 +633,47 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.pet-details h3 {
+  margin: 0 0 0.35rem;
+  color: #111827;
+  font-size: 1.2rem;
+}
+
+.pet-details p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.pet-details span {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pet-details .status-available {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.pet-details .status-pending {
+  background: rgba(245, 158, 11, 0.16);
+  color: #92400e;
+}
+
+.pet-details .status-adopted {
+  background: rgba(156, 163, 175, 0.22);
+  color: #374151;
+}
+
+.pet-details .status-unknown {
+  background: rgba(148, 163, 184, 0.25);
+  color: #475569;
+}
+
 .apply-container {
   max-width: 960px;
   margin: 0 auto;
@@ -848,33 +906,57 @@ onMounted(() => {
 }
 
 .living-step .family-members {
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border: 1px dashed rgba(15, 23, 42, 0.08);
   border-radius: 16px;
   padding: 1rem;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .living-step .member-item {
   display: flex;
+  align-items: flex-end;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  padding: 0.75rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 12px;
+  background: #f8fafc;
 }
 
-.living-step .btn-add-member,
+.living-step .member-fields {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.living-step .member-fields input {
+  flex: 1 1 150px;
+}
+
 .living-step .btn-remove {
   border-radius: 10px;
   font-weight: 500;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 0.5rem 1rem;
+}
+
+.living-step .family-members-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
 }
 
 .living-step .btn-add-member {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 0.55rem 1.3rem;
   background: #ecfdf5;
   color: #059669;
-}
-
-.living-step .btn-remove {
-  background: #fee2e2;
-  color: #b91c1c;
+  border: 1px dashed rgba(5, 150, 105, 0.5);
 }
 
 .living-step .step-actions {
@@ -882,14 +964,242 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-.living-step .btn-prev {
-  background: #f3f4f6;
-  color: #1f2937;
+.experience-step {
+  background: linear-gradient(180deg, #fffdf9 0%, #fff7ed 65%, #fff 100%);
+  border: 1px solid rgba(253, 230, 138, 0.55);
+  border-radius: 20px;
+  padding: 2.25rem;
+  box-shadow: 0 22px 50px rgba(217, 119, 6, 0.08);
 }
 
-.living-step .btn-next {
-  background: linear-gradient(135deg, #34d399, #059669);
-  box-shadow: 0 12px 30px rgba(5, 150, 105, 0.35);
+.experience-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.experience-header h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.5rem;
+  color: #b45309;
+}
+
+.experience-header p {
+  margin: 0;
+  color: #b45309;
+  font-size: 0.95rem;
+}
+
+.experience-badge {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  font-weight: 600;
+}
+
+.experience-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) 1fr;
+  gap: 1.5rem;
+}
+
+.experience-side-card {
+  background: #fffbeb;
+  border-radius: 18px;
+  padding: 1.25rem;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.experience-side-card h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+  color: #d97706;
+}
+
+.experience-side-card p {
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+  color: #b45309;
+}
+
+.experience-side-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #a16207;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.experience-fields .form-group {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.experience-fields .form-group + .form-group {
+  margin-top: 1rem;
+}
+
+.experience-fields .form-group label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #b45309;
+  font-weight: 600;
+}
+
+.experience-fields select,
+.experience-fields textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #fde68a;
+  padding: 0.75rem 0.85rem;
+  background: #fffdfa;
+  color: #78350f;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.experience-fields select:focus,
+.experience-fields textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  background: #fff;
+}
+
+.experience-fields textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.experience-fields .form-group.inline {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.experience-fields .form-group.inline label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.experience-fields .form-group.inline select {
+  flex: 1;
+}
+
+.experience-step .step-actions {
+  margin-top: 0.5rem;
+  justify-content: flex-end;
+}
+
+.agreement-step .agreement-content {
+  background: linear-gradient(180deg, #ffffff 0%, #eef2ff 90%);
+  border-radius: 20px;
+  padding: 2.25rem;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 18px 40px rgba(79, 70, 229, 0.08);
+}
+
+.agreement-hero {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px dashed rgba(99, 102, 241, 0.25);
+  margin-bottom: 1.5rem;
+}
+
+.agreement-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #eef2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.agreement-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  color: #6366f1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.agreement-hero h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.6rem;
+  color: #312e81;
+}
+
+.agreement-hero p {
+  margin: 0;
+  color: #4338ca;
+  font-size: 0.95rem;
+}
+
+.agreement-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+}
+
+.agreement-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.05);
+}
+
+.agreement-box h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+  color: #3730a3;
+}
+
+.agreement-box ol {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: #4c1d95;
+  line-height: 1.6;
+}
+
+.commitment-quote {
+  margin: 1.5rem 0 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+  font-style: italic;
+  text-align: center;
+}
+
+.agreement-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-weight: 600;
+  color: #312e81;
+}
+
+.agreement-check input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+}
+
+.agreement-step .step-actions {
+  margin-top: 1.25rem;
+  padding-top: 0.5rem;
 }
 
 .form-step-header {
@@ -991,13 +1301,15 @@ onMounted(() => {
 }
 
 .btn-prev {
-  background: #e5e7eb;
-  color: #374151;
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #e2e8f0;
 }
 
 .btn-next {
-  background: #42b983;
+  background: linear-gradient(135deg, #34d399, #059669);
   color: #fff;
+  box-shadow: 0 12px 30px rgba(5, 150, 105, 0.35);
 }
 
 .btn-submit {

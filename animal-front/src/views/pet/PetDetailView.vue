@@ -295,7 +295,7 @@ const statusType = computed(() => {
   const s = String(pet.value.adoptionStatus || '').toLowerCase()
   switch (s) {
     case 'available': return 'success'
-    case 'adopted': return 'info'
+    case 'adopted': return 'primary'
     case 'pending': return 'warning'
     default: return 'info'
   }
