@@ -205,7 +205,13 @@ const handlePasswordLogin = async () => {
           showSuccessTip('登录成功！正在跳转...')
           
           setTimeout(() => {
-            router.push('/')
+            // 获取重定向URL，如果没有则返回首页
+            const redirect = router.currentRoute.value.query.redirect as string
+            if (redirect) {
+              window.location.href = redirect
+            } else {
+              router.push('/')
+            }
           }, 1500)
         } else {
           ElMessage.error(response.data.message || '登录失败')
@@ -237,7 +243,15 @@ const handleCodeLogin = async () => {
           localStorage.setItem('token', resp.data.token)
           localStorage.setItem('userInfo', JSON.stringify(resp.data.userInfo))
           showSuccessTip('登录成功！正在跳转...')
-          setTimeout(() => { router.push('/') }, 1000)
+          setTimeout(() => {
+            // 获取重定向URL，如果没有则返回首页
+            const redirect = router.currentRoute.value.query.redirect as string
+            if (redirect) {
+              window.location.href = redirect
+            } else {
+              router.push('/')
+            }
+          }, 1000)
         } else {
           ElMessage.error(resp.message || '登录失败')
         }

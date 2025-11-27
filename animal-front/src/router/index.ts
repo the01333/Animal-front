@@ -4,6 +4,8 @@ import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import FrontLayout from '@/layouts/FrontLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import { startTokenCheck, stopTokenCheck } from '@/utils/tokenManager'
+import { startTokenRefresh, stopTokenRefresh } from '@/utils/tokenRefreshManager'
 
 // 前台路由
 const frontRoutes: RouteRecordRaw[] = [
@@ -149,6 +151,12 @@ const adminRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/user/UserListView.vue'),
         meta: { title: '用户列表' }
       },
+      {
+        path: 'user/certification',
+        name: 'admin-user-certification',
+        component: () => import('@/views/admin/user/CertificationListView.vue'),
+        meta: { title: '认证审核' }
+      },
       // 文章管理
       {
         path: 'article/list',
@@ -270,6 +278,21 @@ router.beforeEach((to, from, next) => {
   }
 
   next()
+})
+
+// 路由完成后的钩子
+router.afterEach((to, from) => {
+  const userStore = useUserStore()
+
+  // 如果用户已登录，启动Token检查和续约
+  if (userStore.isLoggedIn) {
+    startTokenCheck()
+    startTokenRefresh()
+  } else {
+    // 如果用户未登录，停止Token检查和续约
+    stopTokenCheck()
+    stopTokenRefresh()
+  }
 })
 
 export default router

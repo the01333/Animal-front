@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { ApiResponse, User, LoginForm, RegisterForm, PageResponse } from '@/types'
+import type { ApiResponse, User, LoginForm, RegisterForm, PageResponse, UserCertificationRecord } from '@/types'
 
 /**
  * 用户登录
@@ -30,6 +30,39 @@ export function getUserInfo(): Promise<ApiResponse<User>> {
   return request({
     url: '/user/info',
     method: 'get'
+  })
+}
+
+/**
+ * 验证Token是否有效
+ * 前端可以定期调用此接口检查Token是否过期
+ */
+export function verifyToken(): Promise<ApiResponse<{
+  valid: boolean
+  userId?: number
+  username?: string
+  role?: string
+}>> {
+  return request({
+    url: '/user/verify-token',
+    method: 'get'
+  })
+}
+
+/**
+ * Token续约接口
+ * 用户在线时调用此接口，自动续约Token的活跃时间
+ * 类似Redisson的分布式锁续约机制
+ */
+export function refreshToken(): Promise<ApiResponse<{
+  success: boolean
+  userId?: number
+  tokenTimeout?: number
+  message?: string
+}>> {
+  return request({
+    url: '/user/refresh-token',
+    method: 'post'
   })
 }
 
@@ -146,6 +179,37 @@ export function submitCertification(data: FormData): Promise<ApiResponse<void>> 
     headers: {
       'Content-Type': 'multipart/form-data'
     }
+  })
+}
+
+export function getCertificationList(params: {
+  current: number
+  size: number
+  status?: string
+  keyword?: string
+}): Promise<ApiResponse<PageResponse<UserCertificationRecord>>> {
+  return request({
+    url: '/user/certification/admin/list',
+    method: 'get',
+    params
+  })
+}
+
+export function getCertificationDetail(id: number): Promise<ApiResponse<UserCertificationRecord>> {
+  return request({
+    url: `/user/certification/admin/${id}`,
+    method: 'get'
+  })
+}
+
+export function reviewCertification(
+  id: number,
+  data: { status: 'approved' | 'rejected'; rejectReason?: string }
+): Promise<ApiResponse<void>> {
+  return request({
+    url: `/user/certification/admin/${id}/review`,
+    method: 'put',
+    data
   })
 }
 

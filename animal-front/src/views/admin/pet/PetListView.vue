@@ -29,6 +29,21 @@
         </el-form-item>
       </el-form>
 
+      <div v-if="activeFilters.length" class="active-filters">
+        <span class="label">已选择：</span>
+        <el-tag
+          v-for="filter in activeFilters"
+          :key="filter.key"
+          closable
+          type="info"
+          size="small"
+          @close="handleRemoveFilter(filter.key)"
+        >
+          {{ filter.label }}：{{ filter.value }}
+        </el-tag>
+        <el-button text type="primary" size="small" @click="handleReset">清空筛选</el-button>
+      </div>
+
       <!-- 操作按钮 -->
       <div class="toolbar">
         <el-button type="primary" :icon="Plus" @click="handleAdd">添加宠物</el-button>
@@ -125,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPetList, deletePet } from '@/api/pet'
 import { getAllDictData } from '@/api/dict'
@@ -153,6 +168,20 @@ const queryForm = reactive({
   adoptionStatus: '',
   current: 1,
   size: 10
+})
+
+const activeFilters = computed(() => {
+  const filters: Array<{ key: 'name' | 'category' | 'adoptionStatus'; label: string; value: string }> = []
+  if (queryForm.name) {
+    filters.push({ key: 'name', label: '关键词', value: queryForm.name })
+  }
+  if (queryForm.category) {
+    filters.push({ key: 'category', label: '类型', value: getCategoryText(queryForm.category) })
+  }
+  if (queryForm.adoptionStatus) {
+    filters.push({ key: 'adoptionStatus', label: '状态', value: getAdoptionStatusText(queryForm.adoptionStatus) })
+  }
+  return filters
 })
 
 // 加载字典数据

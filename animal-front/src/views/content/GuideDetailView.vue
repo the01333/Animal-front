@@ -3,29 +3,31 @@
     <div class="guide-header">
       <h1>{{ guide.title }}</h1>
       <div class="guide-meta">
-        <span class="meta-item">{{ guide.category }}</span>
+        <span class="meta-item">{{ guide.guideCategory || '通用' }}</span>
         <span class="meta-item">{{ guide.publishDate }}</span>
-        <span class="meta-item">阅读: {{ guide.views }}</span>
+        <span class="meta-item">阅读: {{ guide.viewCount ?? 0 }}</span>
+        <span class="meta-item">❤ {{ likeCount }}</span>
+        <span class="meta-item">★ {{ favoriteCount }}</span>
       </div>
     </div>
 
     <div class="guide-content">
-      <div class="content-image" v-if="guide.image">
-        <img :src="guide.image" :alt="guide.title" />
+      <div class="content-image" v-if="guideCoverImage">
+        <img :src="guideCoverImage" :alt="guide.title" />
       </div>
 
       <div class="content-text markdown-body" v-html="renderedContent"></div>
     </div>
 
     <div class="guide-actions">
-      <button @click="likeGuide" class="btn-like" :class="{ liked: isLiked }">
+      <button @click="likeGuideFn" class="btn-like" :class="{ liked: isLiked }">
         {{ isLiked ? '已点赞' : '点赞' }} ({{ likeCount }})
       </button>
       <button @click="shareGuide" class="btn-share">
         分享
       </button>
       <button @click="collectGuide" class="btn-collect" :class="{ collected: isCollected }">
-        {{ isCollected ? '已收藏' : '收藏' }}
+        {{ isCollected ? '已收藏' : '收藏' }} ({{ favoriteCount }})
       </button>
     </div>
 
@@ -33,8 +35,8 @@
       <h3>相关指南</h3>
       <div class="related-grid">
         <div v-for="related in relatedGuides" :key="related.id" class="related-item"
-          @click="viewRelatedGuide(related.id)">
-          <img :src="related.image || defaultImage" :alt="related.title" />
+          @click="viewRelatedGuide(related.id!)">
+          <img :src="formatCoverImage(related.coverImage, defaultImage)" :alt="related.title" />
           <h4>{{ related.title }}</h4>
         </div>
       </div>
@@ -53,16 +55,18 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
-import { getGuideDetail, getAllGuides, likeGuide as likeGuideAPI, unlikeGuide as unlikeGuideAPI, favoriteGuide as favoriteGuideAPI, unfavoriteGuide as unfavoriteGuideAPI, getGuideLikeCount, getGuideFavoriteCount, isGuideLiked, isGuideFavorited, type GuideVO } from '@/api/guide'
+import { getGuideDetail, getGuideList, likeGuide as likeGuideAPI, unlikeGuide as unlikeGuideAPI, favoriteGuide as favoriteGuideAPI, unfavoriteGuide as unfavoriteGuideAPI, isGuideLiked, isGuideFavorited } from '@/api/guide'
+import type { Article } from '@/types'
 import { marked } from 'marked'
 import { ElMessage } from 'element-plus'
+import { processImageUrl } from '@/utils/image'
 
 // 路由相关
 const route = useRoute()
 const router = useRouter()
 
 // 指南数据
-const guide = ref<GuideVO | null>(null)
+const guide = ref<Article | null>(null)
 
 // 当前用户ID
 const currentUserId = ref<number | null>(null)
@@ -73,16 +77,24 @@ const likeCount = ref(0)
 
 // 收藏状态
 const isCollected = ref(false)
+const favoriteCount = ref(0)
 
 // 获取用户登录状态和用户信息
 const userStore = useUserStore()
 const { isLoggedIn, userInfo } = storeToRefs(userStore)
 
 // 默认图片
-const defaultImage = 'https://via.placeholder.com/100x100?text=指南'
+const defaultImage = 'http://localhost:9000/animal-adopt/default.jpg'
+
+const formatCoverImage = (cover?: string | null, fallback = '') => {
+  const processed = processImageUrl(cover)
+  return processed || fallback
+}
+
+const guideCoverImage = computed(() => formatCoverImage(guide.value?.coverImage))
 
 // 相关指南
-const relatedGuides = ref<GuideVO[]>([])
+const relatedGuides = ref<Article[]>([])
 
 // 宠物图片池
 const petImages = ref<string[]>([])
@@ -96,7 +108,7 @@ const renderedContent = computed(() => {
 // 为指南分配随机宠物图片
 const assignPetImagesToGuides = (guides: GuideVO[]) => {
   if (petImages.value.length === 0) return guides
-  
+
   return guides.map(guide => ({
     ...guide,
     image: petImages.value[Math.floor(Math.random() * petImages.value.length)]
@@ -104,23 +116,23 @@ const assignPetImagesToGuides = (guides: GuideVO[]) => {
 }
 
 // 点赞指南
-const likeGuide = async () => {
-  if (!isLoggedIn.value || !userInfo.value?.id) {
+const likeGuideFn = async () => {
+  if (!isLoggedIn.value) {
     ElMessage.warning('请先登录')
     return
   }
-  
+
   if (!guide.value) return
-  
+
   try {
     if (isLiked.value) {
-      await unlikeGuideAPI(guide.value.id, userInfo.value.id)
+      await unlikeGuideAPI(guide.value.id!)
       isLiked.value = false
-      likeCount.value--
+      likeCount.value = Math.max(likeCount.value - 1, 0)
     } else {
-      await likeGuideAPI(guide.value.id, userInfo.value.id)
+      await likeGuideAPI(guide.value.id!)
       isLiked.value = true
-      likeCount.value++
+      likeCount.value += 1
     }
   } catch (error) {
     console.error('操作失败:', error)
@@ -135,21 +147,23 @@ const shareGuide = () => {
 
 // 收藏指南
 const collectGuide = async () => {
-  if (!isLoggedIn.value || !userInfo.value?.id) {
+  if (!isLoggedIn.value) {
     ElMessage.warning('请先登录')
     return
   }
-  
+
   if (!guide.value) return
-  
+
   try {
     if (isCollected.value) {
-      await unfavoriteGuideAPI(guide.value.id, userInfo.value.id)
+      await unfavoriteGuideAPI(guide.value.id!)
       isCollected.value = false
+      favoriteCount.value = Math.max(favoriteCount.value - 1, 0)
       ElMessage.success('已取消收藏')
     } else {
-      await favoriteGuideAPI(guide.value.id, userInfo.value.id)
+      await favoriteGuideAPI(guide.value.id!)
       isCollected.value = true
+      favoriteCount.value += 1
       ElMessage.success('已收藏')
     }
   } catch (error) {
@@ -168,7 +182,7 @@ const fetchPetImages = async () => {
   try {
     const response = await getPetList({ current: 1, size: 100 })
     const pets = response.data?.records as Pet[] || []
-    
+
     // 收集所有宠物的封面图片
     const images: string[] = []
     pets.forEach(pet => {
@@ -176,7 +190,7 @@ const fetchPetImages = async () => {
         images.push(pet.coverImage)
       }
     })
-    
+
     petImages.value = images
     console.log('✅ 获取宠物图片成功，共', images.length, '张')
   } catch (error) {
@@ -189,45 +203,14 @@ const fetchGuideDetail = async () => {
   try {
     const guideId = parseInt(route.params.id as string)
     const response = await getGuideDetail(guideId)
-    guide.value = response.data as GuideVO
-    
-    if (guide.value) {
-      // 总是获取点赞数量（无需认证）
-      try {
-        const likeCountRes = await getGuideLikeCount(guideId)
-        likeCount.value = likeCountRes.data || 0
-      } catch (e) {
-        likeCount.value = 0
-      }
-      
-      // 只有登录用户才能从数据库查询是否已点赞或收藏
-      if (isLoggedIn.value) {
-        try {
-          const likedRes = await isGuideLiked(guideId)
-          isLiked.value = likedRes.data || false
-          const favoritedRes = await isGuideFavorited(guideId)
-          isCollected.value = favoritedRes.data || false
-        } catch (e) {
-          console.error('查询用户状态失败:', e)
-          isLiked.value = false
-          isCollected.value = false
-        }
-      } else {
-        // 未登录时重置状态
-        isLiked.value = false
-        isCollected.value = false
-      }
-      
-      // 获取所有指南用于显示相关指南
-      const allGuidesResponse = await getAllGuides()
-      const allGuides = allGuidesResponse.data as GuideVO[]
-      // 获取所有其他指南作为相关指南（不限制数量）
-      let filteredGuides = allGuides
-        .filter(g => g.id !== guide.value?.id)
-      
-      // 为指南分配随机宠物图片
-      relatedGuides.value = assignPetImagesToGuides(filteredGuides)
-    }
+    guide.value = response.data as Article
+    likeCount.value = guide.value?.likeCount ?? 0
+    favoriteCount.value = guide.value?.favoriteCount ?? 0
+    isLiked.value = guide.value?.liked ?? false
+    isCollected.value = guide.value?.favorited ?? false
+
+    const relatedResponse = await getGuideList({ current: 1, size: 20 })
+    relatedGuides.value = (relatedResponse.data?.records || []).filter(g => g.id !== guide.value?.id)
   } catch (error) {
     console.error('获取指南详情失败:', error)
   }
@@ -236,8 +219,8 @@ const fetchGuideDetail = async () => {
 // 更新点赞和收藏状态（仅当登录时）
 const updateLikeAndFavoriteStatus = async () => {
   if (!guide.value) return
-  const guideId = guide.value.id
-  
+  const guideId = guide.value.id!
+
   if (isLoggedIn.value) {
     try {
       const likedRes = await isGuideLiked(guideId)
@@ -250,7 +233,6 @@ const updateLikeAndFavoriteStatus = async () => {
       isCollected.value = false
     }
   } else {
-    // 未登录时重置状态
     isLiked.value = false
     isCollected.value = false
   }
@@ -259,6 +241,7 @@ const updateLikeAndFavoriteStatus = async () => {
 onMounted(() => {
   fetchPetImages()
   fetchGuideDetail()
+  updateLikeAndFavoriteStatus()
 })
 
 // 监听路由参数变化，当指南ID变化时重新加载

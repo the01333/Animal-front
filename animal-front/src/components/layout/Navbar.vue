@@ -9,18 +9,30 @@
       </div>
 
       <div class="nav-center">
-        <div class="nav-capsule">
-          <div class="nav-slider" :style="{ left: `${getSliderPosition()}%` }"></div>
-          <div class="nav-link-item" :class="{ active: activeMenu === '/' }" @click="$router.push('/')">
+        <div class="nav-capsule" :class="{ 'profile-mode': isProfilePage }">
+          <div v-if="!isProfilePage" class="nav-slider" :style="{ left: `${getSliderPosition()}%` }"></div>
+          <div
+            class="nav-link-item"
+            :class="{ active: !isProfilePage && activeMenu === '/', 'profile-mode': isProfilePage }"
+            @click="$router.push('/')">
             首页
           </div>
-          <div class="nav-link-item" :class="{ active: activeMenu === '/pets' }" @click="$router.push('/pets')">
+          <div
+            class="nav-link-item"
+            :class="{ active: !isProfilePage && activeMenu === '/pets', 'profile-mode': isProfilePage }"
+            @click="$router.push('/pets')">
             领养列表
           </div>
-          <div class="nav-link-item" :class="{ active: activeMenu === '/guides' }" @click="$router.push('/guides')">
+          <div
+            class="nav-link-item"
+            :class="{ active: !isProfilePage && activeMenu === '/guides', 'profile-mode': isProfilePage }"
+            @click="$router.push('/guides')">
             领养指南
           </div>
-          <div class="nav-link-item" :class="{ active: activeMenu === '/stories' }" @click="$router.push('/stories')">
+          <div
+            class="nav-link-item"
+            :class="{ active: !isProfilePage && activeMenu === '/stories', 'profile-mode': isProfilePage }"
+            @click="$router.push('/stories')">
             领养故事
           </div>
         </div>
@@ -77,7 +89,12 @@ const route = useRoute()
 const userStore = useUserStore()
 const { isLoggedIn, userInfo } = storeToRefs(userStore)
 
+const isProfilePage = computed(() => route.path.startsWith('/profile'))
+
 const activeMenu = computed(() => {
+  if (isProfilePage.value) {
+    return ''
+  }
   const path = route.path
   
   // 根据路由路径判断应该高亮哪个菜单
@@ -228,6 +245,12 @@ function getSliderPosition(): number {
 
 .nav-link-item:hover:not(.active) {
   color: #ff8c42;
+}
+
+.nav-capsule.profile-mode {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .logo-item {

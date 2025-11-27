@@ -76,7 +76,7 @@ const props = defineProps<{
 
 const router = useRouter()
 
-const defaultImage = 'https://via.placeholder.com/300x200?text=宠物图片'
+const defaultImage = 'http://localhost:9000/animal-adopt/default.jpg'
 
 const statusText = computed(() => {
   switch (props.pet.status) {

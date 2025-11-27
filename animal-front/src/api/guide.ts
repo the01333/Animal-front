@@ -1,131 +1,48 @@
 import request from '@/utils/request'
-import type { ApiResponse } from '@/types'
+import type { ApiResponse, Article, PageResponse } from '@/types'
 
-export interface GuideVO {
-  id: number
-  title: string
-  excerpt: string
-  content: string
-  image?: string
-  category: string
-  views: number
-  publishDate: string
-  liked?: boolean
-  likeCount?: number
-  favorited?: boolean
-}
+const GUIDE = 'GUIDE'
 
-/**
- * 获取所有指南列表
- */
-export function getAllGuides(): Promise<ApiResponse<GuideVO[]>> {
+export function getGuideList(params: { current?: number; size?: number; keyword?: string }): Promise<ApiResponse<PageResponse<Article>>> {
   return request({
-    url: '/guide/list',
-    method: 'get'
-  })
-}
-
-/**
- * 根据ID获取指南详情
- */
-export function getGuideDetail(id: number, userId?: number): Promise<ApiResponse<GuideVO>> {
-  return request({
-    url: `/guide/${id}`,
+    url: '/content/page',
     method: 'get',
-    params: { userId }
+    params: {
+      ...params,
+      category: GUIDE,
+      current: params.current ?? 1,
+      size: params.size ?? 10
+    }
   })
 }
 
-/**
- * 根据分类获取指南列表
- */
-export function getGuidesByCategory(category: string): Promise<ApiResponse<GuideVO[]>> {
+export function getGuideDetail(id: number): Promise<ApiResponse<Article>> {
   return request({
-    url: `/guide/category/${category}`,
+    url: `/content/${GUIDE}/${id}`,
     method: 'get'
   })
 }
 
-/**
- * 点赞指南
- */
-export function likeGuide(id: number, userId: number): Promise<ApiResponse<void>> {
-  return request({
-    url: `/guide/${id}/like`,
-    method: 'post',
-    params: { userId }
-  })
+export function likeGuide(id: number): Promise<ApiResponse<void>> {
+  return request({ url: `/content/${GUIDE}/${id}/like`, method: 'post' })
 }
 
-/**
- * 取消点赞指南
- */
-export function unlikeGuide(id: number, userId: number): Promise<ApiResponse<void>> {
-  return request({
-    url: `/guide/${id}/like`,
-    method: 'delete',
-    params: { userId }
-  })
+export function unlikeGuide(id: number): Promise<ApiResponse<void>> {
+  return request({ url: `/content/${GUIDE}/${id}/like`, method: 'delete' })
 }
 
-/**
- * 收藏指南
- */
-export function favoriteGuide(id: number, userId: number): Promise<ApiResponse<void>> {
-  return request({
-    url: `/guide/${id}/favorite`,
-    method: 'post',
-    params: { userId }
-  })
+export function favoriteGuide(id: number): Promise<ApiResponse<void>> {
+  return request({ url: `/content/${GUIDE}/${id}/favorite`, method: 'post' })
 }
 
-/**
- * 取消收藏指南
- */
-export function unfavoriteGuide(id: number, userId: number): Promise<ApiResponse<void>> {
-  return request({
-    url: `/guide/${id}/favorite`,
-    method: 'delete',
-    params: { userId }
-  })
+export function unfavoriteGuide(id: number): Promise<ApiResponse<void>> {
+  return request({ url: `/content/${GUIDE}/${id}/favorite`, method: 'delete' })
 }
 
-/**
- * 获取指南点赞数量（无需认证）
- */
-export function getGuideLikeCount(id: number): Promise<ApiResponse<number>> {
-  return request({
-    url: `/guide/${id}/like/count`,
-    method: 'get'
-  })
-}
-
-/**
- * 获取指南收藏数量（无需认证）
- */
-export function getGuideFavoriteCount(id: number): Promise<ApiResponse<number>> {
-  return request({
-    url: `/guide/${id}/favorite/count`,
-    method: 'get'
-  })
-}
-
-/**
- * 检查用户是否已点赞指南（需要认证）
- */
 export function isGuideLiked(id: number): Promise<ApiResponse<boolean>> {
-  return request({
-    url: `/guide/${id}/like/check`,
-    method: 'get'
-  })
+  return request({ url: `/content/${GUIDE}/${id}/like/check`, method: 'get' })
 }
 
-/**
- * 检查用户是否已收藏指南（需要认证）
- */
 export function isGuideFavorited(id: number): Promise<ApiResponse<boolean>> {
-  return request({
-    url: `/guide/${id}/favorite/check`,
-    method: 'get'
-  })
+  return request({ url: `/content/${GUIDE}/${id}/favorite/check`, method: 'get' })
 }

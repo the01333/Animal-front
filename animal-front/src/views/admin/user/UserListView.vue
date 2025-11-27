@@ -20,6 +20,21 @@
         </el-form-item>
       </el-form>
 
+      <div v-if="activeFilters.length" class="active-filters">
+        <span class="label">已选择：</span>
+        <el-tag
+          v-for="filter in activeFilters"
+          :key="filter.key"
+          closable
+          type="info"
+          size="small"
+          @close="handleRemoveFilter(filter.key)"
+        >
+          {{ filter.label }}：{{ filter.value }}
+        </el-tag>
+        <el-button text type="primary" size="small" @click="handleReset">清空筛选</el-button>
+      </div>
+
       <!-- 数据表格 -->
       <el-table v-loading="loading" :data="tableData" stripe>
         <el-table-column prop="id" label="ID" width="80" />
@@ -85,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { getUserList, deleteUser, updateUserStatus } from '@/api/user'
 import type { User } from '@/types'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -101,6 +116,17 @@ const queryForm = reactive({
   role: '',
   current: 1,
   size: 10
+})
+
+const activeFilters = computed(() => {
+  const filters: Array<{ key: 'keyword' | 'role'; label: string; value: string }> = []
+  if (queryForm.keyword) {
+    filters.push({ key: 'keyword', label: '关键词', value: queryForm.keyword })
+  }
+  if (queryForm.role) {
+    filters.push({ key: 'role', label: '角色', value: getRoleText(queryForm.role) })
+  }
+  return filters
 })
 
 // 处理图片URL（移除@前缀，处理IP地址替换）
@@ -143,6 +169,15 @@ function handleSearch() {
 
 function handleReset() {
   Object.assign(queryForm, { keyword: '', role: '', current: 1, size: 10 })
+  fetchList()
+}
+
+function handleRemoveFilter(key: 'keyword' | 'role') {
+  if (key === 'role') {
+    queryForm.role = ''
+  } else {
+    queryForm.keyword = ''
+  }
   fetchList()
 }
 

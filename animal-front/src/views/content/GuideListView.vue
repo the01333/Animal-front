@@ -1,67 +1,45 @@
 <template>
   <div class="guide-list-container">
     <h1>领养指南</h1>
-    
+
     <div class="guide-categories">
-      <div 
-        v-for="category in categories" 
-        :key="category.id"
-        class="category-item"
-        :class="{ active: activeCategory === category.id }"
-        @click="handleCategoryChange(category.id)"
-      >
+      <div v-for="category in categories" :key="category.id" class="category-item"
+        :class="{ active: activeCategory === category.id }" @click="handleCategoryChange(category.id)">
         {{ category.name }}
       </div>
     </div>
-    
+
     <div class="guides-grid">
-      <div 
-        v-for="guide in filteredGuides" 
-        :key="guide.id" 
-        class="guide-card"
-        @click="viewGuide(guide.id)"
-      >
+      <div v-for="guide in guides" :key="guide.id" class="guide-card" @click="viewGuide(guide.id!)">
         <div class="guide-image">
-          <img :src="guide.image || defaultImage" :alt="guide.title" />
+          <img :src="guide.coverImage || defaultImage" :alt="guide.title" />
         </div>
         <div class="guide-content">
           <h3>{{ guide.title }}</h3>
-          <p>{{ guide.excerpt }}</p>
+          <p>{{ guide.summary }}</p>
           <div class="guide-meta">
-            <span class="meta-item">{{ guide.category }}</span>
+            <span class="meta-item">{{ guide.guideCategory || '通用' }}</span>
             <span class="meta-item">{{ guide.publishDate }}</span>
-            <span class="meta-item">阅读: {{ guide.views }}</span>
+            <span class="meta-item">阅读: {{ guide.viewCount ?? 0 }}</span>
+            <span class="meta-item">❤ {{ guide.likeCount ?? 0 }}</span>
+            <span class="meta-item">★ {{ guide.favoriteCount ?? 0 }}</span>
           </div>
         </div>
       </div>
     </div>
-    
+
     <div class="pagination">
-      <button 
-        @click="prevPage" 
-        :disabled="currentPage === 1"
-        class="btn-pagination"
-      >
-        上一页
-      </button>
-      <span class="page-info">
-        第 {{ currentPage }} 页，共 {{ totalPages }} 页
-      </span>
-      <button 
-        @click="nextPage" 
-        :disabled="currentPage === totalPages"
-        class="btn-pagination"
-      >
-        下一页
-      </button>
+      <el-pagination background layout="prev, pager, next" :total="totalItems" :page-size="itemsPerPage"
+        :current-page="currentPage" @current-change="handlePageChange" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
-import { getAllGuides, type GuideVO } from '@/api/guide'
+import { getGuideList } from '@/api/guide'
+import type { Article } from '@/types'
 import { ElMessage } from 'element-plus'
 
 // 指南分类
@@ -81,6 +59,7 @@ const activeCategory = ref('all')
 const handleCategoryChange = (categoryId: string) => {
   activeCategory.value = categoryId
   currentPage.value = 1
+  loadGuides()
 }
 
 // 分页数据
@@ -89,75 +68,57 @@ const itemsPerPage = ref(6)
 const totalItems = ref(0)
 
 // 默认图片
-const defaultImage = 'https://via.placeholder.com/300x200?text=指南'
+const defaultImage = 'http://localhost:9000/animal-adopt/default.jpg'
 
 // 当前用户ID
 const currentUserId = ref<number | null>(null)
 
 // 指南数据
-const guides = ref<GuideVO[]>([])
+const guides = ref<Article[]>([])
+const loading = ref(false)
 
 // 路由
 const router = useRouter()
 
+const buildGuideKeyword = () => {
+  const categoryName = categories.value.find(c => c.id === activeCategory.value)?.name
+  return activeCategory.value !== 'all' ? categoryName : ''
+}
+
 // 加载指南列表
 const loadGuides = async () => {
+  loading.value = true
   try {
-    const response = await getAllGuides()
-    guides.value = response.data as GuideVO[]
-    totalItems.value = guides.value.length
+    const keywords = []
+    const categoryKeyword = buildGuideKeyword()
+    if (categoryKeyword) keywords.push(categoryKeyword)
+    const response = await getGuideList({
+      current: currentPage.value,
+      size: itemsPerPage.value,
+      keyword: keywords.join(' ').trim() || undefined
+    })
+    guides.value = response.data?.records || []
+    totalItems.value = response.data?.total || 0
   } catch (error) {
     console.error('加载指南列表失败:', error)
     ElMessage.error('加载指南列表失败')
+  } finally {
+    loading.value = false
   }
 }
-
-// 计算总页数
-const totalPages = computed(() => {
-  return Math.ceil(totalItems.value / itemsPerPage.value)
-})
-
-// 过滤后的指南列表
-const filteredGuides = computed(() => {
-  let result = guides.value
-  
-  // 分类过滤
-  if (activeCategory.value !== 'all') {
-    result = result.filter(guide => 
-      guide.category === categories.value.find(c => c.id === activeCategory.value)?.name
-    )
-  }
-  
-  // 更新总项目数
-  totalItems.value = result.length
-  
-  // 分页处理
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return result.slice(start, end)
-})
 
 // 查看指南详情
 const viewGuide = (id: number) => {
   router.push(`/guide/${id}`)
 }
 
-// 上一页
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--
-  }
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  loadGuides()
 }
 
-// 下一页
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++
-  }
-}
-
-onMounted(() => {
-  // 从localStorage获取当前用户ID
+const initUserInfo = () => {
+  if (currentUserId.value) return
   const userInfo = localStorage.getItem('userInfo')
   if (userInfo) {
     try {
@@ -167,8 +128,14 @@ onMounted(() => {
       console.error('解析用户信息失败:', e)
     }
   }
-  
-  // 加载指南列表
+}
+
+onMounted(() => {
+  initUserInfo()
+  loadGuides()
+})
+
+onActivated(() => {
   loadGuides()
 })
 </script>

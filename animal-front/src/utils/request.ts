@@ -3,6 +3,7 @@ import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
+import { triggerRefreshOnOperation } from './tokenRefreshManager'
 
 // NProgress 配置
 NProgress.configure({ showSpinner: false })
@@ -26,6 +27,10 @@ service.interceptors.request.use(
       // Sa-Token 从 Authorization header 中获取 token
       // 使用 Bearer 前缀是 HTTP 标准做法
       config.headers['Authorization'] = `Bearer ${token}`
+      
+      // 触发Token续约（用户有操作时自动续约）
+      // 这样即使用户没有显式调用续约接口，也能通过操作来续约Token
+      triggerRefreshOnOperation()
     }
     return config
   },
@@ -48,10 +53,8 @@ service.interceptors.response.use(
       console.log('✅ 响应成功，返回数据:', response.data)
       return response.data
     } else if (code === 401) {
-      ElMessage.error('未授权,请重新登录')
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      window.location.href = '/#/login'
+      console.warn('⚠️ Token已过期或无效:', message)
+      handleTokenExpired(message)
       return Promise.reject(new Error(message || '未授权'))
     } else {
       console.error('❌ 业务错误:', message)
@@ -64,16 +67,14 @@ service.interceptors.response.use(
     console.error('响应错误:', error)
 
     if (error.response) {
-      const { status } = error.response
+      const { status, data } = error.response
       switch (status) {
         case 400:
           ElMessage.error('请求参数错误')
           break
         case 401:
-          ElMessage.error('未授权,请重新登录')
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
-          window.location.href = '/#/login'
+          console.warn('⚠️ HTTP 401 - Token已过期或无效')
+          handleTokenExpired(data?.message || '登录信息已过期')
           break
         case 403:
           ElMessage.error('拒绝访问')
@@ -93,6 +94,29 @@ service.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+/**
+ * 处理Token过期
+ */
+function handleTokenExpired(message?: string) {
+  // 清除本地存储
+  localStorage.removeItem('token')
+  localStorage.removeItem('userInfo')
+
+  // 显示提示信息
+  const msg = message || '登录信息已过期，请重新登录'
+  ElMessage({
+    message: msg,
+    type: 'warning',
+    duration: 3000,
+    onClose: () => {
+      // 获取当前页面路径
+      const currentPath = window.location.pathname + window.location.hash
+      // 跳转到登录页，并保存当前路径用于登录后返回
+      window.location.href = `/#/login?redirect=${encodeURIComponent(currentPath)}`
+    }
+  })
+}
 
 export default service
 

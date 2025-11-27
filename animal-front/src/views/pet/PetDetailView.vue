@@ -153,7 +153,8 @@
       <el-space wrap :size="15">
         <!-- 只显示随机宠物图片（不包括当前宠物的图片） -->
         <el-image v-for="(image, index) in randomPetImages.slice(0, 6)" :key="`random-${index}`" :src="image"
-          fit="cover" class="gallery-image" lazy @click="() => { imageViewerIndex = index; imageViewerVisible = true }" />
+          fit="cover" class="gallery-image" lazy
+          @click="() => { imageViewerIndex = index; imageViewerVisible = true }" />
       </el-space>
     </el-card>
 
@@ -193,7 +194,8 @@
   </div>
 
   <!-- 图片预览器 -->
-  <div v-if="imageViewerVisible && allGalleryImages.length > 0" class="image-viewer-overlay" @click="imageViewerVisible = false">
+  <div v-if="imageViewerVisible && allGalleryImages.length > 0" class="image-viewer-overlay"
+    @click="imageViewerVisible = false">
     <div class="image-viewer-container" @click.stop>
       <button class="close-btn" @click="imageViewerVisible = false">
         <el-icon :size="24">
@@ -223,15 +225,15 @@ const userStore = useUserStore()
 const { isLoggedIn } = storeToRefs(userStore)
 
 const pet = ref<Pet | null>(null)
-const defaultImage = 'https://via.placeholder.com/500x400?text=宠物图片'
+const defaultImage = 'http://localhost:9000/animal-adopt/default.jpg'
 
 const galleryImages = ref([
-  'https://via.placeholder.com/800x600?text=照片1',
-  'https://via.placeholder.com/800x600?text=照片2',
-  'https://via.placeholder.com/800x600?text=照片3',
-  'https://via.placeholder.com/800x600?text=照片4',
-  'https://via.placeholder.com/800x600?text=照片5',
-  'https://via.placeholder.com/800x600?text=照片6'
+  'http://localhost:9000/animal-adopt/default.jpg',
+  'http://localhost:9000/animal-adopt/default.jpg',
+  'http://localhost:9000/animal-adopt/default.jpg',
+  'http://localhost:9000/animal-adopt/default.jpg',
+  'http://localhost:9000/animal-adopt/default.jpg',
+  'http://localhost:9000/animal-adopt/default.jpg'
 ])
 
 // 随机推荐宠物
@@ -366,7 +368,7 @@ const fetchPetDetail = async () => {
       const detail = res.data as Pet & { images: string[] | string }
       detail.images = typeof detail.images === 'string' ? JSON.parse(detail.images || '[]') : detail.images
       pet.value = detail
-      
+
       // 获取收藏和点赞数量（无需认证，所有用户都能看到）
       try {
         const favCountRes = await getPetFavoriteCount(petId)
@@ -374,14 +376,14 @@ const fetchPetDetail = async () => {
       } catch (e) {
         favoriteCount.value = 0
       }
-      
+
       try {
         const likeCountRes = await getPetLikeCount(petId)
         likeCount.value = likeCountRes.data || 0
       } catch (e) {
         likeCount.value = 0
       }
-      
+
       // 只有登录用户才能查询是否已收藏或点赞
       if (isLoggedIn.value) {
         try {
@@ -391,7 +393,7 @@ const fetchPetDetail = async () => {
           // 获取收藏状态失败，保持默认值
           favored.value = false
         }
-        
+
         try {
           const likeRes = await isPetLiked(petId)
           liked.value = !!likeRes.data
@@ -478,9 +480,9 @@ const toggleLike = async () => {
 const updateLikeAndFavoriteStatus = async () => {
   if (!pet.value) return
   const petId = pet.value.id
-  
+
   console.log('🔄 更新点赞和收藏状态, isLoggedIn:', isLoggedIn.value)
-  
+
   if (isLoggedIn.value) {
     try {
       console.log('📝 查询是否已收藏...')
@@ -491,7 +493,7 @@ const updateLikeAndFavoriteStatus = async () => {
       console.error('❌ 查询收藏状态失败:', e)
       favored.value = false
     }
-    
+
     try {
       console.log('📝 查询是否已点赞...')
       const likeRes = await isPetLiked(petId)
@@ -509,7 +511,7 @@ const updateLikeAndFavoriteStatus = async () => {
   }
 }
 
-onMounted(() => { 
+onMounted(() => {
   fetchRandomPetImages()
   fetchPetDetail()
 })
@@ -697,6 +699,7 @@ watch(() => isLoggedIn.value, (newVal) => {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
