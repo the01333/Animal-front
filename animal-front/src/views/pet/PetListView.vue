@@ -360,111 +360,106 @@ watch(() => route.path, (newPath) => {
 
 .pet-waterfall-card {
   background: #fff;
-  border-radius: 12px;
-  overflow: visible;
+  border-radius: 16px;
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
 
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  }
+.pet-waterfall-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
 
-  .pet-image-wrapper {
-    position: relative;
+.pet-image-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  height: 135px;
+  background: #f5f7fa;
+
+  :deep(.lazy-img) {
     width: 100%;
-    overflow: hidden;
-    height: 220px;
-    background: #f5f7fa;
-
-    :deep(.lazy-img) {
-      width: 100%;
-      height: 100%;
-      display: block;
-      transition: transform 0.3s;
-      object-fit: cover;
-    }
-
-    &:hover :deep(.lazy-img) {
-      transform: scale(1.1);
-    }
-
-    .pet-status-badge {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-    }
+    height: 100%;
+    display: block;
+    transition: transform 0.3s;
+    object-fit: cover;
   }
 
-  .pet-info {
-    padding: 16px;
-    flex: 1;
+  &:hover :deep(.lazy-img) {
+    transform: scale(1.1);
+  }
+
+  .pet-status-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+}
+
+.pet-info {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.pet-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #303133;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pet-details {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pet-meta {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 12px;
+
+  .meta-item {
     display: flex;
-    flex-direction: column;
-    min-height: 0;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    color: #606266;
 
-    .pet-name {
-      font-size: 18px;
-      font-weight: bold;
-      color: #303133;
-      margin: 0 0 12px 0;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .pet-details {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-      flex-shrink: 0;
-    }
-
-    .pet-meta {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 12px;
-      flex-shrink: 0;
-
-      .meta-item {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-size: 14px;
-        color: #606266;
-
-        .el-icon {
-          font-size: 16px;
-        }
-      }
-    }
-
-    .pet-desc {
-      margin-bottom: 12px;
-      color: #909399;
-      line-height: 1.5;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .pet-actions {
-      display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-      width: 100%;
-      box-sizing: border-box;
-
-      .el-button {
-        flex: 1;
-        min-width: 0;
-      }
+    .el-icon {
+      font-size: 16px;
+      min-width: 0;
     }
   }
+}
+
+.pet-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -1rem;
+  padding: 10px 12px 15px;
+  box-sizing: border-box;
+}
+
+.pet-actions .el-button {
+  flex: 1;
+  margin: 0 !important;
+  width: 100%;
+  padding: 8px 2px;
+  height: 27px;
 }
 
 .pagination-wrapper {

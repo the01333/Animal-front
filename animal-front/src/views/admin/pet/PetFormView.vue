@@ -17,17 +17,14 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="宠物类型" prop="category">
-                <el-select
-                  v-model="form.category"
-                  placeholder="请选择类型"
-                  filterable
-                  default-first-option
-                  @change="handleCategoryChange"
-                >
+                <el-select v-model="form.category" placeholder="请选择类型" filterable default-first-option
+                  @change="handleCategoryChange">
                   <el-option v-for="opt in categoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                   <el-option :value="ADD_CATEGORY_FLAG" class="add-category-option">
                     <div class="add-category-entry">
-                      <el-icon><Plus /></el-icon>
+                      <el-icon>
+                        <Plus />
+                      </el-icon>
                       <span>新增类别...</span>
                     </div>
                   </el-option>
@@ -82,14 +79,16 @@
             <el-col :span="12">
               <el-form-item label="健康状态" prop="healthStatus">
                 <el-select v-model="form.healthStatus" placeholder="请选择健康状态">
-                  <el-option v-for="opt in healthStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  <el-option v-for="opt in healthStatusOptions" :key="opt.value" :label="opt.label"
+                    :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="领养状态" prop="adoptionStatus">
-                <el-select v-model="form.adoptionStatus" placeholder="请选择领养状态">
-                  <el-option v-for="opt in adoptionStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+              <el-form-item label="领养状态" prop="adoptionStatusText">
+                <el-select v-model="form.adoptionStatusText" placeholder="请选择领养状态">
+                  <el-option v-for="opt in adoptionStatusOptions" :key="opt.value" :label="opt.label"
+                    :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -101,13 +100,8 @@
 
           <el-form-item label="封面图片">
             <div class="image-upload-section">
-              <el-upload
-                ref="coverUploadRef"
-                class="cover-uploader"
-                :auto-upload="false"
-                accept="image/*"
-                @change="handleCoverSelect"
-              >
+              <el-upload ref="coverUploadRef" class="cover-uploader" :auto-upload="false" accept="image/*"
+                @change="handleCoverSelect">
                 <template #default>
                   <div v-if="coverImagePreview" class="cover-preview">
                     <img :src="coverImagePreview" alt="封面图片预览" />
@@ -116,7 +110,9 @@
                     </div>
                   </div>
                   <div v-else class="upload-placeholder">
-                    <el-icon class="icon"><Plus /></el-icon>
+                    <el-icon class="icon">
+                      <Plus />
+                    </el-icon>
                     <span>点击上传封面图片</span>
                   </div>
                 </template>
@@ -126,14 +122,8 @@
 
           <el-form-item label="宠物图片">
             <div class="image-upload-section">
-              <el-upload
-                ref="imagesUploadRef"
-                class="pet-images-uploader"
-                :auto-upload="false"
-                multiple
-                accept="image/*"
-                @change="handleImagesSelect"
-              >
+              <el-upload ref="imagesUploadRef" class="pet-images-uploader" :auto-upload="false" multiple
+                accept="image/*" @change="handleImagesSelect">
                 <template #default>
                   <el-button type="primary">点击上传图片</el-button>
                 </template>
@@ -159,22 +149,12 @@
     </div>
 
     <!-- 新增类别弹窗 -->
-    <el-dialog
-      v-model="showAddCategoryDialog"
-      title="新增宠物类别"
-      width="400px"
-      @closed="handleAddCategoryDialogClosed"
-    >
+    <el-dialog v-model="showAddCategoryDialog" title="新增宠物类别" width="400px" @closed="handleAddCategoryDialogClosed">
       <div class="add-category-dialog-body">
         <el-form label-width="80px">
           <el-form-item label="类别名称" :error="newCategoryError">
-            <el-input
-              v-model="newCategoryName"
-              placeholder="请输入新的宠物类别"
-              maxlength="20"
-              show-word-limit
-              @keyup.enter="confirmAddCategory"
-            />
+            <el-input v-model="newCategoryName" placeholder="请输入新的宠物类别" maxlength="20" show-word-limit
+              @keyup.enter="confirmAddCategory" />
           </el-form-item>
         </el-form>
       </div>
@@ -234,7 +214,8 @@ const form = reactive<Partial<Pet>>({
   adoptionStatus: 'available',
   description: '',
   coverImage: '',
-  images: ''
+  images: '',
+  adoptionStatusText: ''
 })
 
 const uploadHeaders = computed(() => {
@@ -258,7 +239,7 @@ async function loadDictData() {
       getAdoptionStatuses(),
       getHealthStatuses()
     ])
-    
+
     if (categoriesRes.code === 200) {
       categoryOptions.value = Object.entries(categoriesRes.data).map(([value, label]) => ({
         value,
@@ -269,7 +250,7 @@ async function loadDictData() {
       }
       lastValidCategory.value = form.category || ''
     }
-    
+
     if (adoptionStatusRes.code === 200) {
       adoptionStatusOptions.value = Object.entries(adoptionStatusRes.data).map(([value, label]) => ({
         value,
@@ -311,7 +292,7 @@ async function fetchDetail() {
 
 function handleCoverSelect(file: any) {
   if (!file.raw) return
-  
+
   const reader = new FileReader()
   reader.onload = (e) => {
     coverImagePreview.value = e.target?.result as string
@@ -322,7 +303,7 @@ function handleCoverSelect(file: any) {
 
 function handleImagesSelect(file: any) {
   if (!file.raw) return
-  
+
   const reader = new FileReader()
   reader.onload = (e) => {
     imageList.value.push(e.target?.result as string)
@@ -393,12 +374,12 @@ function cancelAddCategory() {
 
 async function uploadImages(petId: number) {
   const uploadPromises = []
-  
+
   // 上传封面图片
   if (coverImageFile.value) {
     const formData = new FormData()
     formData.append('file', coverImageFile.value)
-    
+
     const coverPromise = fetch(`/api/pet/${petId}/upload-cover`, {
       method: 'POST',
       headers: {
@@ -415,16 +396,16 @@ async function uploadImages(petId: number) {
           throw new Error(data.message || '封面图片上传失败')
         }
       })
-    
+
     uploadPromises.push(coverPromise)
   }
-  
+
   // 上传宠物图片
   if (imageFiles.value.length > 0) {
     const imagePromises = imageFiles.value.map((file, index) => {
       const formData = new FormData()
       formData.append('file', file)
-      
+
       return fetch(`/api/pet/${petId}/upload-image`, {
         method: 'POST',
         headers: {
@@ -441,10 +422,10 @@ async function uploadImages(petId: number) {
           }
         })
     })
-    
+
     uploadPromises.push(...imagePromises)
   }
-  
+
   // 等待所有上传完成
   if (uploadPromises.length > 0) {
     await Promise.all(uploadPromises)
@@ -460,7 +441,7 @@ async function handleSubmit() {
 
     try {
       let petId: number
-      
+
       if (isEdit.value) {
         petId = Number(route.params.id)
         await updatePet(petId, form)
@@ -473,17 +454,17 @@ async function handleSubmit() {
         petId = res.data.id
         ElMessage.success('宠物添加成功')
       }
-      
+
       // 上传图片
       if (coverImageFile.value || imageFiles.value.length > 0) {
         ElMessage.info('正在上传图片...')
         await uploadImages(petId)
-        
+
         // 上传完成后，使用完整表单数据保存（包含最新图片URL）
         await updatePet(petId, form)
         ElMessage.success('图片已保存')
       }
-      
+
       router.push('/admin/pet/list')
     } catch (error: any) {
       ElMessage.error(error.message || (isEdit.value ? '更新失败' : '添加失败'))
@@ -626,4 +607,3 @@ onMounted(() => {
   }
 }
 </style>
-

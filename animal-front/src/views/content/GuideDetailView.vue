@@ -1,5 +1,13 @@
 <template>
   <div class="guide-detail-container" v-if="guide">
+    <el-page-header @back="$router.push('/guides')" class="page-header">
+      <template #content>
+        <div class="header-content">
+          <span class="header-title">旅游指南</span>
+        </div>
+      </template>
+    </el-page-header>
+
     <div class="guide-header">
       <h1>{{ guide.title }}</h1>
       <div class="guide-meta">
@@ -263,7 +271,26 @@ watch(() => isLoggedIn.value, (newVal) => {
 
 <style scoped>
 .guide-detail-container {
-  padding: 1rem 0;
+  padding: 20px 0;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.header-title {
+  font-size: 24px;
+  font-weight: 400;
+  color: #303133;
 }
 
 .guide-header h1 {

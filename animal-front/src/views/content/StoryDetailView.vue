@@ -1,5 +1,13 @@
 <template>
   <div class="story-detail-container" v-if="story">
+    <el-page-header @back="$router.push('/stories')" class="page-header">
+      <template #content>
+        <div class="header-content">
+          <span class="header-title">领养故事</span>
+        </div>
+      </template>
+    </el-page-header>
+
     <div class="story-header">
       <h1>{{ story.title }}</h1>
       <div class="story-meta">
@@ -263,7 +271,26 @@ watch(() => isLoggedIn.value, (newVal) => {
 
 <style scoped>
 .story-detail-container {
-  padding: 1rem 0;
+  padding: 20px 0;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.header-title {
+  font-size: 24px;
+  font-weight: 400;
+  color: #303133;
 }
 
 .story-header h1 {

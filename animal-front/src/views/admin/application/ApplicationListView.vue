@@ -6,7 +6,7 @@
         <el-form-item label="关键词">
           <el-input v-model="queryForm.keyword" placeholder="申请人/申请编号/联系方式" clearable />
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item v-if="!statusLocked" label="状态">
           <el-select v-model="queryForm.status" placeholder="全部" clearable>
             <el-option label="全部" value="" />
             <el-option label="待审核" value="PENDING" />
@@ -90,79 +90,96 @@
     </el-card>
 
     <!-- 详情抽屉 -->
-    <el-drawer v-model="detailVisible" title="申请详情" size="50%" :destroy-on-close="true">
+    <el-drawer v-model="detailVisible" size="55%" :destroy-on-close="true" class="application-detail-drawer">
+      <template #header>
+        <div class="drawer-header">
+          <div>
+            <p class="drawer-eyebrow">申请详情</p>
+            <h3>{{ detailData?.petName || '领养申请' }}</h3>
+          </div>
+          <el-tag :type="getStatusType(detailData?.status)">{{ getStatusText(detailData?.status) }}</el-tag>
+        </div>
+        <p class="drawer-subtext">申请编号：{{ detailData?.applicationNo || '-' }} ｜ 提交时间：{{ formatDate(detailData?.createTime) }}</p>
+      </template>
+
       <el-skeleton v-if="detailLoading" :rows="6" animated />
       <template v-else>
-        <div class="detail-section">
-          <h3>申请状态</h3>
-          <el-tag :type="getStatusType(detailData?.status)">
-            {{ getStatusText(detailData?.status) }}
-          </el-tag>
-          <p class="detail-subtext">申请编号：{{ detailData?.applicationNo || '-' }}</p>
-          <p class="detail-subtext">提交时间：{{ formatDate(detailData?.createTime) }}</p>
-        </div>
+        <div class="drawer-body">
+          <div class="info-grid">
+            <section class="info-card">
+              <header>
+                <span>申请人信息</span>
+              </header>
+              <ul>
+                <li>
+                  <label>昵称</label>
+                  <div>
+                    {{ detailData?.applicantNickname || detailData?.applicantUsername || '-' }}
+                    <el-tag v-if="detailData?.applicantCertified" size="small" type="success" effect="plain"
+                      style="margin-left: 6px">已认证</el-tag>
+                  </div>
+                </li>
+                <li><label>电话</label>{{ detailData?.contactPhone || detailData?.applicantPhone || '—' }}</li>
+                <li><label>邮箱</label>{{ detailData?.applicantEmail || '未填写' }}</li>
+                <li><label>地址</label>{{ detailData?.contactAddress || detailData?.applicantAddress || '未填写' }}</li>
+                <li>
+                  <label>养宠经验</label>
+                  <el-tag :type="detailData?.applicantHasExperience ? 'success' : 'info'" size="small">
+                    {{ detailData?.applicantHasExperience ? '有经验' : '暂无' }}
+                  </el-tag>
+                </li>
+              </ul>
+            </section>
 
-        <div class="detail-grid">
-          <section>
-            <h4>申请人信息</h4>
-            <el-descriptions :column="1" size="small" border>
-              <el-descriptions-item label="昵称">
-                {{ detailData?.applicantNickname || detailData?.applicantUsername || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="联系方式">
-                {{ detailData?.contactPhone || detailData?.applicantPhone || '-' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="邮箱">
-                {{ detailData?.applicantEmail || '未填写' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="地址">
-                {{ detailData?.contactAddress || detailData?.applicantAddress || '未填写' }}
-              </el-descriptions-item>
-              <el-descriptions-item label="养宠经验">
-                <el-tag :type="detailData?.applicantHasExperience ? 'success' : 'info'">
-                  {{ detailData?.applicantHasExperience ? '有' : '无' }}
-                </el-tag>
-              </el-descriptions-item>
-            </el-descriptions>
-          </section>
-
-          <section>
-            <h4>宠物信息</h4>
-            <el-card shadow="never" class="pet-summary">
-              <div class="pet-summary__body">
-                <el-avatar :size="70" :src="detailData?.petCoverImage || defaultPetImage" />
+            <section class="info-card pet-card">
+              <header>
+                <span>宠物信息</span>
+              </header>
+              <div class="pet-card__body">
+                <el-avatar :size="80" :src="detailData?.petCoverImage || defaultPetImage" />
                 <div>
                   <p class="pet-name">{{ detailData?.petName || '未匹配宠物' }}</p>
-                  <p class="detail-subtext">
-                    品类：{{ detailData?.petCategory || '-' }} ｜ 状态：{{ detailData?.petAdoptionStatus || '-' }}
-                  </p>
+                  <p class="pet-meta">品类：{{ getPetCategoryText(detailData?.petCategory) }}</p>
+                  <p class="pet-meta">状态：{{ getPetAdoptionStatusText(detailData?.petAdoptionStatus) }}</p>
                 </div>
               </div>
-            </el-card>
+            </section>
+          </div>
+
+          <section class="info-card">
+            <header>
+              <span>申请信息</span>
+            </header>
+            <div class="info-row">
+              <label>申请理由</label>
+              <p>{{ detailData?.reason || '未填写' }}</p>
+            </div>
+            <div class="info-row">
+              <label>家庭情况</label>
+              <p>{{ detailData?.familyInfo || '未填写' }}</p>
+            </div>
+            <div class="info-row">
+              <label>养护计划</label>
+              <p>{{ detailData?.careplan || '未填写' }}</p>
+            </div>
+            <div class="info-row">
+              <label>补充说明</label>
+              <p>{{ detailData?.additionalInfo || '未填写' }}</p>
+            </div>
           </section>
-        </div>
 
-        <section class="detail-section">
-          <h4>申请信息</h4>
-          <el-descriptions :column="1" size="small" border>
-            <el-descriptions-item label="申请理由">{{ detailData?.reason || '未填写' }}</el-descriptions-item>
-            <el-descriptions-item label="家庭情况">{{ detailData?.familyInfo || '未填写' }}</el-descriptions-item>
-            <el-descriptions-item label="养护计划">{{ detailData?.careplan || '未填写' }}</el-descriptions-item>
-            <el-descriptions-item label="补充说明">{{ detailData?.additionalInfo || '未填写' }}</el-descriptions-item>
-          </el-descriptions>
-        </section>
+          <section class="info-card" v-if="detailData?.reviewComment">
+            <header>
+              <span>审核记录</span>
+            </header>
+            <p class="review-meta">审核人：{{ detailData?.reviewerName || '系统' }} ｜ 时间：{{ formatDate(detailData?.reviewTime) }}</p>
+            <el-alert :closable="false" :description="detailData?.reviewComment" type="info" />
+          </section>
 
-        <section class="detail-section" v-if="detailData?.reviewComment">
-          <h4>审核记录</h4>
-          <p>
-            审核人：{{ detailData?.reviewerName || '系统' }} ｜ 时间：{{ formatDate(detailData?.reviewTime) }}
-          </p>
-          <el-alert :closable="false" type="info" :description="detailData?.reviewComment" />
-        </section>
-
-        <div class="detail-actions" v-if="detailData?.status === 'PENDING'">
-          <el-button type="success" :icon="Select" @click="handleApprove(detailData!)">通过</el-button>
-          <el-button type="danger" :icon="CloseBold" @click="handleReject(detailData!)">拒绝</el-button>
+          <div class="detail-actions" v-if="detailData?.status === 'PENDING'">
+            <el-button type="success" :icon="Select" @click="handleApprove(detailData!)">通过</el-button>
+            <el-button type="danger" :icon="CloseBold" @click="handleReject(detailData!)">拒绝</el-button>
+          </div>
         </div>
       </template>
     </el-drawer>
@@ -190,6 +207,8 @@ import { ElMessage } from 'element-plus'
 import { formatDate } from '@/utils/format'
 import { Search, RefreshLeft, View, Select, CloseBold } from '@element-plus/icons-vue'
 
+const props = defineProps<{ defaultStatus?: string; lockStatusFilter?: boolean }>()
+
 const loading = ref(false)
 const applications = ref<AdoptionApplication[]>([])
 const total = ref(0)
@@ -201,9 +220,11 @@ const detailLoading = ref(false)
 const detailData = ref<AdoptionApplication | null>(null)
 const defaultPetImage = 'http://localhost:9000/animal-adopt/default.jpg'
 
+const statusLocked = computed(() => !!props.lockStatusFilter)
+
 const queryForm = reactive({
   keyword: '',
-  status: '',
+  status: props.defaultStatus || '',
   current: 1,
   size: 12
 })
@@ -213,7 +234,7 @@ const activeFilters = computed(() => {
   if (queryForm.keyword) {
     filters.push({ key: 'keyword', label: '关键词', value: queryForm.keyword })
   }
-  if (queryForm.status) {
+  if (queryForm.status && !statusLocked.value) {
     filters.push({ key: 'status', label: '状态', value: getStatusText(queryForm.status) })
   }
   return filters
@@ -243,12 +264,18 @@ function handleSearch() {
 }
 
 function handleReset() {
-  Object.assign(queryForm, { keyword: '', status: '', current: 1, size: 12 })
+  Object.assign(queryForm, {
+    keyword: '',
+    status: statusLocked.value ? (props.defaultStatus || '') : '',
+    current: 1,
+    size: 12
+  })
   fetchList()
 }
 
 function handleRemoveFilter(key: 'keyword' | 'status') {
   if (key === 'status') {
+    if (statusLocked.value) return
     queryForm.status = ''
   } else {
     queryForm.keyword = ''
@@ -321,6 +348,29 @@ function getStatusText(status: string) {
   return map[status] || status
 }
 
+function getPetCategoryText(category?: string) {
+  if (!category) return '未知'
+  const map: Record<string, string> = {
+    dog: '狗狗',
+    cat: '猫咪',
+    rabbit: '兔兔',
+    bird: '鸟类',
+    other: '其他'
+  }
+  return map[category.toLowerCase()] || category
+}
+
+function getPetAdoptionStatusText(status?: string) {
+  if (!status) return '未知'
+  const map: Record<string, string> = {
+    available: '可领养',
+    adopted: '已领养',
+    pending: '待审核',
+    reserved: '已预订'
+  }
+  return map[status.toLowerCase()] || status
+}
+
 onMounted(() => {
   fetchList()
 })
@@ -386,6 +436,128 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
   }
+}
+
+.application-detail-drawer .drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.drawer-eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #909399;
+  letter-spacing: 0.08em;
+}
+
+.drawer-header h3 {
+  margin: 0.25rem 0 0;
+  font-size: 1.4rem;
+  color: #303133;
+}
+
+.drawer-subtext {
+  margin: 0.35rem 0 0;
+  color: #909399;
+}
+
+.drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.info-card {
+  background: #f9fafc;
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  border: 1px solid #ebeef5;
+}
+
+.info-card header {
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #303133;
+}
+
+.info-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-card li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  color: #606266;
+}
+
+.info-card li label {
+  color: #303133;
+  font-weight: 600;
+}
+
+.info-card li:last-child {
+  margin-bottom: 0;
+}
+
+.pet-card__body {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pet-card__body .pet-name {
+  margin: 0;
+  font-weight: 600;
+  color: #303133;
+}
+
+.pet-card__body .pet-meta {
+  margin: 0.25rem 0;
+  color: #909399;
+}
+
+.info-row {
+  margin-bottom: 0.8rem;
+}
+
+.info-row label {
+  display: block;
+  color: #303133;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.info-row p {
+  margin: 0;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.review-meta {
+  margin-bottom: 0.5rem;
+  color: #909399;
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
 
 .detail-section {

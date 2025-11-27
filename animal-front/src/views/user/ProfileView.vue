@@ -11,7 +11,7 @@
           </div>
           <h2>{{ user.name }}</h2>
           <p class="user-role">{{ userRole }}</p>
-          <button v-if="userStore.isManager" class="btn-admin" @click="goAdmin">进入后台管理</button>
+          <button v-if="userStore.isManager" class="btn-admin" @click="goAdmin">进入后台系统</button>
         </div>
 
         <nav class="profile-nav">
@@ -121,32 +121,59 @@
 
         <!-- 我的申请 -->
         <div v-if="activeTab === 'applications'" class="profile-section">
-          <h3>我的领养申请</h3>
-          <div v-if="applications.length === 0" class="no-applications">
+          <div class="section-head">
+            <h3>我的领养申请</h3>
+            <span v-if="applications.length" class="application-count">共 {{ applications.length }} 条</span>
+          </div>
+
+          <div v-if="loadingApplications" class="applications-loading">
+            正在加载申请列表，请稍候...
+          </div>
+
+          <div v-else-if="applications.length === 0" class="no-applications">
             <p>您还没有提交任何领养申请。</p>
             <router-link to="/pets" class="btn-browse-pets">浏览可领养宠物</router-link>
           </div>
 
           <div v-else class="applications-list">
             <div v-for="application in applications" :key="application.id" class="application-item">
-              <div class="application-header">
-                <h4>{{ application.petName }}</h4>
-                <span :class="applicationStatusClass(application.status)">
-                  {{ applicationStatusText(application.status) }}
-                </span>
+              <div class="application-pet">
+                <img :src="getPetCover(application)" :alt="application.petName || '宠物封面'" />
+                <div class="application-pet-meta">
+                  <p class="pet-name">{{ application.petName || '未命名宠物' }}</p>
+                  <p class="pet-category">{{ formatPetCategory(application.petCategory) }}</p>
+                </div>
               </div>
-              <div class="application-details">
-                <p><strong>申请时间:</strong> {{ application.applyDate }}</p>
-                <p><strong>更新时间:</strong> {{ application.updateDate }}</p>
-              </div>
-              <div class="application-actions">
-                <button @click="viewApplication(application.id)" class="btn-view">
-                  查看详情
-                </button>
-                <button v-if="application.status === 'pending'" @click="cancelApplication(application.id)"
-                  class="btn-cancel">
-                  撤销申请
-                </button>
+
+              <div class="application-body">
+                <div class="application-header">
+                  <div>
+                    <p class="application-no">申请编号：{{ application.applicationNo || '—' }}</p>
+                    <p class="timeline">
+                      <span>申请时间：{{ formatDateTime(application.createTime) }}</span>
+                      <span>更新时间：{{ formatDateTime(application.updateTime) }}</span>
+                    </p>
+                  </div>
+                  <span :class="applicationStatusClass(application.status)">
+                    {{ applicationStatusText(application.status) }}
+                  </span>
+                </div>
+
+                <div class="application-snippet">
+                  <p><strong>理由：</strong>{{ application.reason || '—' }}</p>
+                  <p><strong>家庭信息：</strong>{{ application.familyInfo || '—' }}</p>
+                </div>
+
+                <div class="application-actions">
+                  <button @click="viewApplication(application.id)" class="btn-view">
+                    查看详情
+                  </button>
+                  <button v-if="normalizeStatus(application.status) === 'pending'"
+                    :disabled="cancelingId === application.id" @click="cancelApplication(application.id)"
+                    class="btn-cancel">
+                    {{ cancelingId === application.id ? '撤销中...' : '撤销申请' }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -160,11 +187,12 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-// import { useStore } from 'vuex'
 import { storeToRefs } from 'pinia'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { getCertificationInfo, submitCertification, updateUserInfo } from '@/api/user'
-import { ElMessage } from 'element-plus'
+import { getMyApplications, cancelApplication as cancelApplicationApi } from '@/api/application'
+import type { AdoptionApplication } from '@/types'
 
 // 获取 userStore
 const userStore = useUserStore()
@@ -193,6 +221,7 @@ const certificationForm = reactive({
 
 // 默认头像
 const defaultAvatar = 'http://localhost:9000/animal-adopt/default.jpg'
+const defaultPetCover = 'http://localhost:9000/animal-adopt/default.jpg'
 
 // 处理图片URL（移除@前缀，处理IP地址替换）
 function processImageUrl(url: string | undefined): string {
@@ -228,7 +257,11 @@ const userRole = computed(() => {
 
 // 激活的标签页
 const route = useRoute()
-const activeTab = ref(route.query.tab === 'certification' ? 'certification' : 'basic')
+const resolveTab = (tab?: string | string[]) => {
+  if (tab === 'certification' || tab === 'applications' || tab === 'basic') return tab
+  return 'basic'
+}
+const activeTab = ref(resolveTab(route.query.tab as string | undefined))
 
 const loadingProfile = ref(false)
 
@@ -281,22 +314,9 @@ const navItems = [
 const editingBasic = ref(false)
 
 // 领养申请列表
-const applications = ref([
-  {
-    id: 1,
-    petName: '小花',
-    status: 'approved',
-    applyDate: '2025-10-01',
-    updateDate: '2025-10-05'
-  },
-  {
-    id: 2,
-    petName: '旺财',
-    status: 'pending',
-    applyDate: '2025-10-10',
-    updateDate: '2025-10-10'
-  }
-])
+const applications = ref<AdoptionApplication[]>([])
+const loadingApplications = ref(false)
+const cancelingId = ref<number | null>(null)
 
 // 路由
 const router = useRouter()
@@ -324,8 +344,10 @@ const certificationStatusClass = computed(() => {
 })
 
 // 申请状态文本
-const applicationStatusText = (status: string) => {
-  switch (status) {
+const normalizeStatus = (status?: string) => String(status || '').toLowerCase()
+
+const applicationStatusText = (status?: string) => {
+  switch (normalizeStatus(status)) {
     case 'pending': return '审核中'
     case 'approved': return '已通过'
     case 'rejected': return '已拒绝'
@@ -335,12 +357,13 @@ const applicationStatusText = (status: string) => {
 }
 
 // 申请状态样式
-const applicationStatusClass = (status: string) => {
+const applicationStatusClass = (status?: string) => {
+  const normalized = normalizeStatus(status)
   return {
-    'status-pending': status === 'pending',
-    'status-approved': status === 'approved',
-    'status-rejected': status === 'rejected',
-    'status-cancelled': status === 'cancelled'
+    'status-pending': normalized === 'pending',
+    'status-approved': normalized === 'approved',
+    'status-rejected': normalized === 'rejected',
+    'status-cancelled': normalized === 'cancelled'
   }
 }
 
@@ -465,22 +488,77 @@ const resubmitCertification = () => {
   certificationForm.idCardBackPreview = ''
 }
 
+// 申请时间格式化
+const formatDateTime = (value?: string) => {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('zh-CN', { hour12: false })
+}
+
+const getPetCover = (application: AdoptionApplication) => {
+  return processImageUrl(application.petCoverImage) || defaultPetCover
+}
+
+const formatPetCategory = (category?: string) => {
+  if (!category) return '宠物'
+  const map: Record<string, string> = {
+    dog: '狗狗',
+    cat: '猫咪'
+  }
+  return map[category.toLowerCase()] || category
+}
+
+const loadApplications = async () => {
+  if (loadingApplications.value) return
+  loadingApplications.value = true
+  try {
+    const res = await getMyApplications({ current: 1, size: 50 })
+    applications.value = res.data?.records || []
+  } catch (error) {
+    console.error('获取申请列表失败:', error)
+    ElMessage.error('加载申请列表失败，请稍后重试')
+  } finally {
+    loadingApplications.value = false
+  }
+}
+
 // 查看申请详情
 const viewApplication = (id: number) => {
   router.push(`/application/${id}`)
 }
 
 // 撤销申请
-const cancelApplication = (id: number) => {
-  if (confirm('确定要撤销此领养申请吗？')) {
-    // 在实际应用中，这里会调用后端API撤销申请
-    const application = applications.value.find(app => app.id === id)
-    if (application) {
-      application.status = 'cancelled'
-    }
-    alert('申请已撤销')
+const cancelApplication = async (id: number) => {
+  if (cancelingId.value) return
+  try {
+    await ElMessageBox.confirm('确定要撤销此领养申请吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+
+  cancelingId.value = id
+  try {
+    await cancelApplicationApi(id)
+    ElMessage.success('申请已撤销')
+    await loadApplications()
+  } catch (error) {
+    console.error('撤销申请失败:', error)
+    ElMessage.error('撤销失败，请稍后再试')
+  } finally {
+    cancelingId.value = null
   }
 }
+
+watch(activeTab, (tab) => {
+  if (tab === 'applications' && applications.value.length === 0 && !loadingApplications.value) {
+    loadApplications()
+  }
+})
 
 onMounted(async () => {
   await loadUserProfile()
@@ -493,6 +571,10 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('获取认证信息失败:', error)
+  }
+
+  if (activeTab.value === 'applications') {
+    await loadApplications()
   }
 })
 
@@ -605,6 +687,18 @@ onMounted(async () => {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.application-count {
+  font-size: 0.9rem;
+  color: #666;
 }
 
 .profile-section h3 {
@@ -773,9 +867,12 @@ onMounted(async () => {
   margin-top: 1rem;
 }
 
+
+.applications-loading,
 .no-applications {
   text-align: center;
   padding: 2rem;
+  color: #6b7280;
 }
 
 .btn-browse-pets {
@@ -796,26 +893,82 @@ onMounted(async () => {
 }
 
 .application-item {
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  display: flex;
+  gap: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
   padding: 1rem;
+  background: #f9fafb;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+}
+
+.application-pet img {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.application-pet-meta {
+  margin-top: 0.5rem;
+}
+
+.application-pet .pet-name {
+  margin: 0;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.application-pet .pet-category {
+  margin: 0.15rem 0 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.application-body {
+  flex: 1;
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e5e7eb;
 }
 
 .application-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
-.application-header h4 {
+.application-no {
   margin: 0;
-  color: #333;
+  font-weight: 600;
+  color: #111827;
+}
+
+.timeline {
+  margin: 0.4rem 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.timeline span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .application-details p {
   margin: 0.25rem 0;
   color: #666;
+}
+
+.application-snippet {
+  margin-top: 0.75rem;
+  color: #4b5563;
+  font-size: 0.95rem;
 }
 
 .application-actions {
@@ -841,6 +994,38 @@ onMounted(async () => {
 .btn-cancel {
   background-color: #ff6b6b;
   color: white;
+}
+
+.status-pending,
+.status-approved,
+.status-rejected,
+.status-cancelled {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.status-approved {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.status-rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.status-cancelled {
+  background: #f3f4f6;
+  color: #374151;
 }
 
 @media (max-width: 768px) {

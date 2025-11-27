@@ -24,10 +24,10 @@ service.interceptors.request.use(
     // 获取token
     const token = localStorage.getItem('token')
     if (token) {
-      // Sa-Token 从 Authorization header 中获取 token
-      // 使用 Bearer 前缀是 HTTP 标准做法
+      // 从 header 中 的 Authorization 获取 token
+      // 默认带 'Bearer ' 前缀
       config.headers['Authorization'] = `Bearer ${token}`
-      
+
       // 触发Token续约（用户有操作时自动续约）
       // 这样即使用户没有显式调用续约接口，也能通过操作来续约Token
       triggerRefreshOnOperation()

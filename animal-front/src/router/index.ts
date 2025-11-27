@@ -46,8 +46,14 @@ const frontRoutes: RouteRecordRaw[] = [
       {
         path: 'applications',
         name: 'applications',
-        component: () => import('@/views/application/ApplicationListView.vue'),
+        redirect: { name: 'profile', query: { tab: 'applications' } },
         meta: { title: '我的申请', requireAuth: true }
+      },
+      {
+        path: 'application/:id',
+        name: 'application-detail',
+        component: () => import('@/views/application/ApplicationDetailView.vue'),
+        meta: { title: '申请详情', requireAuth: true }
       },
       {
         path: 'profile',
