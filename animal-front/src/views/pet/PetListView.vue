@@ -4,58 +4,37 @@
     <el-card class="search-card" shadow="never">
       <el-form :inline="true" :model="queryForm" class="search-form">
         <el-form-item label="关键词">
-          <el-input
-            v-model="queryForm.name"
-            placeholder="搜索宠物名称或品种"
-            clearable
-            @clear="handleSearch"
-          >
+          <el-input v-model="queryForm.name" placeholder="搜索宠物名称或品种" clearable @clear="handleSearch">
             <template #prefix>
-              <el-icon><Search /></el-icon>
+              <el-icon>
+                <Search />
+              </el-icon>
             </template>
           </el-input>
         </el-form-item>
 
         <el-form-item label="宠物类型">
-          <el-select v-model="queryForm.category" placeholder="全部" clearable @change="handleSearch" @clear="queryForm.category = ''" filterable>
+          <el-select v-model="queryForm.category" placeholder="全部" clearable @change="handleSearch"
+            @clear="queryForm.category = ''" filterable>
             <el-option label="全部" :value="''" />
-            <el-option
-              v-for="(text, key) in dictData.petCategories"
-              :key="key"
-              :label="text"
-              :value="key"
-            />
+            <el-option v-for="(text, key) in dictData.petCategories" :key="key" :label="text" :value="key" />
           </el-select>
         </el-form-item>
 
         <el-form-item label="领养状态">
-          <el-select
-            v-model="queryForm.adoptionStatus"
-            placeholder="全部"
-            clearable
-            @change="handleSearch"
-            @clear="queryForm.adoptionStatus = ''"
-            filterable
-          >
+          <el-select v-model="queryForm.adoptionStatus" placeholder="全部" clearable @change="handleSearch"
+            @clear="queryForm.adoptionStatus = ''" filterable>
             <el-option label="全部" :value="''" />
-            <el-option
-              v-for="(text, key) in dictData.adoptionStatuses"
-              :key="key"
-              :label="text"
-              :value="key"
-            />
+            <el-option v-for="(text, key) in dictData.adoptionStatuses" :key="key" :label="text" :value="key" />
           </el-select>
         </el-form-item>
 
         <el-form-item label="性别">
-          <el-select v-model="queryForm.gender" placeholder="全部" clearable @change="handleSearch" @clear="queryForm.gender = undefined" filterable>
-            <el-option label="全部" :value="undefined" />
-            <el-option
-              v-for="(text, key) in dictData.genders"
-              :key="key"
-              :label="text"
-              :value="parseInt(key as string)"
-            />
+          <el-select v-model="queryForm.gender" placeholder="全部" clearable @change="handleSearch"
+            @clear="queryForm.gender = null" filterable>
+            <el-option label="全部" :value="null" />
+            <el-option v-for="(text, key) in dictData.genders" :key="key" :label="text"
+              :value="parseInt(key as string)" />
           </el-select>
         </el-form-item>
 
@@ -73,30 +52,18 @@
 
     <!-- 瀑布流展示 -->
     <div v-loading="loading" class="waterfall-container">
-      <Waterfall
-        :list="petList"
-        row-key="id"
-        :gutter="20"
-        :min-line-gap="20"
-        :max-line-gap="30"
-        :breakpoints="{
-          1200: { rowPerView: 4 },
-          992: { rowPerView: 3 },
-          768: { rowPerView: 2 },
-          576: { rowPerView: 1 }
-        }"
-      >
+      <Waterfall :list="petList" row-key="id" :gutter="20" :min-line-gap="20" :max-line-gap="30" :breakpoints="{
+        1200: { rowPerView: 4 },
+        992: { rowPerView: 3 },
+        768: { rowPerView: 2 },
+        576: { rowPerView: 1 }
+      }">
         <template #item="{ item }">
           <div class="pet-waterfall-card" @click="goToDetail(item.id)">
             <div class="pet-image-wrapper">
               <LazyImg :url="item.images?.[0] || getPlaceholderImage(item.category)" />
               <div class="pet-status-badge">
-                <el-tag
-                  :type="getStatusType(item.adoptionStatus)"
-                  size="small"
-                  effect="dark"
-                  round
-                >
+                <el-tag :type="getStatusType(item.adoptionStatus)" size="small" effect="dark" round>
                   {{ getStatusText(item.adoptionStatus) }}
                 </el-tag>
               </div>
@@ -117,11 +84,15 @@
               </div>
               <div class="pet-meta">
                 <div class="meta-item">
-                  <el-icon><Calendar /></el-icon>
+                  <el-icon>
+                    <Calendar />
+                  </el-icon>
                   <span>{{ item.age }}岁</span>
                 </div>
                 <div v-if="item.weight" class="meta-item">
-                  <el-icon><ScaleToOriginal /></el-icon>
+                  <el-icon>
+                    <ScaleToOriginal />
+                  </el-icon>
                   <span>{{ item.weight }}kg</span>
                 </div>
               </div>
@@ -129,17 +100,17 @@
                 <el-text line-clamp="2" size="small">{{ item.description }}</el-text>
               </div>
               <div class="pet-actions">
-                <el-button
-                  type="primary"
-                  size="small"
-                  :disabled="item.adoptionStatus !== 'available'"
-                  @click.stop="applyAdoption(item.id)"
-                >
-                  <el-icon><Star /></el-icon>
+                <el-button type="primary" size="small" :disabled="item.adoptionStatus !== 'available'"
+                  @click.stop="applyAdoption(item.id)">
+                  <el-icon>
+                    <Star />
+                  </el-icon>
                   申请领养
                 </el-button>
                 <el-button size="small" @click.stop="goToDetail(item.id)">
-                  <el-icon><View /></el-icon>
+                  <el-icon>
+                    <View />
+                  </el-icon>
                   查看详情
                 </el-button>
               </div>
@@ -154,16 +125,9 @@
 
     <!-- 分页 -->
     <div v-if="total > 0" class="pagination-wrapper">
-      <el-pagination
-        :current-page="queryForm.current"
-        :page-size="queryForm.size"
-        :page-sizes="[12, 24, 36, 48]"
-        :total="total"
-        layout="total, sizes, prev, pager, next, jumper"
-        background
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
+      <el-pagination :current-page="queryForm.current" :page-size="queryForm.size" :page-sizes="[12, 24, 36, 48]"
+        :total="total" layout="total, sizes, prev, pager, next, jumper" background @size-change="handleSizeChange"
+        @current-change="handleCurrentChange" />
     </div>
   </div>
 </template>
@@ -199,7 +163,7 @@ const queryForm = reactive<PetQuery>({
   name: '',
   category: '',
   adoptionStatus: '',
-  gender: undefined,
+  gender: null,
   current: 1,
   size: 12
 })
@@ -212,7 +176,7 @@ async function fetchPetList() {
     // 处理图片数据：将JSON字符串转换为数组
     petList.value = res.data.records.map((pet: any) => ({
       ...pet,
-      images: typeof pet.images === 'string' ? JSON.parse(pet.images) : pet.images
+      images: normalizeImages(pet.images)
     }))
     total.value = res.data.total
   } catch (error) {
@@ -235,7 +199,7 @@ function handleReset() {
     name: '',
     category: '',
     adoptionStatus: '',
-    gender: undefined,
+    gender: null,
     current: 1,
     size: 12
   })
@@ -253,6 +217,28 @@ function handleSizeChange(size: number) {
 function handleCurrentChange(page: number) {
   queryForm.current = page
   fetchPetList()
+}
+
+function normalizeImages(images: any): string[] {
+  if (!images) {
+    return []
+  }
+
+  if (Array.isArray(images)) {
+    return images
+  }
+
+  if (typeof images === 'string') {
+    try {
+      const parsed = JSON.parse(images)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (error) {
+      console.warn('⚠️ 解析宠物图片失败，使用空数组', error, images)
+      return []
+    }
+  }
+
+  return []
 }
 
 // 前往详情页
@@ -273,11 +259,11 @@ function applyAdoption(petId: number) {
 // 获取占位图
 function getPlaceholderImage(category: string) {
   const placeholders: Record<string, string> = {
-    cat: 'https://via.placeholder.com/300x400?text=Cat',
-    dog: 'https://via.placeholder.com/300x400?text=Dog',
-    rabbit: 'https://via.placeholder.com/300x400?text=Rabbit',
-    bird: 'https://via.placeholder.com/300x400?text=Bird',
-    other: 'https://via.placeholder.com/300x400?text=Pet'
+    cat: 'http://localhost:9000/animal-adopt/default.jpg',
+    dog: 'http://localhost:9000/animal-adopt/default.jpg',
+    rabbit: 'http://localhost:9000/animal-adopt/default.jpg',
+    bird: 'http://localhost:9000/animal-adopt/default.jpg',
+    other: 'http://localhost:9000/animal-adopt/default.jpg'
   }
   return placeholders[category?.toLowerCase()] || placeholders.other
 }

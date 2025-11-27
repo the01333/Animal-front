@@ -1,148 +1,190 @@
 <template>
-  <div class="admin-pet-form">
-    <el-card shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>{{ isEdit ? '编辑宠物' : '添加宠物' }}</span>
-        </div>
-      </template>
-
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="宠物名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入宠物名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="宠物类型" prop="category">
-              <el-select v-model="form.category" placeholder="请选择类型" allow-create filterable default-first-option>
-                <el-option v-for="opt in categoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="品种" prop="breed">
-              <el-input v-model="form.breed" placeholder="请输入品种" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="性别" prop="gender">
-              <el-radio-group v-model="form.gender">
-                <el-radio :value="1">公</el-radio>
-                <el-radio :value="2">母</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="年龄" prop="age">
-              <el-input-number v-model="form.age" :min="0" :max="30" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="体重(kg)" prop="weight">
-              <el-input-number v-model="form.weight" :min="0" :precision="2" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="颜色" prop="color">
-              <el-input v-model="form.color" placeholder="例如：白色、棕色、黑白相间" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="性格描述" prop="personality">
-              <el-input v-model="form.personality" placeholder="例如：活泼、温顺、调皮" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="健康状态" prop="healthStatus">
-              <el-select v-model="form.healthStatus" placeholder="请选择健康状态">
-                <el-option v-for="opt in healthStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="领养状态" prop="adoptionStatus">
-              <el-select v-model="form.adoptionStatus" placeholder="请选择领养状态">
-                <el-option v-for="opt in adoptionStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="描述" prop="description">
-          <el-input v-model="form.description" type="textarea" :rows="4" placeholder="请输入宠物详细描述" />
-        </el-form-item>
-
-        <el-form-item label="封面图片">
-          <div class="image-upload-section">
-            <el-upload
-              ref="coverUploadRef"
-              class="cover-uploader"
-              :auto-upload="false"
-              accept="image/*"
-              @change="handleCoverSelect"
-            >
-              <template #default>
-                <div v-if="coverImagePreview" class="cover-preview">
-                  <img :src="coverImagePreview" alt="封面图片预览" />
-                  <div class="cover-actions">
-                    <el-button type="danger" size="small" @click.stop="handleRemoveCover">删除</el-button>
-                  </div>
-                </div>
-                <div v-else class="upload-placeholder">
-                  <el-icon class="icon"><Plus /></el-icon>
-                  <span>点击上传封面图片</span>
-                </div>
-              </template>
-            </el-upload>
+  <div class="admin-pet-form-page">
+    <div class="admin-pet-form">
+      <el-card shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span>{{ isEdit ? '编辑宠物' : '添加宠物' }}</span>
           </div>
-        </el-form-item>
+        </template>
 
-        <el-form-item label="宠物图片">
-          <div class="image-upload-section">
-            <el-upload
-              ref="imagesUploadRef"
-              class="pet-images-uploader"
-              :auto-upload="false"
-              multiple
-              accept="image/*"
-              @change="handleImagesSelect"
-            >
-              <template #default>
-                <el-button type="primary">点击上传图片</el-button>
-              </template>
-              <template #tip>
-                <div class="el-upload__tip">支持上传多张图片，每张不超过5MB</div>
-              </template>
-            </el-upload>
-            <div v-if="imageList.length > 0" class="image-list">
-              <div v-for="(img, index) in imageList" :key="index" class="image-item">
-                <img :src="img" :alt="`宠物图片${index + 1}`" />
-                <el-button type="danger" size="small" @click="handleRemoveImage(index)">删除</el-button>
+        <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="宠物名称" prop="name">
+                <el-input v-model="form.name" placeholder="请输入宠物名称" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="宠物类型" prop="category">
+                <el-select
+                  v-model="form.category"
+                  placeholder="请选择类型"
+                  filterable
+                  default-first-option
+                  @change="handleCategoryChange"
+                >
+                  <el-option v-for="opt in categoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  <el-option :value="ADD_CATEGORY_FLAG" class="add-category-option">
+                    <div class="add-category-entry">
+                      <el-icon><Plus /></el-icon>
+                      <span>新增类别...</span>
+                    </div>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="品种" prop="breed">
+                <el-input v-model="form.breed" placeholder="请输入品种" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="性别" prop="gender">
+                <el-radio-group v-model="form.gender">
+                  <el-radio :value="1">公</el-radio>
+                  <el-radio :value="2">母</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="年龄" prop="age">
+                <el-input-number v-model="form.age" :min="0" :max="30" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="体重(kg)" prop="weight">
+                <el-input-number v-model="form.weight" :min="0" :precision="2" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="颜色" prop="color">
+                <el-input v-model="form.color" placeholder="例如：白色、棕色、黑白相间" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="性格描述" prop="personality">
+                <el-input v-model="form.personality" placeholder="例如：活泼、温顺、调皮" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="健康状态" prop="healthStatus">
+                <el-select v-model="form.healthStatus" placeholder="请选择健康状态">
+                  <el-option v-for="opt in healthStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="领养状态" prop="adoptionStatus">
+                <el-select v-model="form.adoptionStatus" placeholder="请选择领养状态">
+                  <el-option v-for="opt in adoptionStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-form-item label="描述" prop="description">
+            <el-input v-model="form.description" type="textarea" :rows="4" placeholder="请输入宠物详细描述" />
+          </el-form-item>
+
+          <el-form-item label="封面图片">
+            <div class="image-upload-section">
+              <el-upload
+                ref="coverUploadRef"
+                class="cover-uploader"
+                :auto-upload="false"
+                accept="image/*"
+                @change="handleCoverSelect"
+              >
+                <template #default>
+                  <div v-if="coverImagePreview" class="cover-preview">
+                    <img :src="coverImagePreview" alt="封面图片预览" />
+                    <div class="cover-actions">
+                      <el-button type="danger" size="small" @click.stop="handleRemoveCover">删除</el-button>
+                    </div>
+                  </div>
+                  <div v-else class="upload-placeholder">
+                    <el-icon class="icon"><Plus /></el-icon>
+                    <span>点击上传封面图片</span>
+                  </div>
+                </template>
+              </el-upload>
+            </div>
+          </el-form-item>
+
+          <el-form-item label="宠物图片">
+            <div class="image-upload-section">
+              <el-upload
+                ref="imagesUploadRef"
+                class="pet-images-uploader"
+                :auto-upload="false"
+                multiple
+                accept="image/*"
+                @change="handleImagesSelect"
+              >
+                <template #default>
+                  <el-button type="primary">点击上传图片</el-button>
+                </template>
+                <template #tip>
+                  <div class="el-upload__tip">支持上传多张图片，每张不超过5MB</div>
+                </template>
+              </el-upload>
+              <div v-if="imageList.length > 0" class="image-list">
+                <div v-for="(img, index) in imageList" :key="index" class="image-item">
+                  <img :src="img" :alt="`宠物图片${index + 1}`" />
+                  <el-button type="danger" size="small" @click="handleRemoveImage(index)">删除</el-button>
+                </div>
               </div>
             </div>
-          </div>
-        </el-form-item>
+          </el-form-item>
 
-        <el-form-item>
-          <el-button type="primary" @click="handleSubmit">提交</el-button>
-          <el-button @click="handleCancel">取消</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+          <el-form-item>
+            <el-button type="primary" @click="handleSubmit">提交</el-button>
+            <el-button @click="handleCancel">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </div>
+
+    <!-- 新增类别弹窗 -->
+    <el-dialog
+      v-model="showAddCategoryDialog"
+      title="新增宠物类别"
+      width="400px"
+      @closed="handleAddCategoryDialogClosed"
+    >
+      <div class="add-category-dialog-body">
+        <el-form label-width="80px">
+          <el-form-item label="类别名称" :error="newCategoryError">
+            <el-input
+              v-model="newCategoryName"
+              placeholder="请输入新的宠物类别"
+              maxlength="20"
+              show-word-limit
+              @keyup.enter="confirmAddCategory"
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelAddCategory">取 消</el-button>
+          <el-button type="primary" @click="confirmAddCategory">确 定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -173,6 +215,11 @@ const categoryOptions = ref<Array<{ label: string; value: string }>>([])
 const adoptionStatusOptions = ref<Array<{ label: string; value: string }>>([])
 const healthStatusOptions = ref<Array<{ label: string; value: string }>>([])
 
+const ADD_CATEGORY_FLAG = '__ADD_CATEGORY__'
+const showAddCategoryDialog = ref(false)
+const newCategoryName = ref('')
+const newCategoryError = ref('')
+const lastValidCategory = ref<string>('')
 
 const form = reactive<Partial<Pet>>({
   name: '',
@@ -192,7 +239,7 @@ const form = reactive<Partial<Pet>>({
 
 const uploadHeaders = computed(() => {
   const token = localStorage.getItem('token')
-  return token ? { 'Authorization': token } : {}
+  return token ? { Authorization: `Bearer ${token}` } : {}
 })
 
 const rules: FormRules = {
@@ -217,6 +264,10 @@ async function loadDictData() {
         value,
         label: label as string
       }))
+      if (!categoryOptions.value.find(opt => opt.value === form.category) && categoryOptions.value.length > 0) {
+        form.category = categoryOptions.value[0].value
+      }
+      lastValidCategory.value = form.category || ''
     }
     
     if (adoptionStatusRes.code === 200) {
@@ -295,6 +346,51 @@ function handleRemoveImage(index: number) {
   ElMessage.success('已删除图片')
 }
 
+function openAddCategoryDialog() {
+  newCategoryName.value = ''
+  newCategoryError.value = ''
+  showAddCategoryDialog.value = true
+}
+
+function handleCategoryChange(value: string) {
+  if (value === ADD_CATEGORY_FLAG) {
+    form.category = lastValidCategory.value
+    openAddCategoryDialog()
+    return
+  }
+  lastValidCategory.value = value
+}
+
+function handleAddCategoryDialogClosed() {
+  showAddCategoryDialog.value = false
+  newCategoryName.value = ''
+  newCategoryError.value = ''
+}
+
+function confirmAddCategory() {
+  const name = newCategoryName.value.trim()
+  if (!name) {
+    newCategoryError.value = '请输入类别名称'
+    return
+  }
+
+  const exists = categoryOptions.value.some(opt => opt.value.toLowerCase() === name.toLowerCase())
+  if (exists) {
+    newCategoryError.value = '该类别已存在'
+    return
+  }
+
+  categoryOptions.value.push({ label: name, value: name })
+  form.category = name
+  lastValidCategory.value = name
+  showAddCategoryDialog.value = false
+  ElMessage.success('已新增宠物类别')
+}
+
+function cancelAddCategory() {
+  handleAddCategoryDialogClosed()
+}
+
 async function uploadImages(petId: number) {
   const uploadPromises = []
   
@@ -306,7 +402,7 @@ async function uploadImages(petId: number) {
     const coverPromise = fetch(`/api/pet/${petId}/upload-cover`, {
       method: 'POST',
       headers: {
-        'Authorization': localStorage.getItem('token') || ''
+        ...uploadHeaders.value
       },
       body: formData
     })
@@ -332,7 +428,7 @@ async function uploadImages(petId: number) {
       return fetch(`/api/pet/${petId}/upload-image`, {
         method: 'POST',
         headers: {
-          'Authorization': localStorage.getItem('token') || ''
+          ...uploadHeaders.value
         },
         body: formData
       })
@@ -383,11 +479,8 @@ async function handleSubmit() {
         ElMessage.info('正在上传图片...')
         await uploadImages(petId)
         
-        // 上传完成后，更新数据库中的图片URL
-        await updatePet(petId, {
-          coverImage: form.coverImage,
-          images: form.images
-        })
+        // 上传完成后，使用完整表单数据保存（包含最新图片URL）
+        await updatePet(petId, form)
         ElMessage.success('图片已保存')
       }
       
@@ -521,6 +614,15 @@ onMounted(() => {
   :deep(.el-upload__tip) {
     margin-top: 8px;
     color: #909399;
+  }
+}
+
+.add-category-option {
+  .add-category-entry {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #409eff;
   }
 }
 </style>

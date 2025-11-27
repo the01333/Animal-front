@@ -201,11 +201,8 @@
                 <el-button type="primary" link :icon="View" @click="$router.push(`/story/${story.id}`)">
                   阅读更多
                 </el-button>
-                <el-tag type="success" effect="plain" size="small">
-                  <el-icon>
-                    <CircleCheck />
-                  </el-icon>
-                  已领养
+                <el-tag type="info" effect="light" size="small">
+                  阅读 {{ story.viewCount ?? 0 }} 次
                 </el-tag>
               </div>
             </div>
@@ -242,7 +239,8 @@ import { ElMessage } from 'element-plus'
 import { Search, Reading, ChatDotRound, ArrowRight, View, Star, List, Sunny, Orange, Calendar } from '@element-plus/icons-vue'
 import { Reading as ReadingIcon, Document, UserFilled, ChatLineRound, CircleCheck, CircleCheckFilled } from '@element-plus/icons-vue'
 import { getRecommendedPets } from '@/api/pet'
-import { getAllStories } from '@/api/story'
+import { getStoryList } from '@/api/story'
+import type { Article } from '@/types'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -318,7 +316,7 @@ async function loadFeaturedPets() {
 
         // 如果没有图片，使用占位图
         // if (!imageUrl) {
-        //   imageUrl = `https://via.placeholder.com/400x300?text=${encodeURIComponent(pet.name || '宠物')}`
+        //   imageUrl = `http://localhost:9000/animal-adopt/default.jpg`
         // }
 
         return {
@@ -353,48 +351,34 @@ onMounted(async () => {
       // 获取用户信息失败不影响首页加载
     }
   }
-  
+
   loadFeaturedPets()
   loadStories()
 })
 
 // 故事数据
-const stories = ref<any[]>([])
+const stories = ref<Article[]>([])
 
 // 加载故事 - 随机获取两篇
 async function loadStories() {
   try {
-    console.log('📝 开始加载故事...')
-    const res = await getAllStories()
-    console.log('📝 故事API响应:', res)
-    
-    if (res.code === 200 && res.data) {
-      const allStories = res.data as any[]
-      console.log('📝 获取到故事总数:', allStories.length)
-      
-      if (allStories.length === 0) {
-        console.warn('⚠️ 没有故事数据')
-        return
-      }
-      
-      // 随机打乱故事列表
-      const shuffled = [...allStories].sort(() => Math.random() - 0.5)
-      
-      // 取前两个故事
-      stories.value = shuffled.slice(0, 2).map(story => ({
-        id: story.id,
-        title: story.title,
-        excerpt: story.excerpt || story.content?.substring(0, 100) || '',
-        image: story.image || 'http://localhost:9000/animal-adopt/救助1.png'
-      }))
-      
-      console.log('✅ 随机加载故事成功，共', stories.value.length, '篇:', stories.value)
-    } else {
-      console.error('❌ API返回错误:', res)
+    const res = await getStoryList({ current: 1, size: 20 })
+    const allStories = res.data?.records || []
+
+    if (!allStories.length) {
+      stories.value = []
+      return
     }
+
+    const shuffled = [...allStories].sort(() => Math.random() - 0.5)
+    stories.value = shuffled.slice(0, 2).map((story) => ({
+      ...story,
+      summary: story.summary || story.content?.slice(0, 100) || '',
+      coverImage: story.coverImage || 'http://localhost:9000/animal-adopt/default.jpg'
+    }))
   } catch (error) {
-    console.error('❌ 加载故事失败:', error)
-    // 加载失败不影响首页显示
+    console.error('加载故事失败:', error)
+    stories.value = []
   }
 }
 
@@ -573,7 +557,9 @@ function openAIChatWidget() {
 }
 
 @keyframes glow {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: drop-shadow(0 0 10px rgba(255, 200, 102, 0.5));
   }
 
@@ -607,7 +593,9 @@ function openAIChatWidget() {
 }
 
 @keyframes textGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 
@@ -617,7 +605,9 @@ function openAIChatWidget() {
 }
 
 @keyframes fadeInOut {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.95;
   }
 
@@ -627,7 +617,9 @@ function openAIChatWidget() {
 }
 
 @keyframes buttonPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(255, 200, 102, 0.4);
   }
 

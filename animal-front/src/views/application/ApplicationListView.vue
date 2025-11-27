@@ -1,7 +1,7 @@
 <template>
   <div class="applications-container">
     <h1>我的领养申请</h1>
-    
+
     <div class="applications-content">
       <div v-if="applications.length === 0" class="empty-state">
         <div class="empty-icon">📋</div>
@@ -9,7 +9,7 @@
         <p>您还没有提交任何领养申请</p>
         <router-link to="/pets" class="btn-browse-pets">浏览可领养宠物</router-link>
       </div>
-      
+
       <div v-else>
         <div class="filters">
           <div class="filter-group">
@@ -22,25 +22,16 @@
               <option value="cancelled">已撤销</option>
             </select>
           </div>
-          
+
           <div class="filter-group">
-            <input 
-              type="text" 
-              v-model="filters.keyword" 
-              placeholder="搜索宠物名称..." 
-              class="search-input"
-            />
+            <input type="text" v-model="filters.keyword" placeholder="搜索宠物名称..." class="search-input" />
           </div>
-          
+
           <button @click="resetFilters" class="btn-reset">重置</button>
         </div>
-        
+
         <div class="applications-list">
-          <div 
-            v-for="application in filteredApplications" 
-            :key="application.id" 
-            class="application-item"
-          >
+          <div v-for="application in filteredApplications" :key="application.id" class="application-item">
             <div class="application-header">
               <div class="pet-info">
                 <img :src="application.petImage || defaultImage" :alt="application.petName" />
@@ -53,7 +44,7 @@
                 {{ applicationStatusText(application.status) }}
               </span>
             </div>
-            
+
             <div class="application-details">
               <div class="detail-item">
                 <label>申请编号:</label>
@@ -64,41 +55,27 @@
                 <span>{{ application.updateDate }}</span>
               </div>
             </div>
-            
+
             <div class="application-actions">
-              <button 
-                @click="viewApplication(application.id)" 
-                class="btn-view"
-              >
+              <button @click="viewApplication(application.id)" class="btn-view">
                 查看详情
               </button>
-              <button 
-                v-if="application.status === 'pending'" 
-                @click="cancelApplication(application.id)" 
-                class="btn-cancel"
-              >
+              <button v-if="application.status === 'pending'" @click="cancelApplication(application.id)"
+                class="btn-cancel">
                 撤销申请
               </button>
             </div>
           </div>
         </div>
-        
+
         <div class="pagination">
-          <button 
-            @click="prevPage" 
-            :disabled="currentPage === 1"
-            class="btn-pagination"
-          >
+          <button @click="prevPage" :disabled="currentPage === 1" class="btn-pagination">
             上一页
           </button>
           <span class="page-info">
             第 {{ currentPage }} 页，共 {{ totalPages }} 页
           </span>
-          <button 
-            @click="nextPage" 
-            :disabled="currentPage === totalPages"
-            class="btn-pagination"
-          >
+          <button @click="nextPage" :disabled="currentPage === totalPages" class="btn-pagination">
             下一页
           </button>
         </div>
@@ -140,7 +117,7 @@ const applications = ref<Application[]>([
   {
     id: 'APP20251015001',
     petName: '小花',
-    petImage: 'https://via.placeholder.com/60x60?text=小花',
+    petImage: 'http://localhost:9000/animal-adopt/default.jpg',
     status: 'pending',
     applyDate: '2025-10-15',
     updateDate: '2025-10-15'
@@ -148,7 +125,7 @@ const applications = ref<Application[]>([
   {
     id: 'APP20251010002',
     petName: '旺财',
-    petImage: 'https://via.placeholder.com/60x60?text=旺财',
+    petImage: 'http://localhost:9000/animal-adopt/default.jpg',
     status: 'approved',
     applyDate: '2025-10-10',
     updateDate: '2025-10-12'
@@ -156,7 +133,7 @@ const applications = ref<Application[]>([
   {
     id: 'APP20251001003',
     petName: '咪咪',
-    petImage: 'https://via.placeholder.com/60x60?text=咪咪',
+    petImage: 'http://localhost:9000/animal-adopt/default.jpg',
     status: 'rejected',
     applyDate: '2025-10-01',
     updateDate: '2025-10-05'
@@ -164,7 +141,7 @@ const applications = ref<Application[]>([
 ])
 
 // 默认图片
-const defaultImage = 'https://via.placeholder.com/60x60?text=宠物'
+const defaultImage = 'http://localhost:9000/animal-adopt/default.jpg'
 
 // 路由
 const router = useRouter()
@@ -180,23 +157,23 @@ const totalPages = computed(() => {
 // 过滤后的申请列表
 const filteredApplications = computed(() => {
   let result = applications.value
-  
+
   // 状态过滤
   if (filters.value.status) {
     result = result.filter(app => app.status === filters.value.status)
   }
-  
+
   // 关键词搜索
   if (filters.value.keyword) {
     const keyword = filters.value.keyword.toLowerCase()
-    result = result.filter(app => 
+    result = result.filter(app =>
       app.petName.toLowerCase().includes(keyword)
     )
   }
-  
+
   // 更新总项目数
   totalItems.value = result.length
-  
+
   // 分页处理
   const start = (currentPage.value - 1) * itemsPerPage.value
   const end = start + itemsPerPage.value
@@ -460,7 +437,8 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-.btn-view, .btn-cancel {
+.btn-view,
+.btn-cancel {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
@@ -508,26 +486,26 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .filter-group {
     width: 100%;
   }
-  
+
   .search-input {
     min-width: auto;
     width: 100%;
   }
-  
+
   .application-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .application-details {
     grid-template-columns: 1fr;
   }
-  
+
   .application-actions {
     justify-content: center;
   }

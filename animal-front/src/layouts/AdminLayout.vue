@@ -45,6 +45,7 @@
               <span>用户管理</span>
             </template>
             <el-menu-item index="/admin/user/list">用户列表</el-menu-item>
+            <el-menu-item index="/admin/user/certification">认证审核</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="content">
@@ -94,7 +95,7 @@
             </el-button>
             <el-dropdown @command="handleCommand">
               <div class="user-info">
-                <el-avatar :size="32" :src="userStore.userInfo?.avatar">
+                <el-avatar :size="32" :src="userAvatar">
                   {{ userStore.userInfo?.username?.charAt(0) }}
                 </el-avatar>
                 <span class="username">{{ userStore.userInfo?.username }}</span>
@@ -139,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
@@ -161,6 +162,36 @@ const breadcrumbs = computed(() => {
     title: item.meta.title as string
   }))
   return breadcrumbList
+})
+
+function processImageUrl(url?: string | null) {
+  if (!url) return ''
+  let normalized = url.trim()
+
+  if (normalized.startsWith('@')) {
+    normalized = normalized.substring(1)
+  }
+
+  normalized = normalized.replace(/https?:\/\/\d+\.\d+\.\d+\.\d+:9000/, 'http://localhost:9000')
+
+  if (!normalized.startsWith('http')) {
+    normalized = `http://localhost:9000/animal-adopt${normalized.startsWith('/') ? '' : '/'}${normalized}`
+  }
+
+  return normalized
+}
+
+const userAvatar = computed(() => {
+  const avatar = userStore.userInfo?.avatar || ''
+  return avatar ? processImageUrl(avatar) : ''
+})
+
+onMounted(async () => {
+  try {
+    await userStore.getUserInfo()
+  } catch (error) {
+    console.warn('获取用户信息失败', error)
+  }
 })
 
 // 下拉菜单命令

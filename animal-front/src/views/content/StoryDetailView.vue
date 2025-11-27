@@ -5,46 +5,44 @@
       <div class="story-meta">
         <span class="meta-item">{{ story.author }}</span>
         <span class="meta-item">{{ story.publishDate }}</span>
-        <span class="meta-item">❤ {{ story.likes }}</span>
+        <span class="meta-item">❤ {{ likeCount }}</span>
+        <span class="meta-item">阅读: {{ story.viewCount ?? 0 }}</span>
+        <span class="meta-item">★ {{ favoriteCount }}</span>
       </div>
     </div>
-    
+
     <div class="story-content">
-      <div class="content-image" v-if="story.image">
-        <img :src="story.image" :alt="story.title" />
+      <div class="content-image" v-if="storyCoverImage">
+        <img :src="storyCoverImage" :alt="story.title" />
       </div>
-      
+
       <div class="content-text markdown-body" v-html="renderedContent"></div>
     </div>
-    
+
     <div class="story-actions">
-      <button @click="likeStory" class="btn-like" :class="{ liked: isLiked }">
+      <button @click="likeStoryFn" class="btn-like" :class="{ liked: isLiked }">
         {{ isLiked ? '已点赞' : '点赞' }} ({{ likeCount }})
       </button>
       <button @click="shareStory" class="btn-share">
         分享
       </button>
       <button @click="collectStory" class="btn-collect" :class="{ collected: isCollected }">
-        {{ isCollected ? '已收藏' : '收藏' }}
+        {{ isCollected ? '已收藏' : '收藏' }} ({{ favoriteCount }})
       </button>
     </div>
-    
+
     <div class="related-stories">
       <h3>相关故事</h3>
       <div class="related-grid">
-        <div 
-          v-for="related in relatedStories" 
-          :key="related.id" 
-          class="related-item"
-          @click="viewRelatedStory(related.id)"
-        >
-          <img :src="related.image || defaultImage" :alt="related.title" />
+        <div v-for="related in relatedStories" :key="related.id" class="related-item"
+          @click="viewRelatedStory(related.id!)">
+          <img :src="formatCoverImage(related.coverImage, defaultImage)" :alt="related.title" />
           <h4>{{ related.title }}</h4>
         </div>
       </div>
     </div>
   </div>
-  
+
   <div class="story-not-found" v-else>
     <h2>故事未找到</h2>
     <p>抱歉，您查找的故事不存在。</p>
@@ -57,16 +55,18 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
-import { getStoryDetail, getAllStories, likeStory as likeStoryAPI, unlikeStory as unlikeStoryAPI, favoriteStory as favoriteStoryAPI, unfavoriteStory as unfavoriteStoryAPI, getStoryLikeCount, getStoryFavoriteCount, isStoryLiked, isStoryFavorited, type StoryVO } from '@/api/story'
+import { getStoryDetail, getStoryList, likeStory as likeStoryAPI, unlikeStory as unlikeStoryAPI, favoriteStory as favoriteStoryAPI, unfavoriteStory as unfavoriteStoryAPI, isStoryLiked, isStoryFavorited } from '@/api/story'
+import type { Article } from '@/types'
 import { marked } from 'marked'
 import { ElMessage } from 'element-plus'
+import { processImageUrl } from '@/utils/image'
 
 // 路由相关
 const route = useRoute()
 const router = useRouter()
 
 // 故事数据
-const story = ref<StoryVO | null>(null)
+const story = ref<Article | null>(null)
 
 // 当前用户ID
 const currentUserId = ref<number | null>(null)
@@ -77,16 +77,24 @@ const likeCount = ref(0)
 
 // 收藏状态
 const isCollected = ref(false)
+const favoriteCount = ref(0)
 
 // 获取用户登录状态和用户信息
 const userStore = useUserStore()
 const { isLoggedIn, userInfo } = storeToRefs(userStore)
 
 // 默认图片
-const defaultImage = 'https://via.placeholder.com/100x100?text=故事'
+const defaultImage = 'http://localhost:9000/animal-adopt/default.jpg'
+
+const formatCoverImage = (cover?: string | null, fallback = '') => {
+  const processed = processImageUrl(cover)
+  return processed || fallback
+}
+
+const storyCoverImage = computed(() => formatCoverImage(story.value?.coverImage))
 
 // 相关故事
-const relatedStories = ref<StoryVO[]>([])
+const relatedStories = ref<Article[]>([])
 
 // 宠物图片池
 const petImages = ref<string[]>([])
@@ -100,7 +108,7 @@ const renderedContent = computed(() => {
 // 为故事分配随机宠物图片
 const assignPetImagesToStories = (stories: StoryVO[]) => {
   if (petImages.value.length === 0) return stories
-  
+
   return stories.map(story => ({
     ...story,
     image: petImages.value[Math.floor(Math.random() * petImages.value.length)]
@@ -108,23 +116,23 @@ const assignPetImagesToStories = (stories: StoryVO[]) => {
 }
 
 // 点赞故事
-const likeStory = async () => {
-  if (!isLoggedIn.value || !userInfo.value?.id) {
+const likeStoryFn = async () => {
+  if (!isLoggedIn.value) {
     ElMessage.warning('请先登录')
     return
   }
-  
+
   if (!story.value) return
-  
+
   try {
     if (isLiked.value) {
-      await unlikeStoryAPI(story.value.id, userInfo.value.id)
+      await unlikeStoryAPI(story.value.id!)
       isLiked.value = false
-      likeCount.value--
+      likeCount.value = Math.max(likeCount.value - 1, 0)
     } else {
-      await likeStoryAPI(story.value.id, userInfo.value.id)
+      await likeStoryAPI(story.value.id!)
       isLiked.value = true
-      likeCount.value++
+      likeCount.value += 1
     }
   } catch (error) {
     console.error('操作失败:', error)
@@ -139,21 +147,23 @@ const shareStory = () => {
 
 // 收藏故事
 const collectStory = async () => {
-  if (!isLoggedIn.value || !userInfo.value?.id) {
+  if (!isLoggedIn.value) {
     ElMessage.warning('请先登录')
     return
   }
-  
+
   if (!story.value) return
-  
+
   try {
     if (isCollected.value) {
-      await unfavoriteStoryAPI(story.value.id, userInfo.value.id)
+      await unfavoriteStoryAPI(story.value.id!)
       isCollected.value = false
+      favoriteCount.value = Math.max(favoriteCount.value - 1, 0)
       ElMessage.success('已取消收藏')
     } else {
-      await favoriteStoryAPI(story.value.id, userInfo.value.id)
+      await favoriteStoryAPI(story.value.id!)
       isCollected.value = true
+      favoriteCount.value += 1
       ElMessage.success('已收藏')
     }
   } catch (error) {
@@ -172,7 +182,7 @@ const fetchPetImages = async () => {
   try {
     const response = await getPetList({ current: 1, size: 100 })
     const pets = response.data?.records as Pet[] || []
-    
+
     // 收集所有宠物的封面图片
     const images: string[] = []
     pets.forEach(pet => {
@@ -180,7 +190,7 @@ const fetchPetImages = async () => {
         images.push(pet.coverImage)
       }
     })
-    
+
     petImages.value = images
     console.log('✅ 获取宠物图片成功，共', images.length, '张')
   } catch (error) {
@@ -193,45 +203,14 @@ const fetchStoryDetail = async () => {
   try {
     const storyId = parseInt(route.params.id as string)
     const response = await getStoryDetail(storyId)
-    story.value = response.data as StoryVO
-    
-    if (story.value) {
-      // 总是获取点赞数量（无需认证）
-      try {
-        const likeCountRes = await getStoryLikeCount(storyId)
-        likeCount.value = likeCountRes.data || 0
-      } catch (e) {
-        likeCount.value = 0
-      }
-      
-      // 只有登录用户才能从数据库查询是否已点赞或收藏
-      if (isLoggedIn.value) {
-        try {
-          const likedRes = await isStoryLiked(storyId)
-          isLiked.value = likedRes.data || false
-          const favoritedRes = await isStoryFavorited(storyId)
-          isCollected.value = favoritedRes.data || false
-        } catch (e) {
-          console.error('查询用户状态失败:', e)
-          isLiked.value = false
-          isCollected.value = false
-        }
-      } else {
-        // 未登录时重置状态
-        isLiked.value = false
-        isCollected.value = false
-      }
-      
-      // 获取所有故事用于显示相关故事
-      const allStoriesResponse = await getAllStories()
-      const allStories = allStoriesResponse.data as StoryVO[]
-      // 获取所有其他故事作为相关故事（不限制数量）
-      let filteredStories = allStories
-        .filter(s => s.id !== story.value?.id)
-      
-      // 为故事分配随机宠物图片
-      relatedStories.value = assignPetImagesToStories(filteredStories)
-    }
+    story.value = response.data as Article
+    likeCount.value = story.value?.likeCount ?? 0
+    favoriteCount.value = story.value?.favoriteCount ?? 0
+    isLiked.value = story.value?.liked ?? false
+    isCollected.value = story.value?.favorited ?? false
+
+    const relatedResponse = await getStoryList({ current: 1, size: 20 })
+    relatedStories.value = (relatedResponse.data?.records || []).filter(s => s.id !== story.value?.id)
   } catch (error) {
     console.error('获取故事详情失败:', error)
   }
@@ -240,8 +219,8 @@ const fetchStoryDetail = async () => {
 // 更新点赞和收藏状态（仅当登录时）
 const updateLikeAndFavoriteStatus = async () => {
   if (!story.value) return
-  const storyId = story.value.id
-  
+  const storyId = story.value.id!
+
   if (isLoggedIn.value) {
     try {
       const likedRes = await isStoryLiked(storyId)
@@ -254,7 +233,6 @@ const updateLikeAndFavoriteStatus = async () => {
       isCollected.value = false
     }
   } else {
-    // 未登录时重置状态
     isLiked.value = false
     isCollected.value = false
   }
@@ -347,7 +325,9 @@ watch(() => isLoggedIn.value, (newVal) => {
   border-radius: 8px;
 }
 
-.btn-like, .btn-share, .btn-collect {
+.btn-like,
+.btn-share,
+.btn-collect {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
@@ -445,7 +425,7 @@ watch(() => isLoggedIn.value, (newVal) => {
   .story-actions {
     flex-direction: column;
   }
-  
+
   .related-grid {
     grid-template-columns: 1fr;
   }

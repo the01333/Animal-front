@@ -24,15 +24,15 @@ export function isPetFavorited(petId: number): Promise<ApiResponse<boolean>> {
   return request({ url: `/favorite/check/${petId}`, method: 'get' })
 }
 
-// 文章收藏
-export function addArticleFavorite(articleId: number): Promise<ApiResponse<void>> {
-  return request({ url: `/article/favorite/${articleId}`, method: 'post' })
+// 内容收藏
+export function addArticleFavorite(category: string, articleId: number): Promise<ApiResponse<void>> {
+  return request({ url: `/content/${category}/${articleId}/favorite`, method: 'post' })
 }
 
-export function removeArticleFavorite(articleId: number): Promise<ApiResponse<void>> {
-  return request({ url: `/article/favorite/${articleId}`, method: 'delete' })
+export function removeArticleFavorite(category: string, articleId: number): Promise<ApiResponse<void>> {
+  return request({ url: `/content/${category}/${articleId}/favorite`, method: 'delete' })
 }
 
-export function isArticleFavorited(articleId: number): Promise<ApiResponse<boolean>> {
-  return request({ url: `/article/favorite/check/${articleId}`, method: 'get' })
+export function isArticleFavorited(category: string, articleId: number): Promise<ApiResponse<boolean>> {
+  return request({ url: `/content/${category}/${articleId}/favorite/check`, method: 'get' })
 }

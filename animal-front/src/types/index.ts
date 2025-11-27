@@ -5,6 +5,26 @@ export interface ApiResponse<T = any> {
   data: T
 }
 
+export interface UserCertificationRecord {
+  id: number
+  userId: number
+  username?: string
+  nickname?: string
+  phone?: string
+  email?: string
+  certified?: boolean
+  idCard?: string
+  idCardFrontUrl?: string
+  idCardBackUrl?: string
+  status: 'not_submitted' | 'pending' | 'approved' | 'rejected'
+  rejectReason?: string
+  reviewerId?: number
+  reviewerName?: string
+  reviewTime?: string
+  createTime?: string
+  updateTime?: string
+}
+
 // 分页响应
 export interface PageResponse<T> {
   records: T[]
@@ -75,23 +95,36 @@ export interface PetQuery {
 // 领养申请相关
 export interface AdoptionApplication {
   id: number
+  applicationNo?: string
   petId: number
   petName?: string
-  petImage?: string
+  petCoverImage?: string
+  petCategory?: string
+  petGender?: number
+  petAdoptionStatus?: string
   userId: number
-  username?: string
-  applicantName: string
-  applicantPhone: string
-  applicantAddress: string
-  applicantJob?: string
-  housingType?: string
-  hasExperience: boolean
-  reason: string
+  applicantUsername?: string
+  applicantNickname?: string
+  applicantAvatar?: string
+  applicantPhone?: string
+  applicantEmail?: string
+  applicantAddress?: string
+  applicantRole?: string
+  applicantCertified?: boolean
+  applicantHasExperience?: boolean
+  reason?: string
+  familyInfo?: string
+  careplan?: string
+  additionalInfo?: string
+  contactPhone?: string
+  contactAddress?: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'
   reviewComment?: string
   reviewTime?: string
-  createdTime?: string
-  updatedTime?: string
+  reviewerId?: number
+  reviewerName?: string
+  createTime?: string
+  updateTime?: string
 }
 
 export interface ApplicationForm {
@@ -107,17 +140,29 @@ export interface ApplicationForm {
 
 // 文章相关
 export interface Article {
-  id: number
+  id?: number
   title: string
   content: string
-  category: 'GUIDE' | 'STORY' | 'NEWS' | 'OTHER'
+  category: 'GUIDE' | 'STORY'
   summary?: string
   coverImage?: string
   author?: string
+  guideCategory?: string
+  tags?: string[]
   viewCount?: number
-  status: number
+  likeCount?: number
+  favoriteCount?: number
+  liked?: boolean
+  favorited?: boolean
+  publishDate?: string
+  publishTime?: string
   createdTime?: string
   updatedTime?: string
+}
+
+export interface ArticleCategoryOption {
+  value: string
+  label: string
 }
 
 // 收藏相关

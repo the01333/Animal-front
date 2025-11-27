@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { ApiResponse, Article, PageResponse } from '@/types'
+import type { ApiResponse, Article, ArticleCategoryOption, PageResponse } from '@/types'
 
 /**
  * 获取文章列表（分页）
@@ -12,7 +12,7 @@ export function getArticleList(params: {
   keyword?: string
 }): Promise<ApiResponse<PageResponse<Article>>> {
   return request({
-    url: '/article/page',
+    url: '/content/page',
     method: 'get',
     params
   })
@@ -21,9 +21,9 @@ export function getArticleList(params: {
 /**
  * 获取文章详情
  */
-export function getArticleDetail(id: number): Promise<ApiResponse<Article>> {
+export function getArticleDetail(category: string, id: number): Promise<ApiResponse<Article>> {
   return request({
-    url: `/article/${id}`,
+    url: `/content/${category}/${id}`,
     method: 'get'
   })
 }
@@ -33,7 +33,7 @@ export function getArticleDetail(id: number): Promise<ApiResponse<Article>> {
  */
 export function createArticle(data: Partial<Article>): Promise<ApiResponse<void>> {
   return request({
-    url: '/article',
+    url: '/content',
     method: 'post',
     data
   })
@@ -42,9 +42,9 @@ export function createArticle(data: Partial<Article>): Promise<ApiResponse<void>
 /**
  * 更新文章（管理员）
  */
-export function updateArticle(id: number, data: Partial<Article>): Promise<ApiResponse<void>> {
+export function updateArticle(category: string, id: number, data: Partial<Article>): Promise<ApiResponse<void>> {
   return request({
-    url: `/article/${id}`,
+    url: `/content/${category}/${id}`,
     method: 'put',
     data
   })
@@ -53,10 +53,31 @@ export function updateArticle(id: number, data: Partial<Article>): Promise<ApiRe
 /**
  * 删除文章（管理员）
  */
-export function deleteArticle(id: number): Promise<ApiResponse<void>> {
+export function deleteArticle(category: string, id: number): Promise<ApiResponse<void>> {
   return request({
-    url: `/article/${id}`,
+    url: `/content/${category}/${id}`,
     method: 'delete'
+  })
+}
+
+/**
+ * 获取文章分类
+ */
+export function getArticleCategories(): Promise<ApiResponse<ArticleCategoryOption[]>> {
+  return request({
+    url: '/content/categories',
+    method: 'get'
+  })
+}
+
+export function uploadArticleCover(formData: FormData): Promise<ApiResponse<string>> {
+  return request({
+    url: '/file/upload/image',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
   })
 }
 

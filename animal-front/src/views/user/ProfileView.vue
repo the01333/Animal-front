@@ -1,7 +1,7 @@
 <template>
   <div class="profile-container">
     <h1>个人中心</h1>
-    
+
     <div class="profile-content">
       <div class="profile-sidebar">
         <div class="user-info">
@@ -13,21 +13,17 @@
           <p class="user-role">{{ userRole }}</p>
           <button v-if="userStore.isManager" class="btn-admin" @click="goAdmin">进入后台管理</button>
         </div>
-        
+
         <nav class="profile-nav">
           <ul>
-            <li 
-              v-for="item in navItems" 
-              :key="item.key"
-              :class="{ active: activeTab === item.key }"
-              @click="activeTab = item.key"
-            >
+            <li v-for="item in navItems" :key="item.key" :class="{ active: activeTab === item.key }"
+              @click="activeTab = item.key">
               {{ item.label }}
             </li>
           </ul>
         </nav>
       </div>
-      
+
       <div class="profile-main">
         <!-- 基本信息 -->
         <div v-if="activeTab === 'basic'" class="profile-section">
@@ -37,51 +33,33 @@
               <label>用户名:</label>
               <input v-model="user.name" type="text" :readonly="!editingBasic" />
             </div>
-            
+
             <div class="form-group">
               <label>邮箱:</label>
               <input v-model="user.email" type="email" :readonly="!editingBasic" />
             </div>
-            
+
             <div class="form-group">
               <label for="phone">手机号:</label>
-              <input 
-                id="phone" 
-                v-model="user.phone" 
-                type="tel" 
-                :readonly="!editingBasic"
-              />
+              <input id="phone" v-model="user.phone" type="tel" :readonly="!editingBasic" />
             </div>
-            
+
             <div class="form-group">
               <label for="address">地址:</label>
-              <input 
-                id="address" 
-                v-model="user.address" 
-                type="text" 
-                :readonly="!editingBasic"
-              />
+              <input id="address" v-model="user.address" type="text" :readonly="!editingBasic" />
             </div>
-            
+
             <div class="form-actions">
-              <button 
-                type="button" 
-                @click="toggleEditBasic" 
-                class="btn-edit"
-              >
+              <button type="button" @click="toggleEditBasic" class="btn-edit">
                 {{ editingBasic ? '取消' : '编辑' }}
               </button>
-              <button 
-                v-if="editingBasic" 
-                type="submit" 
-                class="btn-save"
-              >
+              <button v-if="editingBasic" type="submit" class="btn-save">
                 保存
               </button>
             </div>
           </form>
         </div>
-        
+
         <!-- 领养者认证 -->
         <div v-if="activeTab === 'certification'" class="profile-section">
           <h3>领养者认证</h3>
@@ -90,62 +68,49 @@
               <span class="status-label">认证状态:</span>
               <span :class="certificationStatusClass">{{ certificationStatusText }}</span>
             </div>
-            
+
             <div v-if="user.certificationStatus === 'pending'" class="status-message">
               <p>您的认证申请正在审核中，请耐心等待。</p>
             </div>
-            
+
             <div v-if="user.certificationStatus === 'rejected'" class="status-message">
               <p>您的认证申请被拒绝，原因：{{ user.certificationRejectReason }}</p>
               <button @click="resubmitCertification" class="btn-resubmit">
                 重新提交认证
               </button>
             </div>
-            
+
             <div v-if="user.certificationStatus === 'not_submitted'" class="certification-form">
               <p>您尚未提交领养者认证申请，请填写以下信息进行认证。</p>
-              
+
               <form @submit.prevent="submitCertificationHandler">
                 <div class="form-group">
                   <label for="idCard">身份证号码:</label>
-                  <input 
-                    id="idCard" 
-                    v-model="certificationForm.idCard" 
-                    type="text" 
-                    required 
-                  />
+                  <input id="idCard" v-model="certificationForm.idCard" type="text" required />
                 </div>
-                
+
                 <div class="form-group">
                   <label for="idCardFront">身份证正面:</label>
                   <div class="file-upload">
-                    <input 
-                      id="idCardFront" 
-                      type="file" 
-                      @change="handleFileUpload('idCardFront', $event)"
-                      accept="image/*"
-                    />
+                    <input id="idCardFront" type="file" @change="handleFileUpload('idCardFront', $event)"
+                      accept="image/*" />
                     <div v-if="certificationForm.idCardFrontPreview" class="file-preview">
                       <img :src="certificationForm.idCardFrontPreview" alt="身份证正面" />
                     </div>
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="idCardBack">身份证反面:</label>
                   <div class="file-upload">
-                    <input 
-                      id="idCardBack" 
-                      type="file" 
-                      @change="handleFileUpload('idCardBack', $event)"
-                      accept="image/*"
-                    />
+                    <input id="idCardBack" type="file" @change="handleFileUpload('idCardBack', $event)"
+                      accept="image/*" />
                     <div v-if="certificationForm.idCardBackPreview" class="file-preview">
                       <img :src="certificationForm.idCardBackPreview" alt="身份证反面" />
                     </div>
                   </div>
                 </div>
-                
+
                 <button type="submit" class="btn-submit-certification">
                   提交认证
                 </button>
@@ -153,7 +118,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- 我的申请 -->
         <div v-if="activeTab === 'applications'" class="profile-section">
           <h3>我的领养申请</h3>
@@ -161,13 +126,9 @@
             <p>您还没有提交任何领养申请。</p>
             <router-link to="/pets" class="btn-browse-pets">浏览可领养宠物</router-link>
           </div>
-          
+
           <div v-else class="applications-list">
-            <div 
-              v-for="application in applications" 
-              :key="application.id" 
-              class="application-item"
-            >
+            <div v-for="application in applications" :key="application.id" class="application-item">
               <div class="application-header">
                 <h4>{{ application.petName }}</h4>
                 <span :class="applicationStatusClass(application.status)">
@@ -179,34 +140,30 @@
                 <p><strong>更新时间:</strong> {{ application.updateDate }}</p>
               </div>
               <div class="application-actions">
-                <button 
-                  @click="viewApplication(application.id)" 
-                  class="btn-view"
-                >
+                <button @click="viewApplication(application.id)" class="btn-view">
                   查看详情
                 </button>
-                <button 
-                  v-if="application.status === 'pending'" 
-                  @click="cancelApplication(application.id)" 
-                  class="btn-cancel"
-                >
+                <button v-if="application.status === 'pending'" @click="cancelApplication(application.id)"
+                  class="btn-cancel">
                   撤销申请
                 </button>
               </div>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+// import { useStore } from 'vuex'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
-import { getCertificationInfo, submitCertification } from '@/api/user'
+import { getCertificationInfo, submitCertification, updateUserInfo } from '@/api/user'
 import { ElMessage } from 'element-plus'
 
 // 获取 userStore
@@ -215,10 +172,10 @@ const { userInfo } = storeToRefs(userStore)
 
 // 用户信息
 const user = ref({
-  name: '张三',
-  email: 'zhangsan@example.com',
-  phone: '13800138000',
-  address: '北京市朝阳区某某街道',
+  name: '',
+  email: '',
+  phone: '',
+  address: '',
   avatar: '',
   role: 'user',
   certificationStatus: 'not_submitted' as 'not_submitted' | 'pending' | 'approved' | 'rejected',
@@ -235,25 +192,25 @@ const certificationForm = reactive({
 })
 
 // 默认头像
-const defaultAvatar = 'https://via.placeholder.com/100x100?text=头像'
+const defaultAvatar = 'http://localhost:9000/animal-adopt/default.jpg'
 
 // 处理图片URL（移除@前缀，处理IP地址替换）
 function processImageUrl(url: string | undefined): string {
   if (!url) return ''
-  
+
   // 移除@前缀
   if (url.startsWith('@')) {
     url = url.substring(1)
   }
-  
+
   // 将IP地址替换为localhost
   url = url.replace(/https?:\/\/\d+\.\d+\.\d+\.\d+:9000/, 'http://localhost:9000')
-  
+
   // 如果是相对路径，添加MinIO前缀
   if (!url.startsWith('http')) {
     url = `http://localhost:9000/animal-adopt${url.startsWith('/') ? '' : '/'}${url}`
   }
-  
+
   return url
 }
 
@@ -270,7 +227,48 @@ const userRole = computed(() => {
 })
 
 // 激活的标签页
-const activeTab = ref('basic')
+const route = useRoute()
+const activeTab = ref(route.query.tab === 'certification' ? 'certification' : 'basic')
+
+const loadingProfile = ref(false)
+
+const syncUserFromStore = () => {
+  if (!userInfo.value) return
+  const info = userInfo.value
+  user.value.name = info.username || info.email || '用户'
+  user.value.email = info.email || ''
+  user.value.phone = info.phone || ''
+  user.value.address = (info as any).address || ''
+  user.value.avatar = info.avatar ? processImageUrl(info.avatar) : ''
+  user.value.role = info.role || 'user'
+}
+
+const loadUserProfile = async () => {
+  loadingProfile.value = true
+  try {
+    await userStore.getUserInfo()
+    syncUserFromStore()
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+  } finally {
+    loadingProfile.value = false
+  }
+}
+
+watch(userInfo, () => {
+  syncUserFromStore()
+})
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if (tab === 'certification' || tab === 'basic' || tab === 'applications') {
+      activeTab.value = tab
+    } else {
+      activeTab.value = 'basic'
+    }
+  }
+)
 
 // 导航项
 const navItems = [
@@ -348,14 +346,40 @@ const applicationStatusClass = (status: string) => {
 
 // 切换编辑基本信息状态
 const toggleEditBasic = () => {
-  editingBasic.value = !editingBasic.value
+  if (editingBasic.value) {
+    syncUserFromStore()
+    editingBasic.value = false
+  } else {
+    editingBasic.value = true
+  }
 }
 
 // 更新基本信息
-const updateBasicInfo = () => {
-  // 在实际应用中，这里会调用后端API更新用户信息
-  alert('基本信息更新成功')
-  editingBasic.value = false
+const updateBasicInfo = async () => {
+  if (!editingBasic.value) return
+  try {
+    await updateUserInfo({
+      username: user.value.name,
+      email: user.value.email,
+      phone: user.value.phone,
+      address: user.value.address,
+      nickname: user.value.nickname,
+      realName: user.value.realName,
+      gender: user.value.gender,
+      age: user.value.age,
+      occupation: user.value.occupation,
+      housing: user.value.housing,
+      hasExperience: user.value.hasExperience,
+      avatar: user.value.avatar
+    })
+    ElMessage.success('基本信息更新成功')
+    await userStore.getUserInfo()
+    syncUserFromStore()
+    editingBasic.value = false
+  } catch (error) {
+    console.error('更新用户信息失败:', error)
+    ElMessage.error('更新失败，请稍后重试')
+  }
 }
 
 // 编辑头像
@@ -367,7 +391,7 @@ const editAvatar = () => {
 const handleFileUpload = (field: 'idCardFront' | 'idCardBack', event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-  
+
   if (file) {
     // 保存文件
     if (field === 'idCardFront') {
@@ -375,7 +399,7 @@ const handleFileUpload = (field: 'idCardFront' | 'idCardBack', event: Event) => 
     } else {
       certificationForm.idCardBack = file
     }
-    
+
     // 生成预览
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -395,35 +419,35 @@ const submitCertificationHandler = async () => {
     ElMessage.error('请输入身份证号码')
     return
   }
-  
+
   if (!certificationForm.idCardFront) {
     ElMessage.error('请上传身份证正面照片')
     return
   }
-  
+
   if (!certificationForm.idCardBack) {
     ElMessage.error('请上传身份证反面照片')
     return
   }
-  
+
   try {
     const formData = new FormData()
     formData.append('idCard', certificationForm.idCard)
     formData.append('idCardFront', certificationForm.idCardFront)
     formData.append('idCardBack', certificationForm.idCardBack)
-    
+
     await submitCertification(formData)
-    
+
     // 提交成功后更新状态
     user.value.certificationStatus = 'pending'
-    
+
     // 清空表单
     certificationForm.idCard = ''
     certificationForm.idCardFront = null
     certificationForm.idCardBack = null
     certificationForm.idCardFrontPreview = ''
     certificationForm.idCardBackPreview = ''
-    
+
     ElMessage.success('认证申请提交成功，请等待审核')
   } catch (error) {
     ElMessage.error('提交认证失败，请重试')
@@ -459,17 +483,8 @@ const cancelApplication = (id: number) => {
 }
 
 onMounted(async () => {
-  // 从 userStore 加载用户信息
-  if (userInfo.value) {
-    user.value.name = userInfo.value.username || '用户'
-    user.value.email = userInfo.value.email || ''
-    user.value.phone = userInfo.value.phone || ''
-    user.value.address = userInfo.value.address || ''
-    user.value.avatar = userInfo.value.avatar ? processImageUrl(userInfo.value.avatar) : ''
-    user.value.role = userInfo.value.role || 'user'
-  }
-  
-  // 加载认证信息
+  await loadUserProfile()
+
   try {
     const res = await getCertificationInfo()
     if (res.data) {
@@ -478,7 +493,6 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('获取认证信息失败:', error)
-    // 如果获取失败，保持默认状态
   }
 })
 
@@ -644,7 +658,8 @@ onMounted(async () => {
   margin-top: 1.5rem;
 }
 
-.btn-edit, .btn-save {
+.btn-edit,
+.btn-save {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
@@ -809,7 +824,8 @@ onMounted(async () => {
   margin-top: 1rem;
 }
 
-.btn-view, .btn-cancel {
+.btn-view,
+.btn-cancel {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
@@ -831,7 +847,7 @@ onMounted(async () => {
   .profile-content {
     flex-direction: column;
   }
-  
+
   .profile-sidebar {
     flex: none;
   }
