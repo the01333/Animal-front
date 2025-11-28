@@ -7,7 +7,8 @@
         <div class="user-info">
           <div class="avatar">
             <img :src="user.avatar ? processImageUrl(user.avatar) : defaultAvatar" :alt="user.name" />
-            <button class="btn-edit-avatar" @click="editAvatar">编辑头像</button>
+            <button class="btn-edit-avatar" @click="triggerAvatarUpload">编辑头像</button>
+            <input ref="avatarInput" type="file" accept="image/*" style="display: none" @change="handleAvatarUpload" />
           </div>
           <h2>{{ user.name }}</h2>
           <p class="user-role">{{ userRole }}</p>
@@ -73,10 +74,18 @@
               <p>您的认证申请正在审核中，请耐心等待。</p>
             </div>
 
-            <div v-if="user.certificationStatus === 'rejected'" class="status-message">
-              <p>您的认证申请被拒绝，原因：{{ user.certificationRejectReason }}</p>
+            <div v-if="user.certificationStatus === 'rejected'" class="status-message status-message-rejected">
+              <p><strong>认证被拒绝</strong></p>
+              <p class="reject-reason">拒绝原因：{{ user.certificationRejectReason }}</p>
               <button @click="resubmitCertification" class="btn-resubmit">
                 重新提交认证
+              </button>
+            </div>
+
+            <div v-if="user.certificationStatus === 'approved'" class="status-message">
+              <p>您已通过领养者认证，可以进行领养申请。</p>
+              <button @click="updateCertification" class="btn-update-certification">
+                更新认证信息
               </button>
             </div>
 
@@ -114,6 +123,49 @@
                 <button type="submit" class="btn-submit-certification">
                   提交认证
                 </button>
+              </form>
+            </div>
+
+            <!-- 更新认证表单 -->
+            <div v-if="user.certificationStatus === 'approved' && showUpdateForm" class="certification-form">
+              <p>更新您的认证信息（如身份证已过期或需要更新）</p>
+
+              <form @submit.prevent="submitUpdateCertificationHandler">
+                <div class="form-group">
+                  <label for="updateIdCard">身份证号码:</label>
+                  <input id="updateIdCard" v-model="updateCertificationForm.idCard" type="text" required />
+                </div>
+
+                <div class="form-group">
+                  <label for="updateIdCardFront">身份证正面:</label>
+                  <div class="file-upload">
+                    <input id="updateIdCardFront" type="file" @change="handleUpdateFileUpload('idCardFront', $event)"
+                      accept="image/*" />
+                    <div v-if="updateCertificationForm.idCardFrontPreview" class="file-preview">
+                      <img :src="updateCertificationForm.idCardFrontPreview" alt="身份证正面" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="updateIdCardBack">身份证反面:</label>
+                  <div class="file-upload">
+                    <input id="updateIdCardBack" type="file" @change="handleUpdateFileUpload('idCardBack', $event)"
+                      accept="image/*" />
+                    <div v-if="updateCertificationForm.idCardBackPreview" class="file-preview">
+                      <img :src="updateCertificationForm.idCardBackPreview" alt="身份证反面" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn-submit-certification">
+                    提交更新
+                  </button>
+                  <button type="button" @click="cancelUpdateCertification" class="btn-cancel">
+                    取消
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -179,6 +231,70 @@
           </div>
         </div>
 
+        <!-- 我的点赞 -->
+        <div v-if="activeTab === 'likes'" class="profile-section">
+          <div class="section-head">
+            <h3>我的点赞</h3>
+            <span v-if="likedItems.length" class="count-badge">共 {{ likedItems.length }} 项</span>
+          </div>
+
+          <div v-if="loadingLikes" class="loading-message">
+            正在加载点赞列表，请稍候...
+          </div>
+
+          <div v-else-if="likedItems.length === 0" class="empty-message">
+            <p>您还没有点赞任何内容。</p>
+          </div>
+
+          <div v-else class="likes-grid">
+            <div v-for="item in likedItems" :key="`${item.type}-${item.id}`" class="like-item">
+              <div class="item-image">
+                <img :src="getItemImage(item)" :alt="item.title" />
+              </div>
+              <div class="item-info">
+                <h4>{{ item.title }}</h4>
+                <p class="item-type">{{ getItemTypeLabel(item.type) }}</p>
+                <p v-if="item.description" class="item-description">{{ item.description }}</p>
+              </div>
+              <div class="item-actions">
+                <button @click="viewLikedItem(item)" class="btn-view-item">查看</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 我的收藏 -->
+        <div v-if="activeTab === 'favorites'" class="profile-section">
+          <div class="section-head">
+            <h3>我的收藏</h3>
+            <span v-if="favoriteItems.length" class="count-badge">共 {{ favoriteItems.length }} 项</span>
+          </div>
+
+          <div v-if="loadingFavorites" class="loading-message">
+            正在加载收藏列表，请稍候...
+          </div>
+
+          <div v-else-if="favoriteItems.length === 0" class="empty-message">
+            <p>您还没有收藏任何内容。</p>
+          </div>
+
+          <div v-else class="favorites-grid">
+            <div v-for="item in favoriteItems" :key="`${item.type}-${item.id}`" class="favorite-item">
+              <div class="item-image">
+                <img :src="getItemImage(item)" :alt="item.title" />
+              </div>
+              <div class="item-info">
+                <h4>{{ item.title }}</h4>
+                <p class="item-type">{{ getItemTypeLabel(item.type) }}</p>
+                <p v-if="item.description" class="item-description">{{ item.description }}</p>
+              </div>
+              <div class="item-actions">
+                <button @click="viewFavoriteItem(item)" class="btn-view-item">查看</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -190,9 +306,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { getCertificationInfo, submitCertification, updateUserInfo } from '@/api/user'
+import { getCertificationInfo, submitCertification, updateUserInfo, uploadUserAvatar } from '@/api/user'
 import { getMyApplications, cancelApplication as cancelApplicationApi } from '@/api/application'
-import type { AdoptionApplication } from '@/types'
+import { getUserLikedPets } from '@/api/like'
+import { getUserFavoritePets } from '@/api/favorite'
+import type { AdoptionApplication, Pet } from '@/types'
 
 // 获取 userStore
 const userStore = useUserStore()
@@ -258,7 +376,7 @@ const userRole = computed(() => {
 // 激活的标签页
 const route = useRoute()
 const resolveTab = (tab?: string | string[]) => {
-  if (tab === 'certification' || tab === 'applications' || tab === 'basic') return tab
+  if (tab === 'certification' || tab === 'applications' || tab === 'basic' || tab === 'likes' || tab === 'favorites') return tab
   return 'basic'
 }
 const activeTab = ref(resolveTab(route.query.tab as string | undefined))
@@ -295,7 +413,7 @@ watch(userInfo, () => {
 watch(
   () => route.query.tab,
   (tab) => {
-    if (tab === 'certification' || tab === 'basic' || tab === 'applications') {
+    if (tab === 'certification' || tab === 'basic' || tab === 'applications' || tab === 'likes' || tab === 'favorites') {
       activeTab.value = tab
     } else {
       activeTab.value = 'basic'
@@ -307,7 +425,9 @@ watch(
 const navItems = [
   { key: 'basic', label: '基本信息' },
   { key: 'certification', label: '领养者认证' },
-  { key: 'applications', label: '我的申请' }
+  { key: 'applications', label: '我的申请' },
+  { key: 'likes', label: '我的点赞' },
+  { key: 'favorites', label: '我的收藏' }
 ]
 
 // 编辑基本信息状态
@@ -405,9 +525,62 @@ const updateBasicInfo = async () => {
   }
 }
 
-// 编辑头像
-const editAvatar = () => {
-  alert('编辑头像功能')
+// 头像输入框引用
+const avatarInput = ref<HTMLInputElement>()
+
+// 触发头像上传
+const triggerAvatarUpload = () => {
+  avatarInput.value?.click()
+}
+
+// 处理头像上传
+const handleAvatarUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (!file) return
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('请选择图片文件')
+    return
+  }
+
+  // 验证文件大小（限制为 5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return
+  }
+
+  try {
+    // 显示加载提示
+    ElMessage.loading({
+      message: '正在上传头像...',
+      duration: 0
+    })
+
+    // 调用后端 API 上传头像
+    const res = await uploadUserAvatar(file)
+
+    // 更新本地用户信息
+    if (res.data?.avatar) {
+      user.value.avatar = res.data.avatar
+    }
+
+    // 刷新用户信息
+    await userStore.getUserInfo()
+    syncUserFromStore()
+
+    ElMessage.success('头像更新成功')
+
+    // 清空输入框
+    if (avatarInput.value) {
+      avatarInput.value.value = ''
+    }
+  } catch (error) {
+    console.error('上传头像失败:', error)
+    ElMessage.error('上传头像失败，请稍后重试')
+  }
 }
 
 // 处理文件上传
@@ -488,6 +661,107 @@ const resubmitCertification = () => {
   certificationForm.idCardBackPreview = ''
 }
 
+// 更新认证表单数据
+const showUpdateForm = ref(false)
+const updateCertificationForm = reactive({
+  idCard: '',
+  idCardFront: null as File | null,
+  idCardBack: null as File | null,
+  idCardFrontPreview: '',
+  idCardBackPreview: ''
+})
+
+// 打开更新认证表单
+const updateCertification = () => {
+  showUpdateForm.value = true
+  // 可选：预填当前的身份证号码
+  updateCertificationForm.idCard = ''
+  updateCertificationForm.idCardFront = null
+  updateCertificationForm.idCardBack = null
+  updateCertificationForm.idCardFrontPreview = ''
+  updateCertificationForm.idCardBackPreview = ''
+}
+
+// 处理更新认证文件上传
+const handleUpdateFileUpload = (field: 'idCardFront' | 'idCardBack', event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (file) {
+    // 保存文件
+    if (field === 'idCardFront') {
+      updateCertificationForm.idCardFront = file
+    } else {
+      updateCertificationForm.idCardBack = file
+    }
+
+    // 生成预览
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      if (field === 'idCardFront') {
+        updateCertificationForm.idCardFrontPreview = e.target?.result as string
+      } else {
+        updateCertificationForm.idCardBackPreview = e.target?.result as string
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+// 提交更新认证
+const submitUpdateCertificationHandler = async () => {
+  if (!updateCertificationForm.idCard) {
+    ElMessage.error('请输入身份证号码')
+    return
+  }
+
+  if (!updateCertificationForm.idCardFront) {
+    ElMessage.error('请上传身份证正面照片')
+    return
+  }
+
+  if (!updateCertificationForm.idCardBack) {
+    ElMessage.error('请上传身份证反面照片')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('idCard', updateCertificationForm.idCard)
+    formData.append('idCardFront', updateCertificationForm.idCardFront)
+    formData.append('idCardBack', updateCertificationForm.idCardBack)
+
+    // 调用更新认证 API
+    await submitCertification(formData)
+
+    // 更新成功后状态变为待审核
+    user.value.certificationStatus = 'pending'
+    showUpdateForm.value = false
+
+    // 清空表单
+    updateCertificationForm.idCard = ''
+    updateCertificationForm.idCardFront = null
+    updateCertificationForm.idCardBack = null
+    updateCertificationForm.idCardFrontPreview = ''
+    updateCertificationForm.idCardBackPreview = ''
+
+    ElMessage.success('认证信息更新成功，请等待审核')
+  } catch (error) {
+    ElMessage.error('更新认证失败，请重试')
+    console.error('更新认证失败:', error)
+  }
+}
+
+// 取消更新认证
+const cancelUpdateCertification = () => {
+  showUpdateForm.value = false
+  updateCertificationForm.idCard = ''
+  updateCertificationForm.idCardFront = null
+  updateCertificationForm.idCardBack = null
+  updateCertificationForm.idCardFrontPreview = ''
+  updateCertificationForm.idCardBackPreview = ''
+}
+
 // 申请时间格式化
 const formatDateTime = (value?: string) => {
   if (!value) return '—'
@@ -554,9 +828,113 @@ const cancelApplication = async (id: number) => {
   }
 }
 
+// 点赞和收藏数据
+interface LikeItem {
+  id: number
+  type: 'pet' | 'guide' | 'story'
+  title: string
+  description?: string
+  image?: string
+}
+
+const likedItems = ref<LikeItem[]>([])
+const favoriteItems = ref<LikeItem[]>([])
+const loadingLikes = ref(false)
+const loadingFavorites = ref(false)
+
+// 获取项目图片
+const getItemImage = (item: LikeItem): string => {
+  if (item.image) {
+    return processImageUrl(item.image)
+  }
+  return defaultPetCover
+}
+
+// 获取项目类型标签
+const getItemTypeLabel = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    'pet': '宠物',
+    'guide': '旅游指南',
+    'story': '领养故事'
+  }
+  return typeMap[type] || type
+}
+
+// 查看点赞项目
+const viewLikedItem = (item: LikeItem) => {
+  if (item.type === 'pet') {
+    router.push(`/pet/${item.id}`)
+  } else if (item.type === 'guide') {
+    router.push(`/guide/${item.id}`)
+  } else if (item.type === 'story') {
+    router.push(`/story/${item.id}`)
+  }
+}
+
+// 查看收藏项目
+const viewFavoriteItem = (item: LikeItem) => {
+  if (item.type === 'pet') {
+    router.push(`/pet/${item.id}`)
+  } else if (item.type === 'guide') {
+    router.push(`/guide/${item.id}`)
+  } else if (item.type === 'story') {
+    router.push(`/story/${item.id}`)
+  }
+}
+
+// 加载点赞列表
+const loadLikes = async () => {
+  if (loadingLikes.value) return
+  loadingLikes.value = true
+  try {
+    const res = await getUserLikedPets({ current: 1, size: 50 })
+    const pets = res.data?.records || []
+    likedItems.value = pets.map((pet: Pet) => ({
+      id: pet.id,
+      type: 'pet' as const,
+      title: pet.name,
+      description: pet.breed,
+      image: pet.coverImage
+    }))
+  } catch (error) {
+    console.error('获取点赞列表失败:', error)
+    ElMessage.error('加载点赞列表失败，请稍后重试')
+    likedItems.value = []
+  } finally {
+    loadingLikes.value = false
+  }
+}
+
+// 加载收藏列表
+const loadFavorites = async () => {
+  if (loadingFavorites.value) return
+  loadingFavorites.value = true
+  try {
+    const res = await getUserFavoritePets({ current: 1, size: 50 })
+    const pets = res.data?.records || []
+    favoriteItems.value = pets.map((pet: Pet) => ({
+      id: pet.id,
+      type: 'pet' as const,
+      title: pet.name,
+      description: pet.breed,
+      image: pet.coverImage
+    }))
+  } catch (error) {
+    console.error('获取收藏列表失败:', error)
+    ElMessage.error('加载收藏列表失败，请稍后重试')
+    favoriteItems.value = []
+  } finally {
+    loadingFavorites.value = false
+  }
+}
+
 watch(activeTab, (tab) => {
   if (tab === 'applications' && applications.value.length === 0 && !loadingApplications.value) {
     loadApplications()
+  } else if (tab === 'likes' && likedItems.value.length === 0 && !loadingLikes.value) {
+    loadLikes()
+  } else if (tab === 'favorites' && favoriteItems.value.length === 0 && !loadingFavorites.value) {
+    loadFavorites()
   }
 })
 
@@ -709,23 +1087,25 @@ onMounted(async () => {
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: bold;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
   color: #333;
+  font-size: 0.95rem;
 }
 
 .form-group input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
   font-size: 1rem;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .form-group input[readonly] {
@@ -736,7 +1116,7 @@ onMounted(async () => {
 
 .form-group input:not([readonly]) {
   background-color: #fff;
-  border-color: #409eff;
+  border-color: #d9d9d9;
   cursor: text;
 }
 
@@ -754,21 +1134,37 @@ onMounted(async () => {
 
 .btn-edit,
 .btn-save {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.2rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  display: inline-block;
+  width: 250px;
 }
 
 .btn-edit {
-  background-color: #ff9800;
+  background-color: #409eff;
   color: white;
+}
+
+.btn-edit:hover {
+  background-color: #66b1ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
 .btn-save {
   background-color: #42b983;
   color: white;
+}
+
+.btn-save:hover {
+  background-color: #359970;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .certification-status {
@@ -815,58 +1211,111 @@ onMounted(async () => {
 }
 
 .status-message {
-  background-color: #fff8e1;
-  padding: 1rem;
-  border-radius: 4px;
+  background-color: #f5f7fa;
+  padding: 1.5rem;
+  border-radius: 8px;
   margin-bottom: 1rem;
+  border-left: 4px solid #409eff;
 }
 
-.btn-resubmit {
-  background-color: #42b983;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
+.status-message p {
+  margin: 0 0 1rem 0;
+  color: #333;
+  line-height: 1.6;
+}
+
+.status-message:last-child p {
+  margin-bottom: 0;
+}
+
+.status-message-rejected {
+  border-left-color: #ff6b6b;
+  background-color: #fef2f2;
+}
+
+.status-message-rejected p:first-child {
+  color: #b91c1c;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.reject-reason {
+  color: #7f1d1d;
+  font-size: 0.9rem;
+  margin-bottom: 1rem !important;
 }
 
 .certification-form {
+  background-color: #f5f7fa;
+  padding: 2rem;
+  border-radius: 8px;
   margin-top: 1rem;
+  border: 1px solid #e0e6f2;
+}
+
+.certification-form>p {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
 .file-upload {
-  border: 1px dashed #ddd;
-  border-radius: 4px;
-  padding: 1rem;
+  border: 2px dashed #d9d9d9;
+  padding: 2rem 1rem;
+  border-radius: 6px;
   text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #fafbfc;
 }
 
-.file-upload input {
-  margin-bottom: 1rem;
+.file-upload:hover {
+  border-color: #409eff;
+  background-color: #f0f9ff;
+}
+
+.file-upload input[type='file'] {
+  display: none;
+}
+
+.file-upload::before {
+  content: '📁 点击或拖拽上传图片';
+  display: block;
+  color: #909399;
+  font-size: 0.9rem;
 }
 
 .file-preview {
-  max-width: 200px;
-  margin: 0 auto;
+  margin-top: 1rem;
 }
 
 .file-preview img {
-  width: 100%;
-  border-radius: 4px;
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn-submit-certification {
   background-color: #42b983;
   color: white;
-  border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 4px;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: bold;
-  margin-top: 1rem;
+  font-weight: 600;
+  width: 100%;
+  margin-top: 1.5rem;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
 }
 
+.btn-submit-certification:hover {
+  background-color: #359970;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
+}
 
 .applications-loading,
 .no-applications {
@@ -984,6 +1433,7 @@ onMounted(async () => {
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
+  margin-top: 1.5rem;
 }
 
 .btn-view {
@@ -1028,6 +1478,229 @@ onMounted(async () => {
   color: #374151;
 }
 
+.loading-message,
+.empty-message {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.count-badge {
+  background-color: #f3f4f6;
+  color: #374151;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.likes-grid,
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.like-item,
+.favorite-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.like-item:hover,
+.favorite-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  border-color: #d1d5db;
+}
+
+.item-image {
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.like-item:hover .item-image img,
+.favorite-item:hover .item-image img {
+  transform: scale(1.05);
+}
+
+.item-info {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-info h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item-type {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.item-description {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.item-actions {
+  padding: 0 1rem 1rem 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-view-item {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.btn-view-item:hover {
+  background-color: #1976d2;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.section-head h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+.btn-resubmit,
+.btn-update-certification {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-resubmit {
+  background-color: #ff9800;
+  color: white;
+}
+
+.btn-resubmit:hover {
+  background-color: #f57c00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+.btn-update-certification {
+  background-color: #2196f3;
+  color: white;
+}
+
+.btn-update-certification:hover {
+  background-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.form-actions button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.form-actions .btn-submit-certification {
+  background-color: #42b983;
+  color: white;
+  grid-column: 1;
+}
+
+.form-actions .btn-submit-certification:hover {
+  background-color: #359970;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
+}
+
+.form-actions .btn-cancel {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #d9d9d9;
+  grid-column: 2;
+}
+
+.form-actions .btn-cancel:hover {
+  background-color: #e8e8e8;
+  border-color: #b3b3b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 600px) {
+  .form-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions .btn-submit-certification,
+  .form-actions .btn-cancel {
+    grid-column: 1;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-content {
     flex-direction: column;
@@ -1035,6 +1708,12 @@ onMounted(async () => {
 
   .profile-sidebar {
     flex: none;
+  }
+
+  .likes-grid,
+  .favorites-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
   }
 }
 </style>

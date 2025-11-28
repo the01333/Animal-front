@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { ApiResponse } from '@/types'
+import type { ApiResponse, PageResponse, Pet } from '@/types'
 
 // 宠物收藏
 export function addPetFavorite(petId: number): Promise<ApiResponse<void>> {
@@ -22,6 +22,16 @@ export function getPetFavoriteCount(petId: number): Promise<ApiResponse<number>>
  */
 export function isPetFavorited(petId: number): Promise<ApiResponse<boolean>> {
   return request({ url: `/favorite/check/${petId}`, method: 'get' })
+}
+
+/**
+ * 获取用户收藏的宠物列表
+ */
+export function getUserFavoritePets(params: {
+  current: number
+  size: number
+}): Promise<ApiResponse<PageResponse<Pet>>> {
+  return request({ url: '/favorite/my/pets', method: 'get', params })
 }
 
 // 内容收藏

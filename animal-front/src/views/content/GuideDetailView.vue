@@ -31,11 +31,11 @@
       <button @click="likeGuideFn" class="btn-like" :class="{ liked: isLiked }">
         {{ isLiked ? '已点赞' : '点赞' }} ({{ likeCount }})
       </button>
-      <button @click="shareGuide" class="btn-share">
-        分享
-      </button>
       <button @click="collectGuide" class="btn-collect" :class="{ collected: isCollected }">
         {{ isCollected ? '已收藏' : '收藏' }} ({{ favoriteCount }})
+      </button>
+      <button @click="shareGuide" class="btn-share">
+        分享
       </button>
     </div>
 

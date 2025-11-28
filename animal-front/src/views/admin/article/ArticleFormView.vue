@@ -40,7 +40,10 @@
         </el-form-item>
 
         <el-form-item v-if="form.category === 'GUIDE'" label="指南分类" prop="guideCategory">
-          <el-input v-model="form.guideCategory" placeholder="请输入指南分类" />
+          <el-select v-model="form.guideCategory" placeholder="请选择或输入指南分类" filterable allow-create default-first-option
+            @change="handleGuideCategoryChange">
+            <el-option v-for="category in guideCategoryOptions" :key="category" :label="category" :value="category" />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="内容" prop="content">
@@ -68,7 +71,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getArticleDetail, createArticle, updateArticle, getArticleCategories, uploadArticleCover } from '@/api/article'
+import { getArticleDetail, createArticle, updateArticle, getArticleCategories, uploadArticleCover, getGuideCategoriesList, getStoryCategoriesList } from '@/api/article'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules, UploadFile, UploadFiles } from 'element-plus'
 import type { Article, ArticleCategoryOption } from '@/types'
@@ -81,6 +84,8 @@ const router = useRouter()
 const formRef = ref<FormInstance>()
 const isEdit = computed(() => !!route.params.id)
 const categoryOptions = ref<ArticleCategoryOption[]>([])
+const guideCategoryOptions = ref<string[]>([])
+const storyCategoryOptions = ref<string[]>([])
 const editorToolbars = ['bold', 'underline', 'italic', 'strikeThrough', 'title', 'quote', 'unorderedList', 'orderedList', 'task', 'codeBlock', 'link', 'image', 'table', 'mermaid', 'pageFullscreen', 'preview', 'previewOnly', 'fullscreen', 'catalog']
 
 const form = reactive<Partial<Article>>({
@@ -252,5 +257,15 @@ async function loadCategories() {
     ]
     console.warn('获取文章分类失败，使用默认分类', error)
   }
+  
+  // 加载指南分类
+  guideCategoryOptions.value = await getGuideCategoriesList()
+  
+  // 加载故事分类
+  storyCategoryOptions.value = await getStoryCategoriesList()
+}
+
+const handleGuideCategoryChange = () => {
+  // 分类变化时的处理（如果需要）
 }
 </script>

@@ -84,18 +84,28 @@
             </el-descriptions>
 
             <div class="pet-actions">
-              <el-button v-if="pet.adoptionStatus?.toLowerCase() === 'available'" type="primary" size="large"
+              <!-- 当前用户已领养 -->
+              <el-button v-if="isCurrentUserAdopted" type="success" size="large"
+                :icon="Document" disabled>
+                已领养
+              </el-button>
+
+              <!-- 当前用户有有效申请（待审核或已批准） -->
+              <el-button v-else-if="hasValidApplication" type="warning" size="large"
+                :icon="Document" @click="checkApplication">
+                {{ applicationStatusText }}
+              </el-button>
+
+              <!-- 其他用户已领养 -->
+              <el-button v-else-if="pet.adoptionStatus?.toLowerCase() === 'adopted'" type="info" size="large"
+                :icon="Document" disabled>
+                已被领养
+              </el-button>
+
+              <!-- 宠物可领养且当前用户未申请（或申请被拒/已撤销） -->
+              <el-button v-else-if="pet.adoptionStatus?.toLowerCase() === 'available'" type="primary" size="large"
                 :icon="CirclePlus" @click="applyForAdoption">
                 申请领养
-              </el-button>
-
-              <el-button v-else-if="pet.adoptionStatus?.toLowerCase() === 'pending'" type="warning" size="large"
-                :icon="Document" @click="checkApplication">
-                查看申请状态
-              </el-button>
-
-              <el-button type="info" size="large" :icon="Service" @click="contactHousekeeper">
-                联系管家
               </el-button>
 
               <el-button :type="favored ? 'warning' : 'default'" :icon="Star" size="large" plain
@@ -104,6 +114,10 @@
               </el-button>
               <el-button :type="liked ? 'primary' : 'default'" size="large" plain @click="toggleLike">
                 {{ liked ? '已点赞' : '点赞' }}
+              </el-button>
+
+              <el-button type="info" size="large" :icon="Service" @click="contactHousekeeper">
+                联系管家
               </el-button>
 
               <el-button :icon="Share" size="large" plain>
@@ -216,6 +230,7 @@ import { Star, CirclePlus, Document, Service, Share, ArrowLeft, Close, Loading, 
 import { getPetDetail, getRandomPetImages } from '@/api/pet'
 import { addPetFavorite, removePetFavorite, isPetFavorited, getPetFavoriteCount } from '@/api/favorite'
 import { likePet, unlikePet, isPetLiked, getPetLikeCount } from '@/api/like'
+import { getMyApplications } from '@/api/application'
 import type { Pet } from '@/types'
 import { ElMessage } from 'element-plus'
 
@@ -227,14 +242,8 @@ const { isLoggedIn } = storeToRefs(userStore)
 const pet = ref<Pet | null>(null)
 const defaultImage = 'http://localhost:9000/animal-adopt/default.jpg'
 
-const galleryImages = ref([
-  'http://localhost:9000/animal-adopt/default.jpg',
-  'http://localhost:9000/animal-adopt/default.jpg',
-  'http://localhost:9000/animal-adopt/default.jpg',
-  'http://localhost:9000/animal-adopt/default.jpg',
-  'http://localhost:9000/animal-adopt/default.jpg',
-  'http://localhost:9000/animal-adopt/default.jpg'
-])
+// 当前登录用户ID
+const currentUserId = ref<number | null>(null)
 
 // 随机推荐宠物
 const recommendedPets = ref<Pet[]>([])
@@ -348,6 +357,75 @@ const favored = ref(false)
 const liked = ref(false)
 const favoriteCount = ref(0)
 const likeCount = ref(0)
+
+// 当前申请的状态
+const applicationStatus = ref<string>('')
+
+// 判断宠物是否由当前用户领养
+const isCurrentUserAdopted = computed(() => {
+  if (!pet.value || !currentUserId.value) return false
+  // 检查宠物是否已被领养，且领养者是当前用户
+  return pet.value.adoptionStatus?.toLowerCase() === 'adopted' && pet.value.adoptedBy === currentUserId.value
+})
+
+// 判断当前用户是否有有效的申请（待审核或已批准）
+const hasValidApplication = computed(() => {
+  const status = applicationStatus.value?.toLowerCase()
+  // 只有待审核和已批准状态才算有效申请
+  return status === 'pending' || status === 'approved'
+})
+
+// 申请状态文本
+const applicationStatusText = computed(() => {
+  const status = applicationStatus.value?.toLowerCase()
+  const statusMap: Record<string, string> = {
+    'pending': '待批准',
+    'approved': '已批准',
+    'rejected': '已拒绝',
+    'cancelled': '已撤销'
+  }
+  return statusMap[status] || '查看申请状态'
+})
+
+// 检查用户是否已申请过该宠物
+const checkIfUserApplied = async () => {
+  if (!isLoggedIn.value) {
+    applicationStatus.value = ''
+    return
+  }
+
+  const petId = Number(route.params.id || pet.value?.id)
+  if (!petId) {
+    applicationStatus.value = ''
+    return
+  }
+  
+  try {
+    const response = await getMyApplications({
+      current: 1,
+      size: 100
+    })
+    const applications = response.data?.records || []
+    // 查找针对当前宠物的申请
+    const application = applications.find(app => app.petId === petId)
+    
+    if (!application) {
+      // 未申请过
+      applicationStatus.value = ''
+      console.log(`✅ 检查申请状态: 未申请`)
+      return
+    }
+    
+    // 记录申请状态
+    const status = application.status?.toLowerCase()
+    applicationStatus.value = status || ''
+    
+    console.log(`✅ 检查申请状态: 申请状态为 ${status}`)
+  } catch (error) {
+    console.error('❌ 检查申请状态失败:', error)
+    applicationStatus.value = ''
+  }
+}
 
 // 获取随机宠物图片
 const fetchRandomPetImages = async () => {
@@ -511,9 +589,25 @@ const updateLikeAndFavoriteStatus = async () => {
   }
 }
 
+// 初始化用户信息
+const initUserInfo = () => {
+  if (currentUserId.value) return
+  const userInfo = localStorage.getItem('userInfo')
+  if (userInfo) {
+    try {
+      const user = JSON.parse(userInfo)
+      currentUserId.value = user.id || user.userId
+    } catch (e) {
+      console.error('解析用户信息失败:', e)
+    }
+  }
+}
+
 onMounted(() => {
+  initUserInfo()
   fetchRandomPetImages()
   fetchPetDetail()
+  checkIfUserApplied()
 })
 
 // 监听路由参数变化，当宠物ID改变时重新加载数据
@@ -522,6 +616,7 @@ watch(() => route.params.id, (newId) => {
     console.log('🔄 宠物ID变化，重新加载数据:', newId)
     fetchRandomPetImages()
     fetchPetDetail()
+    checkIfUserApplied()
   }
 }, { immediate: false })
 
@@ -531,6 +626,7 @@ watch(() => isLoggedIn.value, (newVal) => {
   // 如果已经加载了宠物详情，重新查询点赞和收藏状态
   if (pet.value) {
     updateLikeAndFavoriteStatus()
+    checkIfUserApplied()
   }
 }, { immediate: false })
 </script>

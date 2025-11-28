@@ -46,3 +46,7 @@ export function isStoryLiked(id: number): Promise<ApiResponse<boolean>> {
 export function isStoryFavorited(id: number): Promise<ApiResponse<boolean>> {
   return request({ url: `/content/${STORY}/${id}/favorite/check`, method: 'get' })
 }
+
+export function getStoryCategories(): Promise<ApiResponse<string[]>> {
+  return request({ url: '/story/categories/list', method: 'get' })
+}

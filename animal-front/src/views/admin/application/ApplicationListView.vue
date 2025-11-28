@@ -97,9 +97,13 @@
             <p class="drawer-eyebrow">申请详情</p>
             <h3>{{ detailData?.petName || '领养申请' }}</h3>
           </div>
-          <el-tag :type="getStatusType(detailData?.status)">{{ getStatusText(detailData?.status) }}</el-tag>
+          <el-tag class="drawer-tag" :type="getStatusType(detailData?.status)">
+            {{ getStatusText(detailData?.status) }}
+          </el-tag>
         </div>
-        <p class="drawer-subtext">申请编号：{{ detailData?.applicationNo || '-' }} ｜ 提交时间：{{ formatDate(detailData?.createTime) }}</p>
+        <p class="drawer-subtext">申请编号：{{ detailData?.applicationNo || '-' }} ｜ 提交时间：{{
+          formatDate(detailData?.createTime) }}
+        </p>
       </template>
 
       <el-skeleton v-if="detailLoading" :rows="6" animated />
@@ -172,7 +176,8 @@
             <header>
               <span>审核记录</span>
             </header>
-            <p class="review-meta">审核人：{{ detailData?.reviewerName || '系统' }} ｜ 时间：{{ formatDate(detailData?.reviewTime) }}</p>
+            <p class="review-meta">审核人：{{ detailData?.reviewerName || '系统' }} ｜ 时间：{{ formatDate(detailData?.reviewTime)
+              }}</p>
             <el-alert :closable="false" :description="detailData?.reviewComment" type="info" />
           </section>
 
@@ -459,8 +464,14 @@ onMounted(() => {
 }
 
 .drawer-subtext {
-  margin: 0.35rem 0 0;
+  margin-top: 0.1rem;
+  margin-left: 0.8rem;
+  margin-right: 0.3rem;
   color: #909399;
+}
+
+.drawer-tag {
+  margin-top: 0.1rem;
 }
 
 .drawer-body {

@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { ApiResponse } from '@/types'
+import type { ApiResponse, PageResponse, Pet } from '@/types'
 
 // 宠物点赞
 export function likePet(petId: number): Promise<ApiResponse<void>> {
@@ -22,6 +22,16 @@ export function getPetLikeCount(petId: number): Promise<ApiResponse<number>> {
  */
 export function isPetLiked(petId: number): Promise<ApiResponse<boolean>> {
   return request({ url: `/pet/like/check/${petId}`, method: 'get' })
+}
+
+/**
+ * 获取用户点赞的宠物列表
+ */
+export function getUserLikedPets(params: {
+  current: number
+  size: number
+}): Promise<ApiResponse<PageResponse<Pet>>> {
+  return request({ url: '/pet/like/my', method: 'get', params })
 }
 
 // 内容点赞

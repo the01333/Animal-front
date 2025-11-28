@@ -21,6 +21,7 @@
             <span class="meta-item">{{ guide.guideCategory || '通用' }}</span>
             <span class="meta-item">{{ guide.publishDate }}</span>
             <span class="meta-item">阅读: {{ guide.viewCount ?? 0 }}</span>
+            <br />
             <span class="meta-item">❤ {{ guide.likeCount ?? 0 }}</span>
             <span class="meta-item">★ {{ guide.favoriteCount ?? 0 }}</span>
           </div>
@@ -38,18 +39,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
-import { getGuideList } from '@/api/guide'
+import { getGuideList, getGuideCategories } from '@/api/guide'
 import type { Article } from '@/types'
 import { ElMessage } from 'element-plus'
 
 // 指南分类
-const categories = ref([
-  { id: 'all', name: '全部' },
-  { id: 'preparation', name: '领养准备' },
-  { id: 'care', name: '日常护理' },
-  { id: 'training', name: '训练教育' },
-  { id: 'health', name: '健康管理' },
-  { id: 'behavior', name: '行为问题' }
+const categories = ref<{ id: string; name: string }[]>([
+  { id: 'all', name: '全部' }
 ])
 
 // 激活的分类
@@ -59,6 +55,7 @@ const activeCategory = ref('all')
 const handleCategoryChange = (categoryId: string) => {
   activeCategory.value = categoryId
   currentPage.value = 1
+
   loadGuides()
 }
 
@@ -83,6 +80,24 @@ const router = useRouter()
 const buildGuideKeyword = () => {
   const categoryName = categories.value.find(c => c.id === activeCategory.value)?.name
   return activeCategory.value !== 'all' ? categoryName : ''
+}
+
+// 加载指南分类
+const loadCategories = async () => {
+  try {
+    const response = await getGuideCategories()
+    const categoryList = response.data || []
+    // 添加分类到列表（保留"全部"）
+    categories.value = [
+      { id: 'all', name: '全部' },
+      ...categoryList.map((cat, index) => ({
+        id: `cat_${index}`,
+        name: cat
+      }))
+    ]
+  } catch (error) {
+    console.error('加载指南分类失败:', error)
+  }
 }
 
 // 加载指南列表
@@ -132,6 +147,7 @@ const initUserInfo = () => {
 
 onMounted(() => {
   initUserInfo()
+  loadCategories()
   loadGuides()
 })
 

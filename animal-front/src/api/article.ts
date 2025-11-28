@@ -1,5 +1,7 @@
 import request from '@/utils/request'
 import type { ApiResponse, Article, ArticleCategoryOption, PageResponse } from '@/types'
+import { getGuideCategories } from './guide'
+import { getStoryCategories } from './story'
 
 /**
  * 获取文章列表（分页）
@@ -79,5 +81,31 @@ export function uploadArticleCover(formData: FormData): Promise<ApiResponse<stri
       'Content-Type': 'multipart/form-data'
     }
   })
+}
+
+/**
+ * 获取指南分类列表
+ */
+export async function getGuideCategoriesList(): Promise<string[]> {
+  try {
+    const res = await getGuideCategories()
+    return res.data || []
+  } catch (error) {
+    console.error('获取指南分类失败:', error)
+    return []
+  }
+}
+
+/**
+ * 获取故事分类列表
+ */
+export async function getStoryCategoriesList(): Promise<string[]> {
+  try {
+    const res = await getStoryCategories()
+    return res.data || []
+  } catch (error) {
+    console.error('获取故事分类失败:', error)
+    return []
+  }
 }
 

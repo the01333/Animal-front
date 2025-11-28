@@ -74,6 +74,7 @@ export interface Pet {
   healthStatus: 'healthy' | 'sick' | 'injured' | 'recovering'
   adoptionStatus: 'available' | 'pending' | 'adopted'
   adoptionStatusText?: string
+  adoptedBy?: number
   images?: string[]
   coverImage?: string
   location?: string

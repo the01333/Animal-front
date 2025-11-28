@@ -25,10 +25,15 @@
         <!-- 步骤 1 -->
         <div v-if="currentStep === 1" class="form-step">
           <div class="form-step-header">
-            <h2>个人信息确认</h2>
-            <button v-if="showModifyInfoButton" class="modify-info-btn" @click="goToProfileInfo">
-              信息有误？前往修改
-            </button>
+            <div class="form-step-title">
+              <h2>个人信息确认</h2>
+            </div>
+            <div class="step-header-actions">
+              <span class="step-indicator step-indicator--info">Step 1 / 确认信息</span>
+              <button v-if="showModifyInfoButton" class="modify-info-btn" @click="goToProfileInfo">
+                信息有误？前往修改
+              </button>
+            </div>
           </div>
           <div class="user-info">
             <div class="info-item">
@@ -72,7 +77,14 @@
 
         <!-- 步骤 2 -->
         <div v-if="currentStep === 2" class="form-step living-step">
-          <h2>居住环境</h2>
+          <div class="form-step-header">
+            <div class="form-step-title">
+              <h2>居住环境</h2>
+            </div>
+            <div class="step-header-actions">
+              <span class="step-indicator step-indicator--living">Step 2 / 居住环境</span>
+            </div>
+          </div>
           <form @submit.prevent="nextStep">
             <div class="form-group living-type-group">
               <label for="livingType">居住类型：</label>
@@ -143,7 +155,7 @@
               <h2>养宠经验</h2>
               <p>告诉我们您对宠物的了解与准备程度，有助于评估是否匹配这只毛孩子。</p>
             </div>
-            <span class="experience-badge">Step 3 / 养护计划</span>
+            <span class="step-indicator step-indicator--experience">Step 3 / 养护计划</span>
           </div>
           <form @submit.prevent="nextStep" class="experience-layout">
             <div class="experience-side-card">
@@ -179,8 +191,8 @@
 
               <div class="form-group">
                 <label for="reason">申请领养的原因：</label>
-                <textarea id="reason" v-model="applicationForm.reason" rows="3"
-                  placeholder="分享您选择这只宠物的原因，以及未来生活规划" required></textarea>
+                <textarea id="reason" v-model="applicationForm.reason" rows="3" placeholder="分享您选择这只宠物的原因，以及未来生活规划"
+                  required></textarea>
               </div>
 
               <div class="step-actions">
@@ -1043,7 +1055,7 @@ onMounted(() => {
   border: 1px solid rgba(251, 191, 36, 0.25);
 }
 
-.experience-fields .form-group + .form-group {
+.experience-fields .form-group+.form-group {
   margin-top: 1rem;
 }
 
@@ -1216,6 +1228,45 @@ onMounted(() => {
   color: #111827;
 }
 
+.step-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(229, 231, 235, 0.35);
+  color: #374151;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid rgba(209, 213, 219, 0.65);
+  box-shadow: 0 8px 18px rgba(55, 65, 81, 0.08);
+}
+
+.experience-header .step-indicator {
+  margin-left: auto;
+}
+
+.step-indicator--info {
+  background: rgba(125, 211, 252, 0.2);
+  color: #0369a1;
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.2);
+}
+
+.step-indicator--living {
+  background: rgba(134, 239, 172, 0.25);
+  color: #047857;
+  border-color: rgba(74, 222, 128, 0.45);
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.22);
+}
+
+.step-indicator--experience {
+  background: rgba(251, 191, 36, 0.2);
+  color: #b45309;
+  border-color: rgba(251, 191, 36, 0.45);
+  box-shadow: 0 8px 18px rgba(251, 191, 36, 0.25);
+}
+
 .modify-info-btn {
   padding: 0.45rem 1rem;
   border-radius: 999px;
@@ -1226,6 +1277,7 @@ onMounted(() => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.25s ease;
+  margin-left: 18px;
 }
 
 .modify-info-btn:hover {
