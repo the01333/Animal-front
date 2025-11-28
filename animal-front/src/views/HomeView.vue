@@ -374,7 +374,8 @@ async function loadStories() {
     stories.value = shuffled.slice(0, 2).map((story) => ({
       ...story,
       summary: story.summary || story.content?.slice(0, 100) || '',
-      coverImage: story.coverImage || 'http://localhost:9000/animal-adopt/default.jpg'
+      image: processImageUrl(story.coverImage) || 'http://localhost:9000/animal-adopt/default.jpg',
+      excerpt: story.summary || story.content?.slice(0, 100) || ''
     }))
   } catch (error) {
     console.error('加载故事失败:', error)

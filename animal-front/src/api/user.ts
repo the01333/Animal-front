@@ -78,6 +78,22 @@ export function updateUserInfo(data: Partial<User>): Promise<ApiResponse<void>> 
 }
 
 /**
+ * 上传用户头像
+ */
+export function uploadUserAvatar(file: File): Promise<ApiResponse<{ avatar: string }>> {
+  const formData = new FormData()
+  formData.append('avatar', file)
+  return request({
+    url: '/user/avatar/upload',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+/**
  * 修改密码
  */
 export function changePassword(data: {

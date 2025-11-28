@@ -46,3 +46,7 @@ export function isGuideLiked(id: number): Promise<ApiResponse<boolean>> {
 export function isGuideFavorited(id: number): Promise<ApiResponse<boolean>> {
   return request({ url: `/content/${GUIDE}/${id}/favorite/check`, method: 'get' })
 }
+
+export function getGuideCategories(): Promise<ApiResponse<string[]>> {
+  return request({ url: '/guide/categories/list', method: 'get' })
+}
