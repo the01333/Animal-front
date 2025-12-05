@@ -18,7 +18,7 @@
           <p>最近更新：{{ formatDateTime(detail.updateTime) }}</p>
         </div>
         <div class="summary-actions">
-          <router-link :to="`/pet/${detail.petId}`" class="btn-view-pet">查看宠物</router-link>
+          <button type="button" class="btn-view-pet" @click="viewPetDetail">查看宠物</button>
           <button v-if="isPending" class="btn-cancel" :disabled="canceling" @click="handleCancel">{{
             canceling ? '撤销中…' : '撤销申请'
           }}</button>
@@ -172,6 +172,18 @@ const handleCancel = async () => {
 
 const goBack = () => {
   router.push({ name: 'profile', query: { tab: 'applications' } })
+}
+
+const viewPetDetail = () => {
+  if (!detail.value?.petId) return
+  router.push({
+    name: 'pet-detail',
+    params: { id: detail.value.petId },
+    query: {
+      from: 'application-detail',
+      applicationId: detail.value.id ? String(detail.value.id) : undefined
+    }
+  })
 }
 
 onMounted(fetchDetail)

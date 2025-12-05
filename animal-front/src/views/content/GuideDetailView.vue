@@ -1,6 +1,6 @@
 <template>
   <div class="guide-detail-container" v-if="guide">
-    <el-page-header @back="$router.push('/guides')" class="page-header">
+    <el-page-header @back="handleBack" class="page-header">
       <template #content>
         <div class="header-content">
           <span class="header-title">旅游指南</span>
@@ -72,6 +72,47 @@ import { processImageUrl } from '@/utils/image'
 // 路由相关
 const route = useRoute()
 const router = useRouter()
+
+const PERSISTENT_QUERY_KEYS = ['from', 'tab', 'category', 'applicationId'] as const
+
+const buildPersistentQuery = () => {
+  const result: Record<string, string> = {}
+  PERSISTENT_QUERY_KEYS.forEach((key) => {
+    const value = route.query[key]
+    if (typeof value === 'string' && value) {
+      result[key] = value
+    }
+  })
+  return result
+}
+
+const snapshotCurrentQuery = () => {
+  const snapshot: Record<string, string> = {}
+  Object.entries(route.query).forEach(([key, value]) => {
+    if (typeof value === 'string' && value) {
+      snapshot[key] = value
+    }
+  })
+  return snapshot
+}
+
+const encodeQuerySnapshot = (snapshot: Record<string, string>) => encodeURIComponent(JSON.stringify(snapshot))
+
+const decodeQuerySnapshot = (encoded?: string) => {
+  if (!encoded || typeof encoded !== 'string') return {}
+  try {
+    const parsed = JSON.parse(decodeURIComponent(encoded)) as Record<string, unknown>
+    return Object.entries(parsed).reduce<Record<string, string>>((acc, [key, value]) => {
+      if (typeof value === 'string' && value) {
+        acc[key] = value
+      }
+      return acc
+    }, {})
+  } catch (error) {
+    console.warn('Failed to decode article navigation snapshot', error)
+    return {}
+  }
+}
 
 // 指南数据
 const guide = ref<Article | null>(null)
@@ -154,6 +195,28 @@ const shareGuide = () => {
 }
 
 // 收藏指南
+const handleBack = () => {
+  const prevArticleId = route.query.prevArticleId as string | undefined
+  const prevArticleType = route.query.prevArticleType as string | undefined
+  if (prevArticleId && prevArticleType) {
+    const prevQuery = decodeQuerySnapshot(route.query.prevArticleQuery as string | undefined)
+    router.push({
+      name: prevArticleType === 'story' ? 'story-detail' : 'guide-detail',
+      params: { id: prevArticleId },
+      query: prevQuery
+    })
+    return
+  }
+
+  if (route.query.from === 'profile') {
+    const tab = (route.query.tab as string) || 'likes'
+    const category = route.query.category as string | undefined
+    router.push({ name: 'profile', query: { tab, category } })
+    return
+  }
+  router.push('/guides')
+}
+
 const collectGuide = async () => {
   if (!isLoggedIn.value) {
     ElMessage.warning('请先登录')
@@ -182,7 +245,16 @@ const collectGuide = async () => {
 
 // 查看相关指南
 const viewRelatedGuide = (id: number) => {
-  router.push(`/guide/${id}`)
+  if (!id) return
+  const query: Record<string, string> = {
+    ...buildPersistentQuery()
+  }
+  if (guide.value?.id) {
+    query.prevArticleType = 'guide'
+    query.prevArticleId = String(guide.value.id)
+    query.prevArticleQuery = encodeQuerySnapshot(snapshotCurrentQuery())
+  }
+  router.push({ name: 'guide-detail', params: { id }, query })
 }
 
 // 获取宠物图片池

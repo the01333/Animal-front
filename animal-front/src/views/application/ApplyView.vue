@@ -54,14 +54,25 @@
             </div>
           </div>
 
+          <div v-if="!isPersonalInfoComplete" class="user-info-actions">
+            <div class="user-info-actions__card">
+              <div class="user-info-actions__icon">📝</div>
+              <div class="user-info-actions__text">
+                <p class="title">完善个人信息</p>
+                <p class="desc">补齐姓名、联系方式与地址后即可继续认证流程</p>
+              </div>
+              <button class="user-info-actions__btn" @click="goToProfileInfo">
+                立即前往
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
           <div class="certification-status">
             <div class="status-item">
               <label>领养者认证：</label>
               <span :class="certificationStatusClass">{{ certificationStatusText }}</span>
               <div v-if="showStatusActions" class="status-actions">
-                <button v-if="!isPersonalInfoComplete" class="btn-go-profile" @click="goToProfileInfo">
-                  去完善
-                </button>
                 <button v-if="adopterInfo.certificationStatus !== 'approved'" class="btn-go-certification"
                   @click="goToCertification">
                   去认证
@@ -678,7 +689,7 @@ onMounted(() => {
 
 .pet-details .status-adopted {
   background: rgba(156, 163, 175, 0.22);
-  color: #374151;
+  color: #30a46c;
 }
 
 .pet-details .status-unknown {
@@ -1267,24 +1278,87 @@ onMounted(() => {
   box-shadow: 0 8px 18px rgba(251, 191, 36, 0.25);
 }
 
-.modify-info-btn {
-  padding: 0.45rem 1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(66, 185, 131, 0.35);
-  background: #f0fdf4;
-  color: #059669;
+.step-indicator--exp.user-info-actions {
+  margin: 1rem 0 1.5rem;
+}
+
+.user-info-actions__card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-radius: 1.1rem;
+  background: linear-gradient(120deg, rgba(252, 231, 243, 0.9), rgba(255, 247, 237, 0.85));
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  box-shadow: 0 15px 35px rgba(249, 168, 212, 0.25);
+}
+
+.user-info-actions__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #fff5f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+}
+
+.user-info-actions__text {
+  flex: 1;
+}
+
+.user-info-actions__text .title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #7c2d12;
+}
+
+.user-info-actions__text .desc {
+  margin: 0.15rem 0 0;
+  color: #9a3412;
   font-size: 0.9rem;
-  font-weight: 500;
+}
+
+.user-info-actions__btn {
+  border: none;
+  background: #f97316;
+  color: #fff;
+  padding: 0.55rem 1.3rem;
+  border-radius: 999px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.25s ease;
-  margin-left: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: 0 10px 20px rgba(249, 115, 22, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-info-actions__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(249, 115, 22, 0.35);
+}
+
+.modify-info-btn {
+  background: linear-gradient(120deg, #ff9a62, #ff5aa5 60%, #f43f5e);
+  color: #fff;
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 12px 25px rgba(244, 63, 94, 0.3);
 }
 
 .modify-info-btn:hover {
-  background: #dcfce7;
-  border-color: #34d399;
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.18);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(244, 63, 94, 0.35);
 }
 
 .modify-info-btn:focus-visible {

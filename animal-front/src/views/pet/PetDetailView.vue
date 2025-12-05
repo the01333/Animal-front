@@ -1,6 +1,6 @@
 <template>
   <div class="pet-detail" v-if="pet">
-    <el-page-header @back="$router.push('/pets')" class="page-header">
+    <el-page-header @back="handleBack" class="page-header">
       <template #content>
         <div class="header-content">
           <el-icon class="header-icon">
@@ -330,6 +330,22 @@ const healthTagType = computed(() => {
     default: return 'info'
   }
 })
+
+const handleBack = () => {
+  if (route.query.from === 'profile') {
+    const tab = (route.query.tab as string) || 'likes'
+    const category = route.query.category as string | undefined
+    router.push({ name: 'profile', query: { tab, category } })
+    return
+  }
+
+  if (route.query.from === 'application-detail' && route.query.applicationId) {
+    router.push({ name: 'application-detail', params: { id: route.query.applicationId } })
+    return
+  }
+
+  router.push('/pets')
+}
 
 const applyForAdoption = () => {
   if (!isLoggedIn.value) {
