@@ -140,14 +140,20 @@ onMounted(() => {
   userStore.restoreFromStorage()
 })
 
-const handleUserCommand = (command: 'profile' | 'logout') => {
+const handleUserCommand = async (command: 'profile' | 'logout') => {
   if (command === 'profile') {
     router.push('/profile')
     return
   }
 
+  // 退出登录
   userStore.logout()
-  // 退出登录后不跳转，保留在当前页面
+  
+  // 如果在个人中心页面，重定向到首页并打开登录注册弹窗
+  if (isProfilePage.value) {
+    await router.push('/')
+    emitShowAuthDialog('login')
+  }
 }
 
 const emitShowAuthDialog = (tab: 'login' | 'register' = 'login') => {

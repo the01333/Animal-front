@@ -32,22 +32,22 @@
           <form @submit.prevent="updateBasicInfo">
             <div class="form-group">
               <label>用户名:</label>
-              <input v-model="user.name" type="text" :readonly="!editingBasic" />
+              <input v-model="basicForm.name" type="text" :readonly="!editingBasic" />
             </div>
 
             <div class="form-group">
               <label>邮箱:</label>
-              <input v-model="user.email" type="email" :readonly="!editingBasic" />
+              <input v-model="basicForm.email" type="email" :readonly="!editingBasic" />
             </div>
 
             <div class="form-group">
               <label for="phone">手机号:</label>
-              <input id="phone" v-model="user.phone" type="tel" :readonly="!editingBasic" />
+              <input id="phone" v-model="basicForm.phone" type="tel" :readonly="!editingBasic" />
             </div>
 
             <div class="form-group">
               <label for="address">地址:</label>
-              <input id="address" v-model="user.address" type="text" :readonly="!editingBasic" />
+              <input id="address" v-model="basicForm.address" type="text" :readonly="!editingBasic" />
             </div>
 
             <div class="form-actions">
@@ -59,6 +59,44 @@
               </button>
             </div>
           </form>
+
+          <div class="password-card">
+            <div class="password-card__header">
+              <div>
+                <h4>密码设置</h4>
+                <p>{{ hasPassword ? '定期修改密码可以提升账户安全' : '尚未设置密码，建议立即设置' }}</p>
+              </div>
+              <button class="btn-inline" @click="openPasswordDialog">
+                {{ hasPassword ? '修改密码' : '设置密码' }}
+              </button>
+            </div>
+            <button v-if="!hasPassword" class="btn-link" @click="openPasswordDialog">
+              还未设置密码？点此设置
+            </button>
+          </div>
+          <el-dialog v-model="showPasswordDialog" :title="hasPassword ? '修改密码' : '设置密码'" width="460px" class="password-dialog" destroy-on-close>
+            <div class="password-form">
+              <el-form label-position="top" :model="passwordForm">
+                <transition-group name="fade-slide" tag="div">
+                  <el-form-item v-if="hasPassword" key="old" label="旧密码" :error="passwordErrors.oldPassword">
+                    <el-input v-model="passwordForm.oldPassword" type="password" placeholder="请输入旧密码" show-password />
+                  </el-form-item>
+                  <el-form-item key="new" label="新密码" :error="passwordErrors.newPassword">
+                    <el-input v-model="passwordForm.newPassword" type="password" placeholder="请输入新密码" show-password />
+                  </el-form-item>
+                  <el-form-item key="confirm" label="确认新密码" :error="passwordErrors.confirmPassword">
+                    <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" show-password />
+                  </el-form-item>
+                </transition-group>
+              </el-form>
+            </div>
+            <template #footer>
+              <span class="dialog-footer">
+                <el-button @click="closePasswordDialog">取消</el-button>
+                <el-button type="primary" @click="submitPasswordChange">确定</el-button>
+              </span>
+            </template>
+          </el-dialog>
         </div>
 
         <!-- 领养者认证 -->
@@ -359,9 +397,9 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { getCertificationInfo, submitCertification, updateUserInfo, uploadUserAvatar } from '@/api/user'
+import { getCertificationInfo, submitCertification, updateUserInfo, uploadUserAvatar, changePassword } from '@/api/user'
 import { getMyApplications, cancelApplication as cancelApplicationApi } from '@/api/application'
 import { getUserLikedPets } from '@/api/like'
 import { getUserFavoritePets } from '@/api/favorite'
@@ -399,7 +437,15 @@ const user = ref({
   avatar: '',
   role: 'user',
   certificationStatus: 'not_submitted' as 'not_submitted' | 'pending' | 'approved' | 'rejected',
-  certificationRejectReason: ''
+  certificationRejectReason: '',
+  hasPassword: true
+})
+
+const basicForm = reactive({
+  name: '',
+  email: '',
+  phone: '',
+  address: ''
 })
 
 // 认证表单
@@ -465,6 +511,28 @@ const resolveTab = (tab?: string | string[]) => {
 }
 const activeTab = ref(resolveTab(route.query.tab as string | undefined))
 
+// 点赞 / 收藏列表与分类状态
+const likedItems = ref<LikeItem[]>([])
+const favoriteItems = ref<LikeItem[]>([])
+const likeCategory = ref<'pet' | 'article'>('pet')
+const favoriteCategory = ref<'pet' | 'article'>('pet')
+const loadingLikes = ref(false)
+const loadingFavorites = ref(false)
+
+const resolveCategoryFilter = (category?: string | string[]): 'pet' | 'article' => {
+  if (category === 'article') return 'article'
+  return 'pet'
+}
+
+const applyCategoryFromRoute = () => {
+  const category = resolveCategoryFilter(route.query.category as string | undefined)
+  if (activeTab.value === 'likes') {
+    likeCategory.value = category
+  } else if (activeTab.value === 'favorites') {
+    favoriteCategory.value = category
+  }
+}
+
 const loadingProfile = ref(false)
 
 const syncUserFromStore = () => {
@@ -476,6 +544,13 @@ const syncUserFromStore = () => {
   user.value.address = (info as any).address || ''
   user.value.avatar = info.avatar ? processImageUrl(info.avatar) : ''
   user.value.role = info.role || 'user'
+  user.value.hasPassword = Object.prototype.hasOwnProperty.call(info, 'hasPassword') ? Boolean((info as any).hasPassword) : true
+  if (!editingBasic.value) {
+    basicForm.name = user.value.name
+    basicForm.email = user.value.email
+    basicForm.phone = user.value.phone
+    basicForm.address = user.value.address
+  }
 }
 
 const loadUserProfile = async () => {
@@ -502,8 +577,21 @@ watch(
     } else {
       activeTab.value = 'basic'
     }
+    applyCategoryFromRoute()
+    ensureTabDataLoaded(activeTab.value)
   }
 )
+
+watch(
+  () => route.query.category,
+  () => {
+    applyCategoryFromRoute()
+  }
+)
+
+onMounted(() => {
+  applyCategoryFromRoute()
+})
 
 watch(activeTab, (tab, prev) => {
   if (prev === 'certification' && tab !== 'certification' && pendingResubmitMode.value) {
@@ -581,11 +669,19 @@ const applicationStatusClass = (status?: string) => {
 }
 
 // 切换编辑基本信息状态
+const resetBasicForm = () => {
+  basicForm.name = user.value.name
+  basicForm.email = user.value.email
+  basicForm.phone = user.value.phone
+  basicForm.address = user.value.address
+}
+
 const toggleEditBasic = () => {
   if (editingBasic.value) {
-    syncUserFromStore()
+    resetBasicForm()
     editingBasic.value = false
   } else {
+    resetBasicForm()
     editingBasic.value = true
   }
 }
@@ -595,22 +691,18 @@ const updateBasicInfo = async () => {
   if (!editingBasic.value) return
   try {
     await updateUserInfo({
-      username: user.value.name,
-      email: user.value.email,
-      phone: user.value.phone,
-      address: user.value.address,
-      nickname: user.value.nickname,
-      realName: user.value.realName,
-      gender: user.value.gender,
-      age: user.value.age,
-      occupation: user.value.occupation,
-      housing: user.value.housing,
-      hasExperience: user.value.hasExperience,
-      avatar: user.value.avatar
+      username: basicForm.name,
+      email: basicForm.email,
+      phone: basicForm.phone,
+      address: basicForm.address
     })
     ElMessage.success('基本信息更新成功')
     await userStore.getUserInfo()
     syncUserFromStore()
+    user.value.name = basicForm.name
+    user.value.email = basicForm.email
+    user.value.phone = basicForm.phone
+    user.value.address = basicForm.address
     editingBasic.value = false
   } catch (error) {
     console.error('更新用户信息失败:', error)
@@ -645,11 +737,12 @@ const handleAvatarUpload = async (event: Event) => {
     return
   }
 
+  let loadingInstance: ReturnType<typeof ElLoading.service> | null = null
   try {
-    // 显示加载提示
-    ElMessage.loading({
-      message: '正在上传头像...',
-      duration: 0
+    loadingInstance = ElLoading.service({
+      lock: true,
+      text: '正在上传头像...',
+      background: 'rgba(0, 0, 0, 0.35)'
     })
 
     // 调用后端 API 上传头像
@@ -657,7 +750,7 @@ const handleAvatarUpload = async (event: Event) => {
 
     // 更新本地用户信息
     if (res.data?.avatar) {
-      user.value.avatar = res.data.avatar
+      user.value.avatar = processImageUrl(res.data.avatar)
     }
 
     // 刷新用户信息
@@ -666,13 +759,15 @@ const handleAvatarUpload = async (event: Event) => {
 
     ElMessage.success('头像更新成功')
 
+  } catch (error) {
+    console.error('上传头像失败:', error)
+    ElMessage.error('上传头像失败，请稍后重试')
+  } finally {
+    loadingInstance?.close()
     // 清空输入框
     if (avatarInput.value) {
       avatarInput.value.value = ''
     }
-  } catch (error) {
-    console.error('上传头像失败:', error)
-    ElMessage.error('上传头像失败，请稍后重试')
   }
 }
 
@@ -766,6 +861,87 @@ const resubmitCertification = (options?: { preserveForm?: boolean }) => {
 }
 
 // 更新认证表单数据
+const showPasswordDialog = ref(false)
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+const passwordErrors = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+const openPasswordDialog = () => {
+  resetPasswordForm()
+  showPasswordDialog.value = true
+}
+
+const closePasswordDialog = () => {
+  showPasswordDialog.value = false
+}
+
+const resetPasswordForm = () => {
+  passwordForm.oldPassword = ''
+  passwordForm.newPassword = ''
+  passwordForm.confirmPassword = ''
+  passwordErrors.oldPassword = ''
+  passwordErrors.newPassword = ''
+  passwordErrors.confirmPassword = ''
+}
+
+const hasPassword = computed(() => user.value.hasPassword !== false)
+
+const validatePasswordForm = () => {
+  let valid = true
+  passwordErrors.oldPassword = ''
+  passwordErrors.newPassword = ''
+  passwordErrors.confirmPassword = ''
+
+  if (hasPassword.value && !passwordForm.oldPassword) {
+    passwordErrors.oldPassword = '请输入旧密码'
+    valid = false
+  }
+
+  if (!passwordForm.newPassword) {
+    passwordErrors.newPassword = '请输入新密码'
+    valid = false
+  } else if (passwordForm.newPassword.length < 6) {
+    passwordErrors.newPassword = '密码长度至少 6 位'
+    valid = false
+  }
+
+  if (!passwordForm.confirmPassword) {
+    passwordErrors.confirmPassword = '请再次输入新密码'
+    valid = false
+  } else if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    passwordErrors.confirmPassword = '两次输入的新密码不一致'
+    valid = false
+  }
+
+  return valid
+}
+
+const submitPasswordChange = async () => {
+  if (!validatePasswordForm()) return
+
+  try {
+    await changePassword({
+      oldPassword: hasPassword.value ? passwordForm.oldPassword : '',
+      newPassword: passwordForm.newPassword
+    })
+    ElMessage.success(hasPassword.value ? '密码修改成功' : '密码设置成功')
+    resetPasswordForm()
+    closePasswordDialog()
+    await userStore.getUserInfo()
+    user.value.hasPassword = true
+  } catch (error) {
+    console.error('修改密码失败:', error)
+  }
+}
+
 const showUpdateForm = ref(false)
 const updateCertificationForm = reactive({
   idCard: '',
@@ -976,13 +1152,6 @@ interface LikeItem {
   relationTime?: string
 }
 
-const likedItems = ref<LikeItem[]>([])
-const favoriteItems = ref<LikeItem[]>([])
-const likeCategory = ref<'pet' | 'article'>('pet')
-const favoriteCategory = ref<'pet' | 'article'>('pet')
-const loadingLikes = ref(false)
-const loadingFavorites = ref(false)
-
 // 获取项目图片
 const getItemImage = (item: LikeItem): string => {
   if (item.image) {
@@ -1013,25 +1182,30 @@ const filteredFavoriteItems = computed(() =>
   )
 )
 
+const buildProfileReturnQuery = (tab: string, category: 'pet' | 'article') => ({
+  from: 'profile',
+  tab,
+  category
+})
+
 // 查看点赞项目
 const viewLikedItem = (item: LikeItem) => {
   if (item.type === 'pet') {
-    router.push(`/pet/${item.id}`)
+    router.push({ path: `/pet/${item.id}`, query: buildProfileReturnQuery('likes', likeCategory.value) })
   } else if (item.type === 'guide') {
-    router.push(`/guide/${item.id}`)
+    router.push({ path: `/guide/${item.id}`, query: buildProfileReturnQuery('likes', 'article') })
   } else if (item.type === 'story') {
-    router.push(`/story/${item.id}`)
+    router.push({ path: `/story/${item.id}`, query: buildProfileReturnQuery('likes', 'article') })
   }
 }
 
-// 查看收藏项目
 const viewFavoriteItem = (item: LikeItem) => {
   if (item.type === 'pet') {
-    router.push(`/pet/${item.id}`)
+    router.push({ path: `/pet/${item.id}`, query: buildProfileReturnQuery('favorites', favoriteCategory.value) })
   } else if (item.type === 'guide') {
-    router.push(`/guide/${item.id}`)
+    router.push({ path: `/guide/${item.id}`, query: buildProfileReturnQuery('favorites', 'article') })
   } else if (item.type === 'story') {
-    router.push(`/story/${item.id}`)
+    router.push({ path: `/story/${item.id}`, query: buildProfileReturnQuery('favorites', 'article') })
   }
 }
 
@@ -1101,7 +1275,7 @@ const loadFavorites = async () => {
   }
 }
 
-watch(activeTab, (tab) => {
+const ensureTabDataLoaded = (tab?: string) => {
   if (tab === 'applications' && applications.value.length === 0 && !loadingApplications.value) {
     loadApplications()
   } else if (tab === 'likes' && likedItems.value.length === 0 && !loadingLikes.value) {
@@ -1109,6 +1283,10 @@ watch(activeTab, (tab) => {
   } else if (tab === 'favorites' && favoriteItems.value.length === 0 && !loadingFavorites.value) {
     loadFavorites()
   }
+}
+
+watch(activeTab, (tab) => {
+  ensureTabDataLoaded(tab)
 })
 
 onMounted(async () => {
@@ -1124,9 +1302,7 @@ onMounted(async () => {
     console.error('获取认证信息失败:', error)
   }
 
-  if (activeTab.value === 'applications') {
-    await loadApplications()
-  }
+  ensureTabDataLoaded(activeTab.value)
 })
 
 </script>
@@ -1238,6 +1414,197 @@ onMounted(async () => {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.password-card {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #fdf2f8 0%, #fefce8 100%);
+  box-shadow: 0 18px 35px rgba(244, 114, 182, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.password-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.password-card__header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #7c2d12;
+}
+
+.password-card__header p {
+  margin: 0.2rem 0 0;
+  color: #9a3412;
+  font-size: 0.92rem;
+}
+
+.password-form {
+  display: grid;
+  gap: 1rem;
+}
+
+:deep(.password-dialog .el-dialog) {
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+:deep(.password-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: none;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+:deep(.password-dialog .el-dialog__title) {
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+:deep(.password-dialog .el-dialog__headerbtn) {
+  top: 1rem;
+  right: 1rem;
+}
+
+:deep(.password-dialog .el-dialog__close) {
+  color: white;
+  font-size: 1.2rem;
+  z-index: 10;
+}
+
+:deep(.password-dialog .el-dialog__close:hover) {
+  color: #f0f0f0;
+}
+
+:deep(.password-dialog .el-dialog__body) {
+  padding: 2rem;
+  background: linear-gradient(180deg, #f8f9fc 0%, #f0f2f8 100%);
+}
+
+:deep(.password-dialog .el-form-item) {
+  margin-bottom: 1.5rem;
+}
+
+:deep(.password-dialog .el-form-item__label) {
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+:deep(.password-dialog .el-input__wrapper) {
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+:deep(.password-dialog .el-input__wrapper:hover) {
+  border-color: #667eea;
+}
+
+:deep(.password-dialog .el-input__wrapper.is-focus) {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+:deep(.password-dialog .el-input.is-error .el-input__wrapper) {
+  border-color: #f56c6c;
+}
+
+:deep(.password-dialog .el-form-item__error) {
+  color: #f56c6c;
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+}
+
+:deep(.password-dialog .dialog-footer) {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1.5rem;
+}
+
+:deep(.password-dialog .el-button) {
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 0.5rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+:deep(.password-dialog .el-button--default) {
+  border: 2px solid #e5e7eb;
+  color: #666;
+}
+
+:deep(.password-dialog .el-button--default:hover) {
+  border-color: #667eea;
+  color: #667eea;
+  background: #f8f9ff;
+}
+
+:deep(.password-dialog .el-button--primary) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+}
+
+:deep(.password-dialog .el-button--primary:hover) {
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.btn-inline {
+  border: none;
+  background: #f97316;
+  color: #fff;
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-inline:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.45);
+}
+
+.btn-link {
+  border: none;
+  background: transparent;
+  color: #d946ef;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
 }
 
 .section-head {
@@ -1831,8 +2198,16 @@ onMounted(async () => {
 .section-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.section-actions {
+  display: flex;
   align-items: center;
-  margin-bottom: 1.5rem;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .section-head h3 {
