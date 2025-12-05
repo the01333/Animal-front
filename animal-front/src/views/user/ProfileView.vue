@@ -240,13 +240,28 @@
           <div class="section-head">
             <h3>我的点赞</h3>
             <div class="section-actions">
-              <div class="category-toggle">
-                <button class="toggle-btn" :class="{ active: likeCategory === 'pet' }" @click="likeCategory = 'pet'">
-                  宠物
+              <div class="category-toggle pill-toggle">
+                <button class="pill-option" type="button" :class="{ active: likeCategory === 'pet' }"
+                  @click="likeCategory = 'pet'">
+                  <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="6" cy="9" r="2.4" />
+                    <circle cx="18" cy="9" r="2.4" />
+                    <circle cx="9" cy="4.5" r="2.2" />
+                    <circle cx="15" cy="4.5" r="2.2" />
+                    <path d="M12 11c-2.7 0-5.2 1.7-5.2 4.6 0 2.4 2 4.4 5.2 4.4s5.2-2 5.2-4.4C17.2 12.7 14.7 11 12 11Z"
+                      fill="currentColor" />
+                  </svg>
+                  <span>宠物</span>
                 </button>
-                <button class="toggle-btn" :class="{ active: likeCategory === 'article' }"
+                <button class="pill-option" type="button" :class="{ active: likeCategory === 'article' }"
                   @click="likeCategory = 'article'">
-                  文章
+                  <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+                    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                    <path d="M9 13h6" />
+                    <path d="M9 17h4" />
+                  </svg>
+                  <span>文章</span>
                 </button>
               </div>
               <span v-if="filteredLikedItems.length" class="count-badge">共 {{ filteredLikedItems.length }} 项</span>
@@ -278,23 +293,35 @@
           </div>
         </div>
 
-        <!-- 我的收藏 -->
         <div v-if="activeTab === 'favorites'" class="profile-section">
           <div class="section-head">
             <h3>我的收藏</h3>
             <div class="section-actions">
-              <div class="category-toggle">
-                <button class="toggle-btn" :class="{ active: favoriteCategory === 'pet' }"
+              <div class="category-toggle pill-toggle">
+                <button class="pill-option" type="button" :class="{ active: favoriteCategory === 'pet' }"
                   @click="favoriteCategory = 'pet'">
-                  宠物
+                  <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="6" cy="9" r="2.4" />
+                    <circle cx="18" cy="9" r="2.4" />
+                    <circle cx="9" cy="4.5" r="2.2" />
+                    <circle cx="15" cy="4.5" r="2.2" />
+                    <path d="M12 11c-2.7 0-5.2 1.7-5.2 4.6 0 2.4 2 4.4 5.2 4.4s5.2-2 5.2-4.4C17.2 12.7 14.7 11 12 11Z"
+                      fill="currentColor" />
+                  </svg>
+                  <span>宠物</span>
                 </button>
-                <button class="toggle-btn" :class="{ active: favoriteCategory === 'article' }"
+                <button class="pill-option" type="button" :class="{ active: favoriteCategory === 'article' }"
                   @click="favoriteCategory = 'article'">
-                  文章
+                  <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+                    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                    <path d="M9 13h6" />
+                    <path d="M9 17h4" />
+                  </svg>
+                  <span>文章</span>
                 </button>
               </div>
-              <span v-if="filteredFavoriteItems.length" class="count-badge">共 {{ filteredFavoriteItems.length }}
-                项</span>
+              <span v-if="filteredFavoriteItems.length" class="count-badge">共 {{ filteredFavoriteItems.length }} 项</span>
             </div>
           </div>
 
@@ -1216,8 +1243,62 @@ onMounted(async () => {
 .section-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1rem;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.category-toggle {
+  display: inline-flex;
+}
+
+.pill-toggle {
+  background: #f5f7fb;
+  padding: 0.25rem;
+  border-radius: 999px;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  gap: 0.25rem;
+}
+
+.pill-option {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.35rem 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #556070;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.pill-option .pill-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.pill-option.active {
+  background: linear-gradient(120deg, #ffb347, #ff6bb5 60%, #f87171);
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(255, 107, 181, 0.35);
+}
+
+.pill-option.active .pill-icon {
+  stroke: #fff;
+  fill: rgba(255, 255, 255, 0.3);
 }
 
 .application-count {
@@ -1632,12 +1713,13 @@ onMounted(async () => {
 }
 
 .count-badge {
-  background-color: #f3f4f6;
-  color: #374151;
-  padding: 0.25rem 0.75rem;
+  background-color: #eef2ff;
+  color: #4c1d95;
+  padding: 0.2rem 0.85rem;
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 600;
+  box-shadow: inset 0 1px 2px rgba(79, 70, 229, 0.2);
 }
 
 .likes-grid,
