@@ -11,26 +11,22 @@
       <div class="nav-center">
         <div class="nav-capsule" :class="{ 'profile-mode': isProfilePage }">
           <div v-if="!isProfilePage" class="nav-slider" :style="{ left: `${getSliderPosition()}%` }"></div>
-          <div
-            class="nav-link-item"
+          <div class="nav-link-item"
             :class="{ active: !isProfilePage && activeMenu === '/', 'profile-mode': isProfilePage }"
             @click="$router.push('/')">
             首页
           </div>
-          <div
-            class="nav-link-item"
+          <div class="nav-link-item"
             :class="{ active: !isProfilePage && activeMenu === '/pets', 'profile-mode': isProfilePage }"
             @click="$router.push('/pets')">
             领养列表
           </div>
-          <div
-            class="nav-link-item"
+          <div class="nav-link-item"
             :class="{ active: !isProfilePage && activeMenu === '/guides', 'profile-mode': isProfilePage }"
             @click="$router.push('/guides')">
             领养指南
           </div>
-          <div
-            class="nav-link-item"
+          <div class="nav-link-item"
             :class="{ active: !isProfilePage && activeMenu === '/stories', 'profile-mode': isProfilePage }"
             @click="$router.push('/stories')">
             领养故事
@@ -68,7 +64,7 @@
 
         <template v-else>
           <div class="auth-btn">
-            <el-button class="login-btn" @click="$router.push('/login')">
+            <el-button class="login-btn" @click="emitShowAuthDialog('login')">
               <span>登入/注册</span>
             </el-button>
           </div>
@@ -83,11 +79,16 @@ import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
+import { openAuthDialog } from '@/utils/authHelper'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const { isLoggedIn, userInfo } = storeToRefs(userStore)
+
+const emit = defineEmits<{
+  (e: 'show-auth-dialog', tab?: 'login' | 'register'): void
+}>()
 
 const isProfilePage = computed(() => route.path.startsWith('/profile'))
 
@@ -96,39 +97,39 @@ const activeMenu = computed(() => {
     return ''
   }
   const path = route.path
-  
+
   // 根据路由路径判断应该高亮哪个菜单
   if (path === '/') return '/'
   if (path.startsWith('/pets') || path.startsWith('/pet/') || path.startsWith('/apply/')) return '/pets'
   if (path.startsWith('/guides') || path.startsWith('/guide/')) return '/guides'
   if (path.startsWith('/stories') || path.startsWith('/story/')) return '/stories'
-  
+
   return path
 })
 
 // 处理图片URL（移除@前缀，处理IP地址替换）
 function processImageUrl(url: string): string {
   if (!url) return ''
-  
+
   // 移除@前缀
   if (url.startsWith('@')) {
     url = url.substring(1)
   }
-  
+
   // 将IP地址替换为localhost
   url = url.replace(/https?:\/\/\d+\.\d+\.\d+\.\d+:9000/, 'http://localhost:9000')
-  
+
   // 如果是相对路径，添加MinIO前缀
   if (!url.startsWith('http')) {
     url = `http://localhost:9000/animal-adopt${url.startsWith('/') ? '' : '/'}${url}`
   }
-  
+
   return url
 }
 
 const userAvatar = computed(() => {
   const avatar = userInfo.value?.avatar?.trim()
-  return avatar ? processImageUrl(avatar) : ''
+  return avatar ? processImageUrl(avatar) : 'http://localhost:9000/animal-adopt/default.jpg'
 })
 
 const displayName = computed(() => {
@@ -147,6 +148,11 @@ const handleUserCommand = (command: 'profile' | 'logout') => {
 
   userStore.logout()
   // 退出登录后不跳转，保留在当前页面
+}
+
+const emitShowAuthDialog = (tab: 'login' | 'register' = 'login') => {
+  emit('show-auth-dialog', tab)
+  openAuthDialog(tab)
 }
 
 // 计算滑块位置（百分比）

@@ -1,5 +1,14 @@
 import request from '@/utils/request'
-import type { ApiResponse, User, LoginForm, RegisterForm, PageResponse, UserCertificationRecord } from '@/types'
+import type {
+  ApiResponse,
+  User,
+  LoginForm,
+  RegisterForm,
+  PageResponse,
+  UserCertificationRecord
+} from '@/types'
+
+type VerificationPurpose = 'login' | 'register' | 'reset_password' | 'bind'
 
 /**
  * 用户登录
@@ -108,30 +117,32 @@ export function changePassword(data: {
 }
 
 // 验证码登录
-export function loginByEmailCode(email: string, code: string): Promise<ApiResponse<{ token: string; userInfo: User }>> {
+export function loginByEmailCode(
+  email: string,
+  code: string
+): Promise<ApiResponse<{ token: string; userInfo: User }>> {
   return request({ url: '/user/login/email-code', method: 'post', data: { email, code } })
 }
 
-export function loginByPhoneCode(phone: string, code: string): Promise<ApiResponse<{ token: string; userInfo: User }>> {
+export function loginByPhoneCode(
+  phone: string,
+  code: string
+): Promise<ApiResponse<{ token: string; userInfo: User }>> {
   return request({ url: '/user/login/phone-code', method: 'post', data: { phone, code } })
 }
 
-// 第三方登录 - 获取授权地址
-export function wechatAuthorize(): Promise<ApiResponse<{ url: string; state: string }>> {
-  return request({ url: '/oauth/wechat/authorize', method: 'get' })
+export function sendEmailVerificationCode(
+  email: string,
+  purpose: VerificationPurpose = 'login'
+): Promise<ApiResponse<void>> {
+  return request({ url: '/verification/email/send', method: 'post', data: { email, purpose } })
 }
 
-export function qqAuthorize(): Promise<ApiResponse<{ url: string; state: string }>> {
-  return request({ url: '/oauth/qq/authorize', method: 'get' })
-}
-
-// 第三方登录 - 回调交换token
-export function wechatCallback(code: string, state: string): Promise<ApiResponse<{ token: string; userInfo: User }>> {
-  return request({ url: '/oauth/wechat/callback', method: 'get', params: { code, state } })
-}
-
-export function qqCallback(code: string, state: string): Promise<ApiResponse<{ token: string; userInfo: User }>> {
-  return request({ url: '/oauth/qq/callback', method: 'get', params: { code, state } })
+export function sendPhoneVerificationCode(
+  phone: string,
+  purpose: VerificationPurpose = 'login'
+): Promise<ApiResponse<void>> {
+  return request({ url: '/verification/phone/send', method: 'post', data: { phone, purpose } })
 }
 
 /**
@@ -228,4 +239,3 @@ export function reviewCertification(
     data
   })
 }
-

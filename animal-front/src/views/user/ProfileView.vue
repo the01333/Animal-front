@@ -70,8 +70,11 @@
               <span :class="certificationStatusClass">{{ certificationStatusText }}</span>
             </div>
 
-            <div v-if="user.certificationStatus === 'pending'" class="status-message">
+            <div v-if="user.certificationStatus === 'pending' && !pendingResubmitMode" class="status-message">
               <p>您的认证申请正在审核中，请耐心等待。</p>
+              <button class="btn-resubmit" @click="requestResubmitDuringPending">
+                信息有误，重新上传
+              </button>
             </div>
 
             <div v-if="user.certificationStatus === 'rejected'" class="status-message status-message-rejected">
@@ -89,7 +92,8 @@
               </button>
             </div>
 
-            <div v-if="user.certificationStatus === 'not_submitted'" class="certification-form">
+            <div v-if="showCertificationForm" class="certification-form">
+              <p v-if="pendingResubmitMode" class="notice">* 当前为重新上传模式，提交后将覆盖原申请</p>
               <p>您尚未提交领养者认证申请，请填写以下信息进行认证。</p>
 
               <form @submit.prevent="submitCertificationHandler">
@@ -100,9 +104,9 @@
 
                 <div class="form-group">
                   <label for="idCardFront">身份证正面:</label>
-                  <div class="file-upload">
-                    <input id="idCardFront" type="file" @change="handleFileUpload('idCardFront', $event)"
-                      accept="image/*" />
+                  <div class="file-upload" @click="triggerFileInput('idCardFront')">
+                    <input ref="idCardFrontInput" id="idCardFront" type="file"
+                      @change="handleFileUpload('idCardFront', $event)" accept="image/*" />
                     <div v-if="certificationForm.idCardFrontPreview" class="file-preview">
                       <img :src="certificationForm.idCardFrontPreview" alt="身份证正面" />
                     </div>
@@ -111,9 +115,9 @@
 
                 <div class="form-group">
                   <label for="idCardBack">身份证反面:</label>
-                  <div class="file-upload">
-                    <input id="idCardBack" type="file" @change="handleFileUpload('idCardBack', $event)"
-                      accept="image/*" />
+                  <div class="file-upload" @click="triggerFileInput('idCardBack')">
+                    <input ref="idCardBackInput" id="idCardBack" type="file"
+                      @change="handleFileUpload('idCardBack', $event)" accept="image/*" />
                     <div v-if="certificationForm.idCardBackPreview" class="file-preview">
                       <img :src="certificationForm.idCardBackPreview" alt="身份证反面" />
                     </div>
@@ -138,9 +142,9 @@
 
                 <div class="form-group">
                   <label for="updateIdCardFront">身份证正面:</label>
-                  <div class="file-upload">
-                    <input id="updateIdCardFront" type="file" @change="handleUpdateFileUpload('idCardFront', $event)"
-                      accept="image/*" />
+                  <div class="file-upload" @click="triggerFileInput('updateIdCardFront')">
+                    <input ref="updateIdCardFrontInput" id="updateIdCardFront" type="file"
+                      @change="handleUpdateFileUpload('idCardFront', $event)" accept="image/*" />
                     <div v-if="updateCertificationForm.idCardFrontPreview" class="file-preview">
                       <img :src="updateCertificationForm.idCardFrontPreview" alt="身份证正面" />
                     </div>
@@ -149,9 +153,9 @@
 
                 <div class="form-group">
                   <label for="updateIdCardBack">身份证反面:</label>
-                  <div class="file-upload">
-                    <input id="updateIdCardBack" type="file" @change="handleUpdateFileUpload('idCardBack', $event)"
-                      accept="image/*" />
+                  <div class="file-upload" @click="triggerFileInput('updateIdCardBack')">
+                    <input ref="updateIdCardBackInput" id="updateIdCardBack" type="file"
+                      @change="handleUpdateFileUpload('idCardBack', $event)" accept="image/*" />
                     <div v-if="updateCertificationForm.idCardBackPreview" class="file-preview">
                       <img :src="updateCertificationForm.idCardBackPreview" alt="身份证反面" />
                     </div>
@@ -235,19 +239,30 @@
         <div v-if="activeTab === 'likes'" class="profile-section">
           <div class="section-head">
             <h3>我的点赞</h3>
-            <span v-if="likedItems.length" class="count-badge">共 {{ likedItems.length }} 项</span>
+            <div class="section-actions">
+              <div class="category-toggle">
+                <button class="toggle-btn" :class="{ active: likeCategory === 'pet' }" @click="likeCategory = 'pet'">
+                  宠物
+                </button>
+                <button class="toggle-btn" :class="{ active: likeCategory === 'article' }"
+                  @click="likeCategory = 'article'">
+                  文章
+                </button>
+              </div>
+              <span v-if="filteredLikedItems.length" class="count-badge">共 {{ filteredLikedItems.length }} 项</span>
+            </div>
           </div>
 
           <div v-if="loadingLikes" class="loading-message">
             正在加载点赞列表，请稍候...
           </div>
 
-          <div v-else-if="likedItems.length === 0" class="empty-message">
-            <p>您还没有点赞任何内容。</p>
+          <div v-else-if="filteredLikedItems.length === 0" class="empty-message">
+            <p>当前分类下暂无点赞内容。</p>
           </div>
 
           <div v-else class="likes-grid">
-            <div v-for="item in likedItems" :key="`${item.type}-${item.id}`" class="like-item">
+            <div v-for="item in filteredLikedItems" :key="`${item.type}-${item.id}`" class="like-item">
               <div class="item-image">
                 <img :src="getItemImage(item)" :alt="item.title" />
               </div>
@@ -267,19 +282,32 @@
         <div v-if="activeTab === 'favorites'" class="profile-section">
           <div class="section-head">
             <h3>我的收藏</h3>
-            <span v-if="favoriteItems.length" class="count-badge">共 {{ favoriteItems.length }} 项</span>
+            <div class="section-actions">
+              <div class="category-toggle">
+                <button class="toggle-btn" :class="{ active: favoriteCategory === 'pet' }"
+                  @click="favoriteCategory = 'pet'">
+                  宠物
+                </button>
+                <button class="toggle-btn" :class="{ active: favoriteCategory === 'article' }"
+                  @click="favoriteCategory = 'article'">
+                  文章
+                </button>
+              </div>
+              <span v-if="filteredFavoriteItems.length" class="count-badge">共 {{ filteredFavoriteItems.length }}
+                项</span>
+            </div>
           </div>
 
           <div v-if="loadingFavorites" class="loading-message">
             正在加载收藏列表，请稍候...
           </div>
 
-          <div v-else-if="favoriteItems.length === 0" class="empty-message">
-            <p>您还没有收藏任何内容。</p>
+          <div v-else-if="filteredFavoriteItems.length === 0" class="empty-message">
+            <p>当前分类下暂无收藏内容。</p>
           </div>
 
           <div v-else class="favorites-grid">
-            <div v-for="item in favoriteItems" :key="`${item.type}-${item.id}`" class="favorite-item">
+            <div v-for="item in filteredFavoriteItems" :key="`${item.type}-${item.id}`" class="favorite-item">
               <div class="item-image">
                 <img :src="getItemImage(item)" :alt="item.title" />
               </div>
@@ -310,13 +338,32 @@ import { getCertificationInfo, submitCertification, updateUserInfo, uploadUserAv
 import { getMyApplications, cancelApplication as cancelApplicationApi } from '@/api/application'
 import { getUserLikedPets } from '@/api/like'
 import { getUserFavoritePets } from '@/api/favorite'
-import type { AdoptionApplication, Pet } from '@/types'
+import { getUserLikedArticles, getUserFavoritedArticles } from '@/api/article'
+import type { AdoptionApplication, Pet, Article } from '@/types'
 
 // 获取 userStore
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
 
 // 用户信息
+const idCardFrontInput = ref<HTMLInputElement | null>(null)
+const idCardBackInput = ref<HTMLInputElement | null>(null)
+const updateIdCardFrontInput = ref<HTMLInputElement | null>(null)
+const updateIdCardBackInput = ref<HTMLInputElement | null>(null)
+
+type FileInputField = 'idCardFront' | 'idCardBack' | 'updateIdCardFront' | 'updateIdCardBack'
+
+const fileInputMap: Record<FileInputField, Ref<HTMLInputElement | null>> = {
+  idCardFront: idCardFrontInput,
+  idCardBack: idCardBackInput,
+  updateIdCardFront: updateIdCardFrontInput,
+  updateIdCardBack: updateIdCardBackInput
+}
+
+const triggerFileInput = (field: FileInputField) => {
+  fileInputMap[field]?.value?.click()
+}
+
 const user = ref({
   name: '',
   email: '',
@@ -336,6 +383,16 @@ const certificationForm = reactive({
   idCardFrontPreview: '',
   idCardBackPreview: ''
 })
+
+const pendingResubmitMode = ref(false)
+
+const resetCertificationFormState = () => {
+  certificationForm.idCard = ''
+  certificationForm.idCardFront = null
+  certificationForm.idCardBack = null
+  certificationForm.idCardFrontPreview = ''
+  certificationForm.idCardBackPreview = ''
+}
 
 // 默认头像
 const defaultAvatar = 'http://localhost:9000/animal-adopt/default.jpg'
@@ -421,6 +478,13 @@ watch(
   }
 )
 
+watch(activeTab, (tab, prev) => {
+  if (prev === 'certification' && tab !== 'certification' && pendingResubmitMode.value) {
+    pendingResubmitMode.value = false
+    resetCertificationFormState()
+  }
+})
+
 // 导航项
 const navItems = [
   { key: 'basic', label: '基本信息' },
@@ -462,6 +526,8 @@ const certificationStatusClass = computed(() => {
     'status-rejected': user.value.certificationStatus === 'rejected'
   }
 })
+
+const showCertificationForm = computed(() => user.value.certificationStatus === 'not_submitted' || pendingResubmitMode.value)
 
 // 申请状态文本
 const normalizeStatus = (status?: string) => String(status || '').toLowerCase()
@@ -627,6 +693,20 @@ const submitCertificationHandler = async () => {
   }
 
   try {
+    await ElMessageBox.confirm(
+      '请确认您填写的信息和上传的证件照片均准确无误，\n是否确认提交？',
+      '确认提交',
+      {
+        confirmButtonText: '确认提交',
+        cancelButtonText: '重新检查',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+
+  try {
     const formData = new FormData()
     formData.append('idCard', certificationForm.idCard)
     formData.append('idCardFront', certificationForm.idCardFront)
@@ -652,13 +732,10 @@ const submitCertificationHandler = async () => {
 }
 
 // 重新提交认证
-const resubmitCertification = () => {
+const resubmitCertification = (options?: { preserveForm?: boolean }) => {
   user.value.certificationStatus = 'not_submitted'
-  certificationForm.idCard = ''
-  certificationForm.idCardFront = null
-  certificationForm.idCardBack = null
-  certificationForm.idCardFrontPreview = ''
-  certificationForm.idCardBackPreview = ''
+  if (options?.preserveForm) return
+  resetCertificationFormState()
 }
 
 // 更新认证表单数据
@@ -726,6 +803,20 @@ const submitUpdateCertificationHandler = async () => {
   }
 
   try {
+    await ElMessageBox.confirm(
+      '请再次核对更新后的信息与证件照片，确认提交审核？',
+      '确认更新',
+      {
+        confirmButtonText: '确认提交',
+        cancelButtonText: '再检查一下',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+
+  try {
     const formData = new FormData()
     formData.append('idCard', updateCertificationForm.idCard)
     formData.append('idCardFront', updateCertificationForm.idCardFront)
@@ -760,6 +851,26 @@ const cancelUpdateCertification = () => {
   updateCertificationForm.idCardBack = null
   updateCertificationForm.idCardFrontPreview = ''
   updateCertificationForm.idCardBackPreview = ''
+}
+
+const requestResubmitDuringPending = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '当前认证正在审核中，确认撤回并重新上传吗？',
+      '重新上传确认',
+      {
+        confirmButtonText: '重新上传',
+        cancelButtonText: '再等等',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+
+  pendingResubmitMode.value = true
+  resetCertificationFormState()
+  ElMessage.info('请重新填写认证信息并再次提交。')
 }
 
 // 申请时间格式化
@@ -835,10 +946,13 @@ interface LikeItem {
   title: string
   description?: string
   image?: string
+  relationTime?: string
 }
 
 const likedItems = ref<LikeItem[]>([])
 const favoriteItems = ref<LikeItem[]>([])
+const likeCategory = ref<'pet' | 'article'>('pet')
+const favoriteCategory = ref<'pet' | 'article'>('pet')
 const loadingLikes = ref(false)
 const loadingFavorites = ref(false)
 
@@ -853,12 +967,24 @@ const getItemImage = (item: LikeItem): string => {
 // 获取项目类型标签
 const getItemTypeLabel = (type: string): string => {
   const typeMap: Record<string, string> = {
-    'pet': '宠物',
-    'guide': '旅游指南',
-    'story': '领养故事'
+    pet: '宠物',
+    guide: '领养指南',
+    story: '领养故事'
   }
   return typeMap[type] || type
 }
+
+const filteredLikedItems = computed(() =>
+  likedItems.value.filter((item) =>
+    likeCategory.value === 'pet' ? item.type === 'pet' : item.type !== 'pet'
+  )
+)
+
+const filteredFavoriteItems = computed(() =>
+  favoriteItems.value.filter((item) =>
+    favoriteCategory.value === 'pet' ? item.type === 'pet' : item.type !== 'pet'
+  )
+)
 
 // 查看点赞项目
 const viewLikedItem = (item: LikeItem) => {
@@ -883,19 +1009,42 @@ const viewFavoriteItem = (item: LikeItem) => {
 }
 
 // 加载点赞列表
+const mapPetToItem = (pet: Pet): LikeItem => ({
+  id: pet.id,
+  type: 'pet',
+  title: pet.name,
+  description: pet.breed,
+  image: pet.coverImage
+})
+
+const mapArticleToItem = (article: Article): LikeItem => ({
+  id: article.id!,
+  type: article.category === 'GUIDE' ? 'guide' : 'story',
+  title: article.title,
+  description: article.summary || (article.author ? `作者：${article.author}` : undefined),
+  image: article.coverImage,
+  relationTime: article.relationTime
+})
+
+const sortByRelationTime = (items: LikeItem[]) => {
+  return items.sort((a, b) => {
+    const t1 = a.relationTime ? new Date(a.relationTime).getTime() : 0
+    const t2 = b.relationTime ? new Date(b.relationTime).getTime() : 0
+    return t2 - t1
+  })
+}
+
 const loadLikes = async () => {
   if (loadingLikes.value) return
   loadingLikes.value = true
   try {
-    const res = await getUserLikedPets({ current: 1, size: 50 })
-    const pets = res.data?.records || []
-    likedItems.value = pets.map((pet: Pet) => ({
-      id: pet.id,
-      type: 'pet' as const,
-      title: pet.name,
-      description: pet.breed,
-      image: pet.coverImage
-    }))
+    const [petRes, articleRes] = await Promise.all([
+      getUserLikedPets({ current: 1, size: 50 }),
+      getUserLikedArticles({ current: 1, size: 50 })
+    ])
+    const pets = (petRes.data?.records || []).map(mapPetToItem)
+    const articles = (articleRes.data?.records || []).map(mapArticleToItem)
+    likedItems.value = sortByRelationTime([...pets, ...articles])
   } catch (error) {
     console.error('获取点赞列表失败:', error)
     ElMessage.error('加载点赞列表失败，请稍后重试')
@@ -905,20 +1054,17 @@ const loadLikes = async () => {
   }
 }
 
-// 加载收藏列表
 const loadFavorites = async () => {
   if (loadingFavorites.value) return
   loadingFavorites.value = true
   try {
-    const res = await getUserFavoritePets({ current: 1, size: 50 })
-    const pets = res.data?.records || []
-    favoriteItems.value = pets.map((pet: Pet) => ({
-      id: pet.id,
-      type: 'pet' as const,
-      title: pet.name,
-      description: pet.breed,
-      image: pet.coverImage
-    }))
+    const [petRes, articleRes] = await Promise.all([
+      getUserFavoritePets({ current: 1, size: 50 }),
+      getUserFavoritedArticles({ current: 1, size: 50 })
+    ])
+    const pets = (petRes.data?.records || []).map(mapPetToItem)
+    const articles = (articleRes.data?.records || []).map(mapArticleToItem)
+    favoriteItems.value = sortByRelationTime([...pets, ...articles])
   } catch (error) {
     console.error('获取收藏列表失败:', error)
     ElMessage.error('加载收藏列表失败，请稍后重试')
@@ -1620,7 +1766,7 @@ onMounted(async () => {
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   margin-top: 1rem;
   transition: all 0.3s ease;
 }

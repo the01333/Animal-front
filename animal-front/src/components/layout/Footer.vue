@@ -32,19 +32,21 @@
                 <el-icon>
                   <Message />
                 </el-icon>
-                <span>邮箱: linyyccc@gmail.com</span>
+                <a href="mailto:linyyccc@gmail.com"
+                  style="text-decoration: none; color: inherit;">linyyccc@gmail.com</a>
+                <!-- <span>邮箱: linyyccc@gmail.com</span> -->
               </div>
               <div class="contact-item">
                 <el-icon>
                   <Iphone />
                 </el-icon>
-                <span>电话: 1306318xxxx</span>
+                <span>电话: 130xxxxxxxx</span>
               </div>
               <div class="contact-item">
                 <el-icon>
                   <Location />
                 </el-icon>
-                <span>地址: 福建省漳州市东山县宠物街1号</span>
+                <span>地址: 福建省漳州市xx号</span>
               </div>
             </el-space>
           </div>

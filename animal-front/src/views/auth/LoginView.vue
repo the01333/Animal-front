@@ -102,25 +102,6 @@
           </el-tab-pane>
         </el-tabs>
 
-        <!-- 第三方登录 -->
-        <el-divider class="divider-text">OR</el-divider>
-        
-        <div class="social-login">
-          <el-button class="social-btn wechat-btn" @click="handleWechatLogin">
-            <svg class="icon" viewBox="0 0 1024 1024" width="20" height="20">
-              <path d="M664.250054 368.541681c10.015098 0 19.892049 0.732687 29.67281 1.795902-26.647917-122.810047-159.358451-214.077703-310.826188-214.077703-169.353083 0-308.085774 114.232694-308.085774 259.274068 0 83.708494 46.165436 152.460344 123.281791 205.78483l-30.80868 91.730191 107.688651-53.455469c38.558178 7.53665 69.459978 15.308661 107.924012 15.308661 9.66308 0 19.230993-0.470721 28.752858-1.225921-6.025227-20.36584-9.521864-41.723264-9.521864-63.862493C402.328693 476.632491 517.908058 368.541681 664.250054 368.541681zM498.62897 285.87389c23.200398 0 38.557154 15.120372 38.557154 38.061874 0 22.846334-15.356756 38.156018-38.557154 38.156018-23.107277 0-46.260603-15.309684-46.260603-38.156018C452.368366 300.994262 475.522716 285.87389 498.62897 285.87389zM283.016307 362.090758c-23.107277 0-46.402843-15.309684-46.402843-38.156018 0-22.941502 23.295566-38.061874 46.402843-38.061874 23.081695 0 38.46301 15.120372 38.46301 38.061874C321.479317 346.782098 306.098002 362.090758 283.016307 362.090758zM945.448458 606.151333c0-121.888048-123.258255-221.236753-261.683954-221.236753-146.57838 0-262.015505 99.348706-262.015505 221.236753 0 122.06508 115.437126 221.200938 262.015505 221.200938 30.66644 0 61.617359-7.609305 92.423993-15.262612l84.513836 45.786813-23.178909-76.17082C899.379213 735.776599 945.448458 674.90216 945.448458 606.151333zM598.803483 567.994292c-15.332197 0-30.807656-15.096836-30.807656-30.501688 0-15.190981 15.47546-30.477129 30.807656-30.477129 23.295566 0 38.558178 15.286148 38.558178 30.477129C637.361661 552.897456 622.099049 567.994292 598.803483 567.994292zM768.25071 567.994292c-15.213493 0-30.594809-15.096836-30.594809-30.501688 0-15.190981 15.381315-30.477129 30.594809-30.477129 23.107277 0 38.558178 15.286148 38.558178 30.477129C806.808888 552.897456 791.357987 567.994292 768.25071 567.994292z" fill="#00C800"/>
-            </svg>
-            微信登录
-          </el-button>
-          <el-button class="social-btn qq-btn" @click="handleQQLogin">
-            <svg class="icon" viewBox="0 0 1024 1024" width="20" height="20">
-              <path d="M511.09 63.25c-174.84 0-316.59 123.88-316.59 276.75 0 56.99 18.97 109.9 51.58 154.75-23.45 71.59-62.89 122.38-62.89 122.38s84.4-9.39 141.12-49.68c33.19 12.3 69.42 19.03 107.18 19.03 174.84 0 316.59-123.88 316.59-276.75S685.93 63.25 511.09 63.25z" fill="#4EABE6"/>
-              <path d="M826.49 600.43c25.6-35.84 40.96-78.34 40.96-123.9 0-45.57-15.36-88.06-40.96-123.9 0 0 0 0 0 0 0 0 0 0 0 0-25.6-35.84-63.49-66.56-107.52-89.09 0 0 0 0 0 0 0 0 0 0 0 0-44.03-22.53-92.16-35.84-143.36-35.84-51.2 0-99.33 13.31-143.36 35.84 0 0 0 0 0 0 0 0 0 0 0 0-44.03 22.53-81.92 53.25-107.52 89.09 0 0 0 0 0 0 0 0 0 0 0 0-25.6 35.84-40.96 78.34-40.96 123.9 0 45.57 15.36 88.06 40.96 123.9 0 0 0 0 0 0 0 0 0 0 0 0 25.6 35.84 63.49 66.56 107.52 89.09 0 0 0 0 0 0 0 0 0 0 0 0 44.03 22.53 92.16 35.84 143.36 35.84 51.2 0 99.33-13.31 143.36-35.84 0 0 0 0 0 0 0 0 0 0 0 0 44.03-22.53 81.92-53.25 107.52-89.09 0 0 0 0 0 0z" fill="#12B7F5"/>
-            </svg>
-            QQ登录
-          </el-button>
-        </div>
-
         <!-- 提示信息 -->
         <div v-if="showTip" class="success-tip">
           <el-icon class="tip-icon"><CircleCheck /></el-icon>
@@ -138,7 +119,7 @@ import { CircleCheck } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import axios from 'axios'
-import { login, loginByEmailCode, loginByPhoneCode, wechatAuthorize, qqAuthorize } from '@/api/user'
+import { login, loginByEmailCode, loginByPhoneCode } from '@/api/user'
 
 const router = useRouter()
 const loading = ref(false)
@@ -166,7 +147,7 @@ const passwordRules = reactive<FormRules>({
 
 // 验证码登录表单
 const codeFormRef = ref<FormInstance>()
-const codeType = ref('email')
+const codeType = ref<'email' | 'phone'>('email')
 const codeForm = reactive({
   target: '',
   code: ''
@@ -190,37 +171,26 @@ const handlePasswordLogin = async () => {
   if (!passwordFormRef.value) return
 
   await passwordFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        const response = await login({
-          username: passwordForm.account,
-          password: passwordForm.password
-        })
+    if (!valid) return
+    loading.value = true
+    try {
+      const response = await login({
+        username: passwordForm.account,
+        password: passwordForm.password
+      })
 
-        if (response.code === 200) {
-          localStorage.setItem('token', response.data.token)
-          localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo))
-          
-          showSuccessTip('登录成功！正在跳转...')
-          
-          setTimeout(() => {
-            // 获取重定向URL，如果没有则返回首页
-            const redirect = router.currentRoute.value.query.redirect as string
-            if (redirect) {
-              window.location.href = redirect
-            } else {
-              router.push('/')
-            }
-          }, 1500)
-        } else {
-          ElMessage.error(response.data.message || '登录失败')
-        }
-      } catch (error: any) {
-        ElMessage.error(error.response?.data?.message || '登录失败，请检查网络连接')
-      } finally {
-        loading.value = false
+      if (response.code === 200) {
+        localStorage.setItem('token', response.data.token)
+        localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo))
+        showSuccessTip('登录成功！正在跳转...')
+        redirectAfterLogin()
+      } else {
+        ElMessage.error(response.message || '登录失败')
       }
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '登录失败，请检查网络连接')
+    } finally {
+      loading.value = false
     }
   })
 }
@@ -230,36 +200,25 @@ const handleCodeLogin = async () => {
   if (!codeFormRef.value) return
 
   await codeFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        let resp
-        if (codeType.value === 'email') {
-          resp = await loginByEmailCode(codeForm.target, codeForm.code)
-        } else {
-          resp = await loginByPhoneCode(codeForm.target, codeForm.code)
-        }
-        if (resp.code === 200) {
-          localStorage.setItem('token', resp.data.token)
-          localStorage.setItem('userInfo', JSON.stringify(resp.data.userInfo))
-          showSuccessTip('登录成功！正在跳转...')
-          setTimeout(() => {
-            // 获取重定向URL，如果没有则返回首页
-            const redirect = router.currentRoute.value.query.redirect as string
-            if (redirect) {
-              window.location.href = redirect
-            } else {
-              router.push('/')
-            }
-          }, 1000)
-        } else {
-          ElMessage.error(resp.message || '登录失败')
-        }
-      } catch (error: any) {
-        ElMessage.error(error.response?.data?.message || '登录失败')
-      } finally {
-        loading.value = false
+    if (!valid) return
+    loading.value = true
+    try {
+      const resp = codeType.value === 'email'
+        ? await loginByEmailCode(codeForm.target, codeForm.code)
+        : await loginByPhoneCode(codeForm.target, codeForm.code)
+
+      if (resp.code === 200) {
+        localStorage.setItem('token', resp.data.token)
+        localStorage.setItem('userInfo', JSON.stringify(resp.data.userInfo))
+        showSuccessTip('登录成功！正在跳转...')
+        redirectAfterLogin(1000)
+      } else {
+        ElMessage.error(resp.message || '登录失败')
       }
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '登录失败')
+    } finally {
+      loading.value = false
     }
   })
 }
@@ -289,47 +248,30 @@ const sendVerificationCode = async () => {
   }
 }
 
-// 倒计时
 const startCountdown = () => {
   countdown.value = 60
+  countdownTimer && clearInterval(countdownTimer)
   countdownTimer = window.setInterval(() => {
-    countdown.value--
+    countdown.value -= 1
     if (countdown.value <= 0 && countdownTimer) {
       clearInterval(countdownTimer)
       countdownTimer = null
+      countdown.value = 0
     }
   }, 1000)
 }
 
-// 微信登录
-const handleWechatLogin = async () => {
-  try {
-    const res = await wechatAuthorize()
-    if (res.code === 200) {
-      window.location.href = res.data.url
+const redirectAfterLogin = (delay = 1500) => {
+  setTimeout(() => {
+    const redirect = router.currentRoute.value.query.redirect as string
+    if (redirect) {
+      window.location.href = redirect
     } else {
-      ElMessage.error(res.message || '获取授权地址失败')
+      router.push('/')
     }
-  } catch (e) {
-    ElMessage.error('获取授权地址失败')
-  }
+  }, delay)
 }
 
-// QQ登录
-const handleQQLogin = async () => {
-  try {
-    const res = await qqAuthorize()
-    if (res.code === 200) {
-      window.location.href = res.data.url
-    } else {
-      ElMessage.error(res.message || '获取授权地址失败')
-    }
-  } catch (e) {
-    ElMessage.error('获取授权地址失败')
-  }
-}
-
-// 显示成功提示
 const showSuccessTip = (message: string) => {
   tipMessage.value = message
   showTip.value = true

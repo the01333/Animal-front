@@ -22,14 +22,8 @@
 
       <div v-if="activeFilters.length" class="active-filters">
         <span class="label">已选择：</span>
-        <el-tag
-          v-for="filter in activeFilters"
-          :key="filter.key"
-          closable
-          type="info"
-          size="small"
-          @close="handleRemoveFilter(filter.key)"
-        >
+        <el-tag v-for="filter in activeFilters" :key="filter.key" closable type="info" size="small"
+          @close="handleRemoveFilter(filter.key)">
           {{ filter.label }}：{{ filter.value }}
         </el-tag>
         <el-button text type="primary" size="small" @click="handleReset">清空筛选</el-button>
@@ -40,7 +34,8 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="头像" width="80">
           <template #default="{ row }">
-            <el-avatar :size="40" :src="processImageUrl(row.avatar)">
+            <el-avatar :size="40"
+              :src="processImageUrl(row.avatar) || 'http://localhost:9000/animal-adopt/default.jpg'">
               {{ row.username?.charAt(0) }}
             </el-avatar>
           </template>
@@ -55,12 +50,7 @@
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-switch
-              v-model="row.status"
-              :active-value="1"
-              :inactive-value="0"
-              @change="handleStatusChange(row)"
-            />
+            <el-switch v-model="row.status" :active-value="1" :inactive-value="0" @change="handleStatusChange(row)" />
           </template>
         </el-table-column>
         <el-table-column label="创建时间" width="180">
@@ -69,13 +59,7 @@
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link :icon="Edit" @click="handleEdit(row)">编辑</el-button>
-            <el-button
-              type="danger"
-              link
-              :icon="Delete"
-              :disabled="row.role === 'ADMIN'"
-              @click="handleDelete(row)"
-            >
+            <el-button type="danger" link :icon="Delete" :disabled="row.role === 'ADMIN'" @click="handleDelete(row)">
               删除
             </el-button>
           </template>
@@ -84,16 +68,9 @@
 
       <!-- 分页 -->
       <div class="pagination">
-        <el-pagination
-          :current-page="queryForm.current"
-          :page-size="queryForm.size"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          @size-change="fetchList"
-          @current-change="fetchList"
-        />
+        <el-pagination :current-page="queryForm.current" :page-size="queryForm.size" :page-sizes="[10, 20, 50, 100]"
+          :total="total" layout="total, sizes, prev, pager, next, jumper" background @size-change="fetchList"
+          @current-change="fetchList" />
       </div>
     </el-card>
   </div>
@@ -132,20 +109,20 @@ const activeFilters = computed(() => {
 // 处理图片URL（移除@前缀，处理IP地址替换）
 function processImageUrl(url: string | undefined): string {
   if (!url) return ''
-  
+
   // 移除@前缀
   if (url.startsWith('@')) {
     url = url.substring(1)
   }
-  
+
   // 将IP地址替换为localhost
   url = url.replace(/https?:\/\/\d+\.\d+\.\d+\.\d+:9000/, 'http://localhost:9000')
-  
+
   // 如果是相对路径，添加MinIO前缀
   if (!url.startsWith('http')) {
     url = `http://localhost:9000/animal-adopt${url.startsWith('/') ? '' : '/'}${url}`
   }
-  
+
   return url
 }
 
@@ -210,7 +187,7 @@ function handleDelete(row: User) {
         ElMessage.error('删除失败')
       }
     })
-    .catch(() => {})
+    .catch(() => { })
 }
 
 function getRoleType(role: string) {
@@ -249,4 +226,3 @@ onMounted(() => {
   }
 }
 </style>
-

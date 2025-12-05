@@ -161,6 +161,7 @@ export interface Article {
   favorited?: boolean
   publishDate?: string
   publishTime?: string
+  relationTime?: string
   createdTime?: string
   updatedTime?: string
 }
@@ -179,7 +180,7 @@ export interface Favorite {
   createdTime?: string
 }
 
-// 聊天消息相关
+// 聊天消息相关（AI客服使用）
 export interface ChatMessage {
   id: number
   sessionId: number
@@ -189,18 +190,6 @@ export interface ChatMessage {
   content: string
   messageType: 'TEXT' | 'IMAGE' | 'FILE'
   isRead: boolean
-  createdTime?: string
-}
-
-export interface ChatSession {
-  id: number
-  userId: number
-  username?: string
-  userAvatar?: string
-  sessionType: 'AI' | 'HOUSEKEEPER'
-  lastMessage?: string
-  lastMessageTime?: string
-  unreadCount?: number
   createdTime?: string
 }
 

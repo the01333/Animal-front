@@ -1,17 +1,10 @@
 <template>
-  <el-dialog 
-    v-model="dialogVisible" 
-    :title="null"
-    width="480" 
-    :close-on-click-modal="false"
-    align-center 
-    destroy-on-close
-    class="auth-dialog"
-  >
+  <el-dialog v-model="dialogVisible" :title="null" width="480" :close-on-click-modal="false" align-center
+    destroy-on-close append-to-body class="auth-dialog">
     <div class="auth-dialog-content">
       <!-- 头部 -->
       <div class="dialog-header">
-        <h2 class="dialog-title">宠物领养系统</h2>
+        <h2 class="dialog-title">欢迎来到 i 宠园</h2>
         <p class="dialog-subtitle">
           <template v-if="activeTab === 'login'">
             还没有账户？
@@ -30,137 +23,173 @@
 
       <!-- 登录/注册表单切换 -->
       <div v-if="activeTab === 'login'" class="form-container">
-          <!-- 登录表单 -->
-          <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" size="large">
-            <div class="form-label">账号</div>
-            <el-form-item prop="username">
-              <el-input 
-                v-model="loginForm.username" 
-                placeholder="请输入邮箱或手机号" 
-                clearable 
-              />
-            </el-form-item>
+        <div class="form-inner">
+          <el-tabs v-model="loginMethod" class="method-tabs">
+            <el-tab-pane label="手机号登录" name="phone">
+              <el-form ref="loginPhoneFormRef" :model="loginPhoneForm" :rules="loginPhoneRules" size="large">
+                <div class="form-label">手机号</div>
+                <el-form-item prop="phone">
+                  <el-input v-model="loginPhoneForm.phone" placeholder="请输入手机号" clearable />
+                </el-form-item>
 
-            <div class="form-label">
-              <span>密码</span>
-              <el-link type="primary" :underline="false" class="forgot-link">
-                忘记密码？
-              </el-link>
-            </div>
-            <el-form-item prop="password">
-              <el-input 
-                v-model="loginForm.password" 
-                type="password" 
-                placeholder="请输入密码" 
-                show-password 
-                @keyup.enter="handleLogin" 
-              />
-            </el-form-item>
+                <div class="form-label">验证码</div>
+                <el-form-item prop="code">
+                  <div class="code-input-wrapper">
+                    <el-input v-model="loginPhoneForm.code" placeholder="请输入验证码" @keyup.enter="handleLoginByCode" />
+                    <el-button :disabled="loginCountdown > 0" @click="sendLoginCode('phone')">
+                      {{ loginCountdown > 0 ? `${loginCountdown}秒后重试` : '获取验证码' }}
+                    </el-button>
+                  </div>
+                </el-form-item>
 
-            <el-form-item>
-              <el-checkbox v-model="rememberMe">自动登录</el-checkbox>
-            </el-form-item>
+                <el-button type="primary" :loading="loginLoading" class="submit-btn" @click="handleLoginByCode">
+                  登入
+                </el-button>
+              </el-form>
+            </el-tab-pane>
 
-            <el-button 
-              type="primary" 
-              :loading="loginLoading" 
-              class="submit-btn" 
-              @click="handleLogin"
-            >
-              登入
-            </el-button>
-          </el-form>
+            <el-tab-pane label="邮箱登录" name="email">
+              <el-form ref="loginEmailFormRef" :model="loginEmailForm" :rules="loginEmailRules" size="large">
+                <div class="form-label">邮箱</div>
+                <el-form-item prop="email">
+                  <el-input v-model="loginEmailForm.email" placeholder="请输入邮箱地址" clearable />
+                </el-form-item>
 
-          <el-divider class="divider-text">OR</el-divider>
+                <div class="form-label">验证码</div>
+                <el-form-item prop="code">
+                  <div class="code-input-wrapper">
+                    <el-input v-model="loginEmailForm.code" placeholder="请输入验证码" @keyup.enter="handleLoginByCode" />
+                    <el-button :disabled="loginCountdown > 0" @click="sendLoginCode('email')">
+                      {{ loginCountdown > 0 ? `${loginCountdown}秒后重试` : '获取验证码' }}
+                    </el-button>
+                  </div>
+                </el-form-item>
 
-          <div class="social-login">
-            <el-button class="social-btn wechat-btn">
-              <svg class="icon" viewBox="0 0 1024 1024" width="18" height="18">
-                <path d="M664.250054 368.541681c10.015098 0 19.892049 0.732687 29.67281 1.795902-26.647917-122.810047-159.358451-214.077703-310.826188-214.077703-169.353083 0-308.085774 114.232694-308.085774 259.274068 0 83.708494 46.165436 152.460344 123.281791 205.78483l-30.80868 91.730191 107.688651-53.455469c38.558178 7.53665 69.459978 15.308661 107.924012 15.308661 9.66308 0 19.230993-0.470721 28.752858-1.225921-6.025227-20.36584-9.521864-41.723264-9.521864-63.862493C402.328693 476.632491 517.908058 368.541681 664.250054 368.541681zM498.62897 285.87389c23.200398 0 38.557154 15.120372 38.557154 38.061874 0 22.846334-15.356756 38.156018-38.557154 38.156018-23.107277 0-46.260603-15.309684-46.260603-38.156018C452.368366 300.994262 475.522716 285.87389 498.62897 285.87389zM283.016307 362.090758c-23.107277 0-46.402843-15.309684-46.402843-38.156018 0-22.941502 23.295566-38.061874 46.402843-38.061874 23.081695 0 38.46301 15.120372 38.46301 38.061874C321.479317 346.782098 306.098002 362.090758 283.016307 362.090758zM945.448458 606.151333c0-121.888048-123.258255-221.236753-261.683954-221.236753-146.57838 0-262.015505 99.348706-262.015505 221.236753 0 122.06508 115.437126 221.200938 262.015505 221.200938 30.66644 0 61.617359-7.609305 92.423993-15.262612l84.513836 45.786813-23.178909-76.17082C899.379213 735.776599 945.448458 674.90216 945.448458 606.151333zM598.803483 567.994292c-15.332197 0-30.807656-15.096836-30.807656-30.501688 0-15.190981 15.47546-30.477129 30.807656-30.477129 23.295566 0 38.558178 15.286148 38.558178 30.477129C637.361661 552.897456 622.099049 567.994292 598.803483 567.994292zM768.25071 567.994292c-15.213493 0-30.594809-15.096836-30.594809-30.501688 0-15.190981 15.381315-30.477129 30.594809-30.477129 23.107277 0 38.558178 15.286148 38.558178 30.477129C806.808888 552.897456 791.357987 567.994292 768.25071 567.994292z" fill="#00C800"/>
-              </svg>
-              微信登录
-            </el-button>
-            <el-button class="social-btn qq-btn">
-              <svg class="icon" viewBox="0 0 1024 1024" width="18" height="18">
-                <path d="M511.09 63.25c-174.84 0-316.59 123.88-316.59 276.75 0 56.99 18.97 109.9 51.58 154.75-23.45 71.59-62.89 122.38-62.89 122.38s84.4-9.39 141.12-49.68c33.19 12.3 69.42 19.03 107.18 19.03 174.84 0 316.59-123.88 316.59-276.75S685.93 63.25 511.09 63.25z" fill="#4EABE6"/>
-                <path d="M826.49 600.43c25.6-35.84 40.96-78.34 40.96-123.9 0-45.57-15.36-88.06-40.96-123.9 0 0 0 0 0 0 0 0 0 0 0 0-25.6-35.84-63.49-66.56-107.52-89.09 0 0 0 0 0 0 0 0 0 0 0 0-44.03-22.53-92.16-35.84-143.36-35.84-51.2 0-99.33 13.31-143.36 35.84 0 0 0 0 0 0 0 0 0 0 0 0-44.03 22.53-81.92 53.25-107.52 89.09 0 0 0 0 0 0 0 0 0 0 0 0-25.6 35.84-40.96 78.34-40.96 123.9 0 45.57 15.36 88.06 40.96 123.9 0 0 0 0 0 0 0 0 0 0 0 0 25.6 35.84 63.49 66.56 107.52 89.09 0 0 0 0 0 0 0 0 0 0 0 0 44.03 22.53 92.16 35.84 143.36 35.84 51.2 0 99.33-13.31 143.36-35.84 0 0 0 0 0 0 0 0 0 0 0 0 44.03-22.53 81.92-53.25 107.52-89.09 0 0 0 0 0 0z" fill="#12B7F5"/>
-              </svg>
-              QQ登录
-            </el-button>
-          </div>
+                <el-button type="primary" :loading="loginLoading" class="submit-btn" @click="handleLoginByCode">
+                  登入
+                </el-button>
+              </el-form>
+            </el-tab-pane>
+
+            <el-tab-pane label="密码登录" name="password">
+              <el-form ref="loginPasswordFormRef" :model="loginPasswordForm" :rules="loginPasswordRules" size="large">
+                <div class="form-label">用户名</div>
+                <el-form-item prop="username">
+                  <el-input v-model="loginPasswordForm.username" placeholder="请输入用户名" clearable />
+                </el-form-item>
+
+                <div class="form-label">
+                  <span>密码</span>
+                  <el-link type="primary" :underline="false" class="forgot-link" @click="goToResetPassword">
+                    忘记密码？
+                  </el-link>
+                </div>
+                <el-form-item prop="password">
+                  <el-input v-model="loginPasswordForm.password" type="password" placeholder="请输入密码" show-password
+                    @keyup.enter="handleLoginByPassword" />
+                </el-form-item>
+
+                <el-button type="primary" :loading="loginLoading" class="submit-btn" @click="handleLoginByPassword">
+                  登录
+                </el-button>
+              </el-form>
+            </el-tab-pane>
+          </el-tabs>
         </div>
+      </div>
 
       <div v-else class="form-container">
-          <!-- 注册表单 -->
-          <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" size="large">
-            <div class="form-label">用户名</div>
-            <el-form-item prop="username">
-              <el-input 
-                v-model="registerForm.username" 
-                placeholder="请输入用户名" 
-                clearable 
-              />
-            </el-form-item>
+        <div class="form-inner">
+          <el-tabs v-model="registerMethod" class="method-tabs">
+            <el-tab-pane label="手机注册" name="phone">
+              <el-form ref="registerPhoneFormRef" :model="registerPhoneForm" :rules="registerPhoneRules" size="large">
+                <div class="form-label">手机号</div>
+                <el-form-item prop="phone">
+                  <el-input v-model="registerPhoneForm.phone" placeholder="请输入手机号" clearable />
+                </el-form-item>
 
-            <div class="form-label">邮箱</div>
-            <el-form-item prop="email">
-              <el-input 
-                v-model="registerForm.email" 
-                type="email" 
-                placeholder="请输入邮箱地址" 
-                clearable 
-              />
-            </el-form-item>
+                <div class="form-label">验证码</div>
+                <el-form-item prop="code">
+                  <div class="code-input-wrapper">
+                    <el-input v-model="registerPhoneForm.code" placeholder="请输入验证码"
+                      @keyup.enter="handleRegisterByCode" />
+                    <el-button :disabled="registerCountdown > 0" @click="sendRegisterCode('phone')">
+                      {{ registerCountdown > 0 ? `${registerCountdown}秒后重试` : '获取验证码' }}
+                    </el-button>
+                  </div>
+                </el-form-item>
 
-            <div class="form-label">设置密码</div>
-            <el-form-item prop="password">
-              <el-input 
-                v-model="registerForm.password" 
-                type="password" 
-                placeholder="请设置密码（至少6个字符）" 
-                show-password 
-              />
-            </el-form-item>
+                <el-form-item prop="agree" class="agreement-item agreement-item-phone">
+                  <el-checkbox v-model="registerPhoneForm.agree">
+                    <span class="agreement-text">
+                      <span>我已阅读并同意</span>
+                      <el-link type="primary" :underline="false">《用户协议》</el-link>
+                      <span>和</span>
+                      <el-link type="primary" :underline="false">《隐私政策》</el-link>
+                    </span>
+                  </el-checkbox>
+                </el-form-item>
 
-            <div class="form-label">确认密码</div>
-            <el-form-item prop="confirmPassword">
-              <el-input 
-                v-model="registerForm.confirmPassword" 
-                type="password" 
-                placeholder="请再次输入密码" 
-                show-password 
-                @keyup.enter="handleRegister" 
-              />
-            </el-form-item>
+                <el-button type="primary" :loading="registerLoading" class="submit-btn" @click="handleRegisterByCode">
+                  注册并登录
+                </el-button>
+              </el-form>
+            </el-tab-pane>
 
-            <el-form-item prop="agreeTerms">
-              <el-checkbox v-model="agreeTerms">
-                我已阅读并同意
-                <el-link type="primary" :underline="false">《用户协议》</el-link>
-                和
-                <el-link type="primary" :underline="false">《隐私政策》</el-link>
-              </el-checkbox>
-            </el-form-item>
+            <el-tab-pane label="邮箱注册" name="email">
+              <el-form ref="registerEmailFormRef" :model="registerEmailForm" :rules="registerEmailRules" size="large">
+                <div class="form-label">邮箱</div>
+                <el-form-item prop="email">
+                  <el-input v-model="registerEmailForm.email" placeholder="请输入邮箱地址" clearable />
+                </el-form-item>
 
-            <el-button 
-              type="primary" 
-              :loading="registerLoading" 
-              class="submit-btn" 
-              @click="handleRegister"
-            >
-              注册
-            </el-button>
-          </el-form>
+                <div class="form-label">验证码</div>
+                <el-form-item prop="code">
+                  <div class="code-input-wrapper">
+                    <el-input v-model="registerEmailForm.code" placeholder="请输入验证码"
+                      @keyup.enter="handleRegisterByCode" />
+                    <el-button :disabled="registerCountdown > 0" @click="sendRegisterCode('email')">
+                      {{ registerCountdown > 0 ? `${registerCountdown}秒后重试` : '获取验证码' }}
+                    </el-button>
+                  </div>
+                </el-form-item>
+
+                <el-form-item prop="agree" class="agreement-item">
+                  <el-checkbox v-model="registerEmailForm.agree">
+                    <span class="agreement-text">
+                      <span>我已阅读并同意</span>
+                      <el-link type="primary" :underline="false">《用户协议》</el-link>
+                      <span>和</span>
+                      <el-link type="primary" :underline="false">《隐私政策》</el-link>
+                    </span>
+                  </el-checkbox>
+                </el-form-item>
+
+                <el-button type="primary" :loading="registerLoading" class="submit-btn" @click="handleRegisterByCode">
+                  注册并登录
+                </el-button>
+              </el-form>
+            </el-tab-pane>
+          </el-tabs>
         </div>
+      </div>
     </div>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { User, Lock, Unlock, Message, CirclePlus, ChatLineRound, ChatDotRound } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import {
+  loginByEmailCode,
+  loginByPhoneCode,
+  sendEmailVerificationCode,
+  sendPhoneVerificationCode,
+  login as loginApi
+} from '@/api/user'
 
 defineOptions({
   name: 'AuthDialog'
@@ -171,317 +200,828 @@ const props = defineProps<{
   defaultTab?: 'login' | 'register'
 }>()
 
-const emit = defineEmits(['update:modelValue', 'loginSuccess', 'registerSuccess'])
+const emit = defineEmits(['update:modelValue', 'login-success', 'register-success'])
 
 const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
 
+const router = useRouter()
 const activeTab = ref<'login' | 'register'>(props.defaultTab || 'login')
-const isLogin = computed(() => activeTab.value === 'login')
 
-// 登录表单
-const loginFormRef = ref<FormInstance>()
-const loginForm = reactive({
+// 当前登录/注册方式
+const loginMethod = ref<'phone' | 'email' | 'password'>('phone')
+const registerMethod = ref<'phone' | 'email'>('phone')
+
+// 登录表单 - 手机
+const loginPhoneFormRef = ref<FormInstance>()
+const loginPhoneForm = reactive({
+  phone: '',
+  code: ''
+})
+
+const loginPhoneRules: FormRules = {
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' }
+  ],
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
+  ]
+}
+
+// 登录表单 - 邮箱
+const loginEmailFormRef = ref<FormInstance>()
+const loginEmailForm = reactive({
+  email: '',
+  code: ''
+})
+
+const loginEmailRules: FormRules = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: ['blur', 'change'] }
+  ],
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
+  ]
+}
+
+// 登录表单 - 账号密码
+const loginPasswordFormRef = ref<FormInstance>()
+const loginPasswordForm = reactive({
   username: '',
   password: ''
 })
 
-const loginRules = reactive<FormRules>({
+const loginPasswordRules: FormRules = {
   username: [
-    { required: true, message: '请输入用户名或邮箱', trigger: 'blur' },
+    { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 3, message: '用户名长度至少3个字符', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度至少6个字符', trigger: 'blur' }
   ]
-})
-
-const rememberMe = ref(false)
-const loginLoading = ref(false)
-
-// 注册表单
-const registerFormRef = ref<FormInstance>()
-const registerForm = reactive({
-  username: '',
-  email: '',
-  password: '',
-  confirmPassword: ''
-})
-
-const validatePassword = (rule: any, value: any, callback: any) => {
-  if (value === '') {
-    callback(new Error('请确认密码'))
-  } else if (value !== registerForm.password) {
-    callback(new Error('两次输入的密码不一致'))
-  } else {
-    callback()
-  }
 }
 
-const validateAgreeTerms = (rule: any, value: any, callback: any) => {
-  if (!agreeTerms.value) {
+// 注册表单 - 手机
+const registerPhoneFormRef = ref<FormInstance>()
+const registerPhoneForm = reactive({
+  phone: '',
+  code: '',
+  agree: false
+})
+
+const validatePhoneAgree = (rule: any, value: any, callback: any) => {
+  if (!registerPhoneForm.agree) {
     callback(new Error('请同意用户协议和隐私政策'))
   } else {
     callback()
   }
 }
 
-const registerRules = reactive<FormRules>({
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' }
+const registerPhoneRules: FormRules = {
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' }
   ],
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
+  ],
+  agree: [
+    { validator: validatePhoneAgree, trigger: 'change' }
+  ]
+}
+
+// 注册表单 - 邮箱
+const registerEmailFormRef = ref<FormInstance>()
+const registerEmailForm = reactive({
+  email: '',
+  code: '',
+  agree: false
+})
+
+const validateEmailAgree = (rule: any, value: any, callback: any) => {
+  if (!registerEmailForm.agree) {
+    callback(new Error('请同意用户协议和隐私政策'))
+  } else {
+    callback()
+  }
+}
+
+const registerEmailRules: FormRules = {
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '请输入有效的邮箱地址', trigger: ['blur', 'change'] }
   ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度至少6个字符', trigger: 'blur' }
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
   ],
-  confirmPassword: [
-    { required: true, validator: validatePassword, trigger: 'blur' }
-  ],
-  agreeTerms: [
-    { validator: validateAgreeTerms, trigger: 'change' }
+  agree: [
+    { validator: validateEmailAgree, trigger: 'change' }
   ]
-})
+}
 
-const agreeTerms = ref(false)
+// 倒计时
+const loginCountdown = ref(0)
+let loginTimer: number | null = null
+
+const registerCountdown = ref(0)
+let registerTimer: number | null = null
+
+const loginLoading = ref(false)
 const registerLoading = ref(false)
 
+const userStore = useUserStore()
+
+const setLoginState = (token: string, userInfo: any) => {
+  userStore.token = token
+  userStore.userInfo = userInfo
+  localStorage.setItem('token', token)
+  localStorage.setItem('userInfo', JSON.stringify(userInfo))
+}
+
+const startLoginCountdown = () => {
+  loginCountdown.value = 60
+  if (loginTimer) clearInterval(loginTimer)
+  loginTimer = window.setInterval(() => {
+    loginCountdown.value--
+    if (loginCountdown.value <= 0 && loginTimer) {
+      clearInterval(loginTimer)
+      loginTimer = null
+    }
+  }, 1000)
+}
+
+const startRegisterCountdown = () => {
+  registerCountdown.value = 60
+  if (registerTimer) clearInterval(registerTimer)
+  registerTimer = window.setInterval(() => {
+    registerCountdown.value--
+    if (registerCountdown.value <= 0 && registerTimer) {
+      clearInterval(registerTimer)
+      registerTimer = null
+    }
+  }, 1000)
+}
+
+// 发送登录验证码
+const sendLoginCode = async (type: 'phone' | 'email') => {
+  try {
+    if (type === 'phone') {
+      if (!loginPhoneForm.phone) {
+        ElMessage.warning('请先输入手机号')
+        return
+      }
+      const res = await sendPhoneVerificationCode(loginPhoneForm.phone, 'login')
+      if (res.code === 200) {
+        ElMessage.success('验证码已发送')
+        startLoginCountdown()
+      } else {
+        ElMessage.error(res.message || '发送验证码失败')
+      }
+    } else {
+      if (!loginEmailForm.email) {
+        ElMessage.warning('请先输入邮箱')
+        return
+      }
+      const res = await sendEmailVerificationCode(loginEmailForm.email, 'login')
+      if (res.code === 200) {
+        ElMessage.success('验证码已发送')
+        startLoginCountdown()
+      } else {
+        ElMessage.error(res.message || '发送验证码失败')
+      }
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || '发送验证码失败')
+  }
+}
+
+// 发送注册验证码（本质上也是登录验证码，后端会自动完成首次注册）
+const sendRegisterCode = async (type: 'phone' | 'email') => {
+  try {
+    if (type === 'phone') {
+      if (!registerPhoneForm.phone) {
+        ElMessage.warning('请先输入手机号')
+        return
+      }
+      const res = await sendPhoneVerificationCode(registerPhoneForm.phone, 'login')
+      if (res.code === 200) {
+        ElMessage.success('验证码已发送')
+        startRegisterCountdown()
+      } else {
+        ElMessage.error(res.message || '发送验证码失败')
+      }
+    } else {
+      if (!registerEmailForm.email) {
+        ElMessage.warning('请先输入邮箱')
+        return
+      }
+      const res = await sendEmailVerificationCode(registerEmailForm.email, 'login')
+      if (res.code === 200) {
+        ElMessage.success('验证码已发送')
+        startRegisterCountdown()
+      } else {
+        ElMessage.error(res.message || '发送验证码失败')
+      }
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || '发送验证码失败')
+  }
+}
+
+// 登录（验证码）
+const handleLoginByCode = async () => {
+  loginLoading.value = true
+  try {
+    if (loginMethod.value === 'phone') {
+      if (!loginPhoneFormRef.value) return
+      await loginPhoneFormRef.value.validate(async (valid) => {
+        if (!valid) {
+          ElMessage.error('请完整填写手机号和验证码')
+          return
+        }
+        const res = await loginByPhoneCode(loginPhoneForm.phone, loginPhoneForm.code)
+        if (res.code === 200) {
+          setLoginState(res.data.token, res.data.userInfo)
+          ElMessage.success({ message: '登录成功！', duration: 1500 })
+          setTimeout(() => {
+            dialogVisible.value = false
+            emit('login-success')
+          }, 300)
+        } else {
+          ElMessage.error(res.message || '登录失败')
+        }
+      })
+    } else {
+      if (!loginEmailFormRef.value) return
+      await loginEmailFormRef.value.validate(async (valid) => {
+        if (!valid) {
+          ElMessage.error('请完整填写邮箱和验证码')
+          return
+        }
+        const res = await loginByEmailCode(loginEmailForm.email, loginEmailForm.code)
+        if (res.code === 200) {
+          setLoginState(res.data.token, res.data.userInfo)
+          ElMessage.success({ message: '登录成功！', duration: 1500 })
+          setTimeout(() => {
+            dialogVisible.value = false
+            emit('login-success')
+          }, 300)
+        } else {
+          ElMessage.error(res.message || '登录失败')
+        }
+      })
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || '登录失败，请稍后重试')
+  } finally {
+    loginLoading.value = false
+  }
+}
+
+// 登录（账号密码）
+const handleLoginByPassword = async () => {
+  loginLoading.value = true
+  try {
+    if (!loginPasswordFormRef.value) return
+    await loginPasswordFormRef.value.validate(async (valid) => {
+      if (!valid) {
+        ElMessage.error('请完整填写用户名和密码')
+        return
+      }
+      const res = await loginApi({
+        username: loginPasswordForm.username,
+        password: loginPasswordForm.password
+      })
+      if (res.code === 200) {
+        setLoginState(res.data.token, res.data.user || res.data.userInfo)
+        ElMessage.success({ message: '登录成功！', duration: 1500 })
+        setTimeout(() => {
+          dialogVisible.value = false
+          emit('login-success')
+        }, 300)
+      } else {
+        ElMessage.error(res.message || '登录失败')
+      }
+    })
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || '登录失败，请稍后重试')
+  } finally {
+    loginLoading.value = false
+  }
+}
+
+// 跳转到重置密码页面
+const goToResetPassword = () => {
+  dialogVisible.value = false
+  router.push('/reset-password')
+}
+
+// 注册（验证码，首次登录自动注册）
+const handleRegisterByCode = async () => {
+  registerLoading.value = true
+  try {
+    if (registerMethod.value === 'phone') {
+      if (!registerPhoneFormRef.value) return
+      await registerPhoneFormRef.value.validate(async (valid) => {
+        if (!valid) {
+          ElMessage.error('请完整填写手机号和验证码，并勾选同意协议')
+          return
+        }
+        const res = await loginByPhoneCode(registerPhoneForm.phone, registerPhoneForm.code)
+        if (res.code === 200) {
+          setLoginState(res.data.token, res.data.userInfo)
+          ElMessage.success({ message: '注册并登录成功！', duration: 1800 })
+          emit('register-success')
+          setTimeout(() => {
+            dialogVisible.value = false
+          }, 300)
+        } else {
+          ElMessage.error(res.message || '注册失败')
+        }
+      })
+    } else {
+      if (!registerEmailFormRef.value) return
+      await registerEmailFormRef.value.validate(async (valid) => {
+        if (!valid) {
+          ElMessage.error('请完整填写邮箱和验证码，并勾选同意协议')
+          return
+        }
+        const res = await loginByEmailCode(registerEmailForm.email, registerEmailForm.code)
+        if (res.code === 200) {
+          setLoginState(res.data.token, res.data.userInfo)
+          ElMessage.success({ message: '注册并登录成功！', duration: 1800 })
+          emit('register-success')
+          setTimeout(() => {
+            dialogVisible.value = false
+          }, 300)
+        } else {
+          ElMessage.error(res.message || '注册失败')
+        }
+      })
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || '注册失败，请稍后重试')
+  } finally {
+    registerLoading.value = false
+  }
+}
+
 // 切换到注册
+const resetLoginForms = () => {
+  loginPhoneForm.phone = ''
+  loginPhoneForm.code = ''
+  loginEmailForm.email = ''
+  loginEmailForm.code = ''
+  loginPasswordForm.username = ''
+  loginPasswordForm.password = ''
+  loginCountdown.value = 0
+  if (loginTimer) {
+    clearInterval(loginTimer)
+    loginTimer = null
+  }
+}
+
+const resetRegisterForms = () => {
+  registerPhoneForm.phone = ''
+  registerPhoneForm.code = ''
+  registerPhoneForm.agree = false
+  registerEmailForm.email = ''
+  registerEmailForm.code = ''
+  registerEmailForm.agree = false
+  registerCountdown.value = 0
+  if (registerTimer) {
+    clearInterval(registerTimer)
+    registerTimer = null
+  }
+}
+
 const switchToRegister = () => {
   activeTab.value = 'register'
-  loginFormRef.value?.resetFields()
+  registerMethod.value = 'phone'
+  resetLoginForms()
 }
 
 // 切换到登录
 const switchToLogin = () => {
   activeTab.value = 'login'
-  registerFormRef.value?.resetFields()
-  agreeTerms.value = false
-}
-
-// 处理登录
-const handleLogin = async () => {
-  if (!loginFormRef.value) return
-
-  await loginFormRef.value.validate((valid) => {
-    if (valid) {
-      loginLoading.value = true
-
-      setTimeout(() => {
-        localStorage.setItem('user-token', 'mock-token-12345')
-
-        ElMessage.success({
-          message: '登录成功！',
-          duration: 2000
-        })
-
-        loginLoading.value = false
-        dialogVisible.value = false
-        emit('loginSuccess')
-
-        // 刷新页面以更新导航栏状态
-        window.location.reload()
-      }, 1000)
-    } else {
-      ElMessage.error('请填写完整的登录信息')
-    }
-  })
-}
-
-// 处理注册
-const handleRegister = async () => {
-  if (!registerFormRef.value) return
-
-  await registerFormRef.value.validate((valid) => {
-    if (valid) {
-      registerLoading.value = true
-
-      setTimeout(() => {
-        ElMessage.success({
-          message: '注册成功！请登录您的账户。',
-          duration: 2000
-        })
-
-        registerLoading.value = false
-        emit('registerSuccess')
-
-        // 切换到登录标签
-        activeTab.value = 'login'
-        // 清空注册表单
-        registerFormRef.value?.resetFields()
-        agreeTerms.value = false
-      }, 1000)
-    } else {
-      ElMessage.error('请填写完整的注册信息')
-    }
-  })
+  loginMethod.value = 'phone'
+  resetRegisterForms()
 }
 
 // 监听对话框关闭，重置表单
 watch(dialogVisible, (newVal) => {
   if (!newVal) {
-    loginFormRef.value?.resetFields()
-    registerFormRef.value?.resetFields()
-    agreeTerms.value = false
+    resetLoginForms()
+    resetRegisterForms()
     activeTab.value = props.defaultTab || 'login'
+    loginMethod.value = 'phone'
+    registerMethod.value = 'phone'
   }
+})
+
+watch(registerMethod, () => {
+  registerPhoneForm.agree = false
+  registerEmailForm.agree = false
 })
 </script>
 
 <style scoped>
-:deep(.el-dialog) {
-  border-radius: 16px;
+/* 背景模糊与遮罩 */
+:deep(.el-overlay) {
+  backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.25);
+  animation: overlayFadeIn 0.3s ease-out;
 }
 
-:deep(.el-dialog__header) {
+@keyframes overlayFadeIn {
+  from {
+    backdrop-filter: blur(0px);
+    background-color: rgba(0, 0, 0, 0);
+  }
+
+  to {
+    backdrop-filter: blur(8px);
+    background-color: rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* 对话框主体：仅做轻量美化，交给 Element Plus 负责居中 */
+:deep(.auth-dialog.el-dialog) {
+  max-width: 480px;
+  width: 100%;
+  border-radius: 32px;
+  background: #ffffff;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 0 1px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+:deep(.auth-dialog .el-dialog__header) {
   display: none;
 }
 
-:deep(.el-dialog__body) {
-  padding: 35px 40px;
+:deep(.auth-dialog .el-dialog__body) {
+  padding: 35px 45px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+  border-radius: 32px;
 }
 
+/* 内容容器 */
 .auth-dialog-content {
   padding: 0;
 }
 
+/* 头部 */
 .dialog-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
+  animation: headerFadeIn 0.5s ease-out 0.1s both;
 }
 
-.dialog-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0 0 10px 0;
-}
-
-.dialog-subtitle {
-  font-size: 14px;
-  color: #909399;
-  margin: 0;
-}
-
-.form-container {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
+@keyframes headerFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-15px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
+.dialog-title {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 50%, #f97316 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.5px;
+}
+
+.dialog-subtitle {
+  font-size: 14px;
+  color: #7c8fa3;
+  margin: 0;
+  font-weight: 500;
+}
+
+.dialog-subtitle :deep(.el-link) {
+  transition: all 0.3s ease;
+}
+
+.dialog-subtitle :deep(.el-link:hover) {
+  color: #ff8c42 !important;
+  text-decoration: underline;
+}
+
+/* 表单容器 */
+.form-container {
+  animation: fadeIn 0.4s ease-in-out 0.15s both;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.form-inner {
+  width: 320px;
+  max-width: 100%;
+  flex: 0 0 auto;
+}
+
+:deep(.method-tabs) {
+  width: 100%;
+  background: #f5f7fb;
+  border-radius: 18px;
+  padding: 10px 10px 16px;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 6px 18px rgba(99, 112, 144, 0.08);
+}
+
+:deep(.method-tabs .el-tabs__item) {
+  padding: 0 10px !important;
+}
+
+:deep(.method-tabs .el-tabs__content) {
+  width: 100%;
+}
+
+:deep(.el-form) {
+  width: 100%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 表单标签 */
 .form-label {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 3px;
   font-size: 14px;
-  color: #606266;
-  font-weight: 500;
+  color: #4b5563;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .forgot-link {
   font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.forgot-link:hover {
+  color: #ff8c42 !important;
+  text-decoration: underline;
+}
+
+/* Tab 样式 */
+:deep(.el-tabs) {
+  --el-tabs-header-height: 44px;
+  width: 100%;
+}
+
+:deep(.el-tabs__header) {
+  margin-bottom: 8px;
+  border-bottom: none;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px;
+  transition: all 0.3s ease;
+  width: 100%;
+  overflow: hidden;
+}
+
+:deep(.el-tabs__nav) {
+  width: 100%;
+  display: flex;
+  gap: 0;
+}
+
+:deep(.el-tabs__nav-wrap) {
+  overflow: visible !important;
+}
+
+:deep(.el-tabs__content) {
+  padding-top: 12px;
+}
+
+:deep(.el-tab-pane) {
+  padding-top: 8px;
+}
+
+:deep(.el-tabs__item) {
+  flex: 1;
+  height: 40px;
+  line-height: 40px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #7c8fa3;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin: 0;
+  border: none;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+:deep(.el-tabs__item:hover) {
+  color: #ff8c42;
+  background: rgba(255, 140, 66, 0.08);
+}
+
+:deep(.el-tabs__item.is-active) {
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  box-shadow: 0 8px 16px rgba(255, 140, 66, 0.3);
+}
+
+:deep(.el-tabs__active-bar) {
+  display: none;
+}
+
+/* 输入框样式 */
+:deep(.el-input) {
+  max-width: 100%;
 }
 
 :deep(.el-input__wrapper) {
-  border-radius: 8px;
-  padding: 12px 15px;
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 2px solid #e8eaef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  height: 40px;
+  width: 100%;
 }
 
 :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #c0c4cc inset;
+  border-color: #d4d8e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #409eff inset;
+  border-color: #ff8c42;
+  background: #fffaf5;
+  box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.15), 0 4px 16px rgba(255, 140, 66, 0.2);
+  transform: translateY(-2px);
 }
 
+:deep(.el-input__inner) {
+  font-size: 14px;
+  color: #2c3e50;
+  line-height: 20px;
+}
+
+:deep(.el-input__inner::placeholder) {
+  color: #a8b2c1;
+  font-weight: 500;
+}
+
+/* 代码输入框包装器 */
+.code-input-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+}
+
+.code-input-wrapper :deep(.el-input) {
+  flex: 1;
+  min-width: 0;
+}
+
+.code-input-wrapper :deep(.el-button) {
+  flex-shrink: 0;
+  min-width: 100px;
+  height: 40px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 12px;
+  border: 2px solid #e8eaef;
+  background: #ffffff;
+  color: #ff8c42;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  padding: 0 12px;
+}
+
+.code-input-wrapper :deep(.el-button:hover:not(:disabled)) {
+  border-color: #ff8c42;
+  background: rgba(255, 140, 66, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.2);
+}
+
+.code-input-wrapper :deep(.el-button:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 提交按钮 */
 .submit-btn {
   width: 100%;
-  height: 48px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 8px;
-  margin-top: 10px;
-  background: #409eff;
-  border-color: #409eff;
-}
-
-.submit-btn:hover {
-  background: #66b1ff;
-  border-color: #66b1ff;
-}
-
-.divider-text {
-  margin: 20px 0;
-  color: #c0c4cc;
-  font-size: 13px;
-}
-
-.social-login {
-  display: flex;
-  gap: 12px;
-  margin-top: 15px;
-}
-
-.social-btn {
-  flex: 1;
   height: 44px;
-  border-radius: 8px;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.social-btn .icon {
-  flex-shrink: 0;
-}
-
-.wechat-btn {
-  background: #07c160;
-  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  margin-top: 15px;
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 50%, #f97316 100%);
   border: none;
+  color: #ffffff;
+  box-shadow: 0 12px 32px rgba(255, 140, 66, 0.35);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.wechat-btn:hover {
-  background: #06ad56;
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
 }
 
-.qq-btn {
-  background: #12b7f5;
-  color: white;
-  border: none;
+.submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff7a1f 0%, #ff5a1f 50%, #f97316 100%);
+  box-shadow: 0 16px 40px rgba(255, 120, 54, 0.4);
+  transform: translateY(-2px);
 }
 
-.qq-btn:hover {
-  background: #0ea8e0;
+.submit-btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
-:deep(.el-form-item) {
-  margin-bottom: 20px;
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 8px 24px rgba(255, 120, 54, 0.3);
 }
 
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 复选框样式 */
 :deep(.el-checkbox) {
   font-size: 14px;
+  --el-checkbox-input-border-color: #e8eaef;
+  --el-checkbox-input-border-color-hover: #ff8c42;
+  --el-checkbox-checked-bg-color: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  --el-checkbox-checked-input-border-color: #ff8c42;
+}
+
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  border-color: #ff8c42;
+  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+}
+
+:deep(.el-checkbox__inner) {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-checkbox__inner:hover) {
+  border-color: #ff8c42;
 }
 
 :deep(.el-checkbox__label) {
@@ -489,20 +1029,106 @@ watch(dialogVisible, (newVal) => {
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
-  line-height: 1.5;
+  white-space: normal;
+  line-height: 1.4;
+  color: #4b5563;
 }
 
+.auth-dialog-content :deep(.el-checkbox .el-link) {
+  color: #ff8c42 !important;
+}
+
+.agreement-item :deep(.el-form-item__content) {
+  display: flex;
+  align-items: center;
+  overflow: visible;
+}
+
+.agreement-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.agreement-item :deep(.el-checkbox__input.is-checked + .el-checkbox__label .agreement-text) {
+  color: #ff6b35;
+  text-shadow: 0 0 6px rgba(255, 107, 53, 0.3);
+}
+
+.auth-dialog-content ::selection {
+  background: rgba(255, 140, 66, 0.18);
+  color: #d65b16;
+}
+
+/* 表单项 */
+:deep(.el-form-item) {
+  margin-bottom: 30px !important;
+  width: 100%;
+}
+
+:deep(.el-form-item__content) {
+  width: 100%;
+}
+
+:deep(.el-form-item__error) {
+  font-size: 13px !important;
+  color: #f56c6c !important;
+  margin-top: 4px !important;
+  margin-bottom: 8px !important;
+  animation: errorShake 0.3s ease;
+  display: block !important;
+  line-height: 1.4 !important;
+  padding: 0 !important;
+}
+
+:deep(.el-form-item.is-error) {
+  margin-bottom: 30px !important;
+}
+
+@keyframes errorShake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-4px);
+  }
+
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* 响应式 */
 @media (max-width: 768px) {
   :deep(.el-dialog) {
-    width: 90% !important;
+    width: 85% !important;
+    max-width: 400px !important;
+    border-radius: 20px !important;
   }
 
   :deep(.el-dialog__body) {
-    padding: 25px 20px;
+    padding: 30px 25px;
   }
 
-  .social-login {
-    flex-direction: column;
+  .dialog-title {
+    font-size: 22px;
+  }
+
+  .submit-btn {
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .code-input-wrapper :deep(.el-button) {
+    min-width: 90px;
+    height: 40px;
+    font-size: 12px;
   }
 }
 </style>

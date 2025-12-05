@@ -1,87 +1,68 @@
 <template>
   <Teleport to="body">
     <div class="ai-chat-widget" :class="{ expanded: isExpanded }">
-    <!-- 聊天窗口 -->
-    <div v-if="isExpanded" class="chat-container">
-      <!-- 头部 -->
-      <div class="chat-header">
-        <div class="header-content">
-          <el-icon class="header-icon">
-            <ChatDotRound />
-          </el-icon>
-          <span class="header-title">AI客服助手</span>
-        </div>
-        <el-button 
-          link 
-          :icon="Close" 
-          @click="toggleChat"
-          class="close-btn"
-        />
-      </div>
-
-      <!-- 消息列表 -->
-      <div class="messages-container" ref="messagesContainer">
-        <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
-          <div class="message-avatar" v-if="msg.role === 'assistant'">
-            <el-icon>
+      <!-- 聊天窗口 -->
+      <div v-if="isExpanded" class="chat-container">
+        <!-- 头部 -->
+        <div class="chat-header">
+          <div class="header-content">
+            <el-icon class="header-icon">
               <ChatDotRound />
             </el-icon>
+            <span class="header-title">AI客服助手</span>
           </div>
-          <div class="message-content">
-            <div class="message-text" v-html="formatMessage(msg.content)"></div>
-            <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
-            <!-- 流式输出时显示光标 -->
-            <span v-if="isLoading && msg.role === 'assistant' && index === messages.length - 1" class="typing-cursor">▌</span>
+          <el-button link :icon="Close" @click="toggleChat" class="close-btn" />
+        </div>
+
+        <!-- 消息列表 -->
+        <div class="messages-container" ref="messagesContainer">
+          <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
+            <div class="message-avatar" v-if="msg.role === 'assistant'">
+              <el-icon>
+                <ChatDotRound />
+              </el-icon>
+            </div>
+            <div class="message-content">
+              <div class="message-text" v-html="formatMessage(msg.content)"></div>
+              <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
+              <!-- 流式输出时显示光标 -->
+              <span v-if="isLoading && msg.role === 'assistant' && index === messages.length - 1"
+                class="typing-cursor">▌</span>
+            </div>
+            <div class="message-avatar user" v-if="msg.role === 'user'">
+              <el-icon>
+                <User />
+              </el-icon>
+            </div>
           </div>
-          <div class="message-avatar user" v-if="msg.role === 'user'">
-            <el-icon>
-              <User />
-            </el-icon>
+        </div>
+
+        <!-- 输入框 -->
+        <div class="chat-input-area">
+          <el-input v-model="userInput" type="textarea" :rows="3" placeholder="输入您的问题..."
+            @keyup.enter.ctrl="sendMessage" class="chat-input" :disabled="isLoading" />
+          <div class="input-actions">
+            <span class="hint">按 Ctrl+Enter 发送</span>
+            <el-button type="primary" @click="sendMessage" :loading="isLoading"
+              :disabled="!userInput.trim() || isLoading">
+              发送
+            </el-button>
           </div>
         </div>
       </div>
 
-      <!-- 输入框 -->
-      <div class="chat-input-area">
-        <el-input
-          v-model="userInput"
-          type="textarea"
-          :rows="3"
-          placeholder="输入您的问题..."
-          @keyup.enter.ctrl="sendMessage"
-          class="chat-input"
-          :disabled="isLoading"
-        />
-        <div class="input-actions">
-          <span class="hint">按 Ctrl+Enter 发送</span>
-          <el-button 
-            type="primary" 
-            @click="sendMessage"
-            :loading="isLoading"
-            :disabled="!userInput.trim() || isLoading"
-          >
-            发送
-          </el-button>
+      <!-- 浮动按钮 -->
+      <div v-else class="chat-button">
+        <button @click="toggleChat" class="floating-btn" title="AI客服助手">
+          <el-icon>
+            <ChatDotRound />
+          </el-icon>
+        </button>
+        <div class="unread-badge" v-if="unreadCount > 0">
+          {{ unreadCount }}
         </div>
       </div>
     </div>
-
-    <!-- 浮动按钮 -->
-    <div v-else class="chat-button">
-      <button 
-        @click="toggleChat"
-        class="floating-btn"
-        title="AI客服助手"
-      >
-        <el-icon>
-          <ChatDotRound />
-        </el-icon>
-      </button>
-      <div class="unread-badge" v-if="unreadCount > 0">
-        {{ unreadCount }}
-      </div>
-    </div>
-  </div>
   </Teleport>
 </template>
 
@@ -92,6 +73,7 @@ import { ChatDotRound, Close, User } from '@element-plus/icons-vue'
 import { chatWithAIMemoryStream, getWelcomeMessage, type ChatMessage } from '@/api/ai'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
+import { openAuthDialog } from '@/utils/authHelper'
 
 const isExpanded = ref(false)
 const messages = ref<ChatMessage[]>([])
@@ -138,17 +120,14 @@ const sendMessage = async () => {
     ElMessage({
       message: '当前未登录，请先登录',
       type: 'warning',
-      duration: 3000,
-      onClose: () => {
-        // 用户关闭提示后，跳转到登录页
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
-      }
+      duration: 3000
     })
+    openAuthDialog('login')
     return
   }
 
   const content = userInput.value.trim()
-  
+
   // 添加用户消息
   messages.value.push({
     role: 'user',
@@ -176,7 +155,7 @@ const sendMessage = async () => {
     console.log('📤 发送消息:', content)
     console.log('📋 当前会话ID:', sessionId.value)
     let fullContent = ''
-    
+
     const newSessionId = await chatWithAIMemoryStream(content, sessionId.value, (chunk: string) => {
       fullContent += chunk
       // 更新AI消息内容
@@ -186,7 +165,7 @@ const sendMessage = async () => {
       // 滚动到底部
       scrollToBottom()
     })
-    
+
     // 更新会话ID（后端可能创建了新会话）
     if (newSessionId && newSessionId !== sessionId.value) {
       console.log('✅ 更新会话ID:', sessionId.value, '->', newSessionId)
@@ -200,7 +179,7 @@ const sendMessage = async () => {
     console.log('✅ 流式对话完成:', fullContent)
     console.log('📋 会话ID:', sessionId.value)
     console.log('📝 完整内容长度:', fullContent.length)
-    
+
     // 流完成后，保存AI回复到数据库
     // 注意：用户消息已在后端 chatWithMemoryStream 中保存，这里只需保存AI回复
     if (sessionId.value && fullContent.trim()) {
@@ -213,7 +192,7 @@ const sendMessage = async () => {
         if (token) {
           headers['Authorization'] = `Bearer ${token}`
         }
-        
+
         const response = await fetch('/api/ai/service/save-message', {
           method: 'POST',
           headers,
@@ -224,7 +203,7 @@ const sendMessage = async () => {
             content: fullContent
           })
         })
-        
+
         const result = await response.json()
         if (result.code === 200) {
           console.log('💾 AI回复已保存到 Cassandra')
@@ -239,41 +218,33 @@ const sendMessage = async () => {
     }
   } catch (error: any) {
     console.error('❌ AI服务错误:', error)
-    
+
     // 移除不完整的AI消息
     if (messages.value[messages.value.length - 1]?.role === 'assistant') {
       messages.value.pop()
     }
-    
+
     // 处理登录过期错误
     if (error.message?.includes('登录信息已过期')) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
       ElMessage({
         message: '当前登录信息已过期，请重新登录',
         type: 'warning',
-        duration: 3000,
-        onClose: () => {
-          // 清除本地存储
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          // 跳转到登录页
-          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
-        }
+        duration: 3000
       })
+      openAuthDialog('login')
     }
     // 处理未登录错误
     else if (error.message?.includes('未登录')) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
       ElMessage({
         message: '当前未登录，请先登录',
         type: 'warning',
-        duration: 3000,
-        onClose: () => {
-          // 清除本地存储
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          // 跳转到登录页
-          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
-        }
+        duration: 3000
       })
+      openAuthDialog('login')
     }
     // 处理限流错误
     else if (error.message?.includes('429') || error.message?.includes('过于频繁')) {
@@ -298,15 +269,15 @@ const scrollToBottom = () => {
 // 格式化消息（支持换行和基本格式）
 const formatMessage = (content: string): string => {
   let result = content
-  
+
   // 先处理现有的换行符
   result = result.replace(/\n/g, '<br/>')
-  
+
   // 处理特殊符号和格式
   result = result.replace(/【(.*?)】/g, '<strong style="color: #ff8c42;">【$1】</strong>')
   result = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
   result = result.replace(/✓/g, '<span style="color: #42b983;">✓</span>')
-  
+
   return result
 }
 
@@ -332,11 +303,11 @@ const saveSession = () => {
 // 从 localStorage 恢复会话
 const restoreSession = async () => {
   const savedSessionId = localStorage.getItem(SESSION_ID_KEY)
-  
+
   if (savedSessionId) {
     sessionId.value = savedSessionId
     console.log('✅ 恢复会话ID:', sessionId.value)
-    
+
     // 从后端获取完整的聊天记录
     try {
       const token = localStorage.getItem('token')
@@ -346,13 +317,13 @@ const restoreSession = async () => {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`
       }
-      
+
       const response = await fetch(`/api/ai/service/session/${savedSessionId}/messages`, {
         method: 'GET',
         headers,
         credentials: 'include'
       })
-      
+
       const result = await response.json()
       console.log('📥 后端返回的原始数据:', result.data)
       if (result.code === 200 && result.data) {
@@ -369,7 +340,7 @@ const restoreSession = async () => {
               timestamp = msg.timestamp > 10000000000 ? msg.timestamp : msg.timestamp * 1000
             }
           }
-          
+
           // 处理内容：后端可能返回了双重转义的JSON字符串
           let content = msg.content
           if (typeof content === 'string' && content.startsWith('"') && content.endsWith('"')) {
@@ -381,7 +352,7 @@ const restoreSession = async () => {
               console.warn('⚠️ 内容解析失败，使用原始内容')
             }
           }
-          
+
           return {
             role: msg.role,
             content,
@@ -389,13 +360,13 @@ const restoreSession = async () => {
           }
         })
         console.log('✅ 从后端恢复聊天记录:', messages.value.length, '条消息')
-        
+
         // 同时保存到 localStorage
         localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages.value))
       }
     } catch (e) {
       console.error('❌ 从后端恢复聊天记录失败:', e)
-      
+
       // 降级方案：从 localStorage 恢复
       const savedMessages = localStorage.getItem(MESSAGES_KEY)
       if (savedMessages) {
@@ -413,13 +384,13 @@ const restoreSession = async () => {
 // 清空会话（登出时调用，真正删除后端数据）
 const clearSession = async () => {
   const currentSessionId = sessionId.value
-  
+
   // 清空前端数据
   sessionId.value = ''
   messages.value = []
   localStorage.removeItem(SESSION_ID_KEY)
   localStorage.removeItem(MESSAGES_KEY)
-  
+
   // 从后端删除会话及其所有消息
   if (currentSessionId) {
     try {
@@ -430,13 +401,13 @@ const clearSession = async () => {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`
       }
-      
+
       const response = await fetch(`/api/ai/service/session/${currentSessionId}`, {
         method: 'DELETE',
         headers,
         credentials: 'include'
       })
-      
+
       const result = await response.json()
       if (result.code === 200) {
         console.log('🗑️ 会话已从后端删除')
@@ -447,7 +418,7 @@ const clearSession = async () => {
       console.error('❌ 删除后端会话失败:', e)
     }
   }
-  
+
   console.log('🗑️ 会话已清空')
 }
 
@@ -464,7 +435,7 @@ onMounted(async () => {
   if (isLoggedIn.value) {
     await restoreSession()
   }
-  
+
   // 如果没有消息，添加欢迎消息
   if (messages.value.length === 0) {
     messages.value.push({
@@ -473,7 +444,7 @@ onMounted(async () => {
       timestamp: Date.now()
     })
   }
-  
+
   // 监听来自首页的打开事件
   window.addEventListener('openAIChat', () => {
     isExpanded.value = true
@@ -481,7 +452,7 @@ onMounted(async () => {
       scrollToBottom()
     })
   })
-  
+
   // 初始化时不自动打开
 })
 </script>
@@ -522,6 +493,7 @@ onMounted(async () => {
 }
 
 @keyframes float {
+
   0%,
   100% {
     transform: translateY(0);
@@ -572,6 +544,7 @@ onMounted(async () => {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -651,6 +624,7 @@ onMounted(async () => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -728,10 +702,14 @@ onMounted(async () => {
 }
 
 @keyframes blink {
-  0%, 49% {
+
+  0%,
+  49% {
     opacity: 1;
   }
-  50%, 100% {
+
+  50%,
+  100% {
     opacity: 0;
   }
 }

@@ -6,6 +6,7 @@ import FrontLayout from '@/layouts/FrontLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { startTokenCheck, stopTokenCheck } from '@/utils/tokenManager'
 import { startTokenRefresh, stopTokenRefresh } from '@/utils/tokenRefreshManager'
+import { openAuthDialog } from '@/utils/authHelper'
 
 // 前台路由
 const frontRoutes: RouteRecordRaw[] = [
@@ -68,12 +69,6 @@ const frontRoutes: RouteRecordRaw[] = [
         meta: { title: 'AI客服' }
       },
       {
-        path: 'housekeeper-chat',
-        name: 'housekeeper-chat',
-        component: () => import('@/views/chat/HousekeeperChatView.vue'),
-        meta: { title: '人工客服', requireAuth: true }
-      },
-      {
         path: 'guides',
         name: 'guides',
         component: () => import('@/views/content/GuideListView.vue'),
@@ -96,6 +91,12 @@ const frontRoutes: RouteRecordRaw[] = [
         name: 'story-detail',
         component: () => import('@/views/content/StoryDetailView.vue'),
         meta: { title: '故事详情' }
+      },
+      {
+        path: 'reset-password',
+        name: 'reset-password',
+        component: () => import('@/views/auth/ResetPasswordView.vue'),
+        meta: { title: '重置密码' }
       }
     ]
   }
@@ -217,30 +218,6 @@ const adminRoutes: RouteRecordRaw[] = [
 // 独立页面路由
 const standaloneRoutes: RouteRecordRaw[] = [
   {
-    path: '/login',
-    name: 'login',
-    component: () => import('@/views/auth/LoginView.vue'),
-    meta: { title: '登录' }
-  },
-  {
-    path: '/oauth/wechat/callback',
-    name: 'oauth-wechat-callback',
-    component: () => import('@/views/auth/OAuthCallbackView.vue'),
-    meta: { title: '微信登录' }
-  },
-  {
-    path: '/oauth/qq/callback',
-    name: 'oauth-qq-callback',
-    component: () => import('@/views/auth/OAuthCallbackView.vue'),
-    meta: { title: 'QQ登录' }
-  },
-  {
-    path: '/register',
-    name: 'register',
-    component: () => import('@/views/auth/RegisterView.vue'),
-    meta: { title: '注册' }
-  },
-  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('@/views/NotFoundView.vue'),
@@ -254,9 +231,8 @@ const router = createRouter({
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition
-    } else {
-      return { top: 0 }
     }
+    return { top: 0 }
   }
 })
 
@@ -264,19 +240,22 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
 
-  // 设置页面标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - i宠园`
   }
 
-  // 需要登录的页面
   if (to.meta.requireAuth && !userStore.isLoggedIn) {
     ElMessage.warning('请先登录')
-    next({ name: 'login', query: { redirect: to.fullPath } })
+    openAuthDialog('login')
+
+    if (!from.name) {
+      next({ name: 'home', query: { showAuth: 'login', redirect: to.fullPath } })
+    } else {
+      next(false)
+    }
     return
   }
 
-  // 需要管理员权限的页面
   if (to.meta.requireAdmin && !userStore.isManager) {
     ElMessage.error('您没有权限访问该页面')
     next({ name: 'home' })
@@ -286,16 +265,13 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
-// 路由完成后的钩子
-router.afterEach((to, from) => {
+router.afterEach(() => {
   const userStore = useUserStore()
 
-  // 如果用户已登录，启动Token检查和续约
   if (userStore.isLoggedIn) {
     startTokenCheck()
     startTokenRefresh()
   } else {
-    // 如果用户未登录，停止Token检查和续约
     stopTokenCheck()
     stopTokenRefresh()
   }

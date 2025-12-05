@@ -134,22 +134,26 @@
         <el-footer class="admin-footer">
           <div>Copyright © 2025 i宠园 - 宠物领养管理系统</div>
         </el-footer>
+        
+        <AdminAuthDialog v-model="adminAuthVisible" @login-success="handleAdminLoginSuccess" />
       </el-container>
     </el-container>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, watch, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import AdminAuthDialog from '@/components/auth/AdminAuthDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
+const adminAuthVisible = ref(false)
 
 const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '200px'))
 const activeMenu = computed(() => route.path)
@@ -186,11 +190,29 @@ const userAvatar = computed(() => {
   return avatar ? processImageUrl(avatar) : ''
 })
 
+const handleGlobalAuthDialog = () => {
+  adminAuthVisible.value = true
+}
+
+function handleAdminLoginSuccess() {
+  userStore.getUserInfo().catch(() => {})
+}
+
 onMounted(async () => {
   try {
     await userStore.getUserInfo()
   } catch (error) {
     console.warn('获取用户信息失败', error)
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('openAuthDialog', handleGlobalAuthDialog as EventListener)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('openAuthDialog', handleGlobalAuthDialog as EventListener)
   }
 })
 
@@ -218,7 +240,7 @@ function handleLogout() {
   })
     .then(() => {
       userStore.logout()
-      router.push('/login')
+      router.push('/')
       ElMessage.success('退出成功')
     })
     .catch(() => {})

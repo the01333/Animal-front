@@ -1,34 +1,28 @@
 import { ElMessage } from 'element-plus'
 
-/**
- * 认证错误处理工具
- * 用于处理 401 未授权错误
- */
+export function openAuthDialog(tab: 'login' | 'register' = 'login') {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent('openAuthDialog', {
+      detail: { tab }
+    })
+  )
+}
 
-/**
- * 处理认证错误
- * @param status HTTP 状态码
- * @param message 错误信息
- */
 export function handleAuthError(status: number, message?: string) {
   if (status === 401) {
-    // 清除本地存储
     localStorage.removeItem('token')
     localStorage.removeItem('user')
 
-    // 判断是过期还是未登录
     const isExpired = message?.includes('过期') || message?.includes('已过期')
     const msg = isExpired ? '当前登录信息已过期，请重新登录' : '当前未登录，请先登录'
 
-    // 显示 Toast 提示
+    openAuthDialog('login')
+
     ElMessage({
       message: msg,
       type: 'warning',
-      duration: 3000,
-      onClose: () => {
-        // 用户关闭提示后，跳转到登录页
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
-      }
+      duration: 3000
     })
 
     return true
@@ -62,5 +56,5 @@ export function clearAuth() {
  * 跳转到登录页
  */
 export function redirectToLogin() {
-  window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+  openAuthDialog('login')
 }
