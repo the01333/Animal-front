@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { triggerRefreshOnOperation } from './tokenRefreshManager'
+import { handleGlobalTokenExpired } from './tokenExpiredHandler'
 
 // NProgress 配置
 NProgress.configure({ showSpinner: false })
@@ -99,23 +100,7 @@ service.interceptors.response.use(
  * 处理Token过期
  */
 function handleTokenExpired(message?: string) {
-  // 清除本地存储
-  localStorage.removeItem('token')
-  localStorage.removeItem('userInfo')
-
-  // 显示提示信息
-  const msg = message || '登录信息已过期，请重新登录'
-  ElMessage({
-    message: msg,
-    type: 'warning',
-    duration: 3000,
-    onClose: () => {
-      // 获取当前页面路径
-      const currentPath = window.location.pathname + window.location.hash
-      // 跳转到登录页，并保存当前路径用于登录后返回
-      window.location.href = `/#/login?redirect=${encodeURIComponent(currentPath)}`
-    }
-  })
+  handleGlobalTokenExpired(message)
 }
 
 export default service

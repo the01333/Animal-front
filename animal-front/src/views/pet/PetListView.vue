@@ -138,6 +138,7 @@ import { Search, RefreshLeft, Male, Female, Calendar, ScaleToOriginal, Star, Vie
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
+import { openAuthDialog } from '@/utils/authHelper'
 import { getPetList } from '@/api/pet'
 import { getAllDictData } from '@/api/dict'
 import type { Pet, PetQuery } from '@/types'
@@ -250,7 +251,7 @@ function goToDetail(id: number) {
 function applyAdoption(petId: number) {
   if (!isLoggedIn.value) {
     ElMessage.warning('请先登录后再申请领养')
-    router.push('/login')
+    openAuthDialog('login')
     return
   }
   router.push(`/apply/${petId}`)

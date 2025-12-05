@@ -83,6 +83,30 @@ export function uploadArticleCover(formData: FormData): Promise<ApiResponse<stri
   })
 }
 
+export function getUserLikedArticles(params: {
+  current: number
+  size: number
+  category?: 'GUIDE' | 'STORY'
+}): Promise<ApiResponse<PageResponse<Article>>> {
+  return request({
+    url: '/content/like/my',
+    method: 'get',
+    params
+  })
+}
+
+export function getUserFavoritedArticles(params: {
+  current: number
+  size: number
+  category?: 'GUIDE' | 'STORY'
+}): Promise<ApiResponse<PageResponse<Article>>> {
+  return request({
+    url: '/content/favorite/my',
+    method: 'get',
+    params
+  })
+}
+
 /**
  * 获取指南分类列表
  */

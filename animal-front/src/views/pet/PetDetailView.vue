@@ -116,10 +116,6 @@
                 {{ liked ? '已点赞' : '点赞' }}
               </el-button>
 
-              <el-button type="info" size="large" :icon="Service" @click="contactHousekeeper">
-                联系管家
-              </el-button>
-
               <el-button :icon="Share" size="large" plain>
                 分享
               </el-button>
@@ -226,7 +222,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
-import { Star, CirclePlus, Document, Service, Share, ArrowLeft, Close, Loading, Grid, Clock, User, MagicStick, Warning, Picture, QuestionFilled } from '@element-plus/icons-vue'
+import { openAuthDialog } from '@/utils/authHelper'
+import { Star, CirclePlus, Document, Share, ArrowLeft, Close, Loading, Grid, Clock, User, MagicStick, Warning, Picture, QuestionFilled } from '@element-plus/icons-vue'
 import { getPetDetail, getRandomPetImages } from '@/api/pet'
 import { addPetFavorite, removePetFavorite, isPetFavorited, getPetFavoriteCount } from '@/api/favorite'
 import { likePet, unlikePet, isPetLiked, getPetLikeCount } from '@/api/like'
@@ -337,7 +334,7 @@ const healthTagType = computed(() => {
 const applyForAdoption = () => {
   if (!isLoggedIn.value) {
     ElMessage.warning('请先登录后再申请领养')
-    router.push('/login')
+    openAuthDialog('login')
     return
   }
   if (pet.value) {
@@ -347,10 +344,6 @@ const applyForAdoption = () => {
 
 const checkApplication = () => {
   router.push('/applications')
-}
-
-const contactHousekeeper = () => {
-  router.push('/housekeeper-chat')
 }
 
 const favored = ref(false)
@@ -490,7 +483,8 @@ const fetchPetDetail = async () => {
 
 const toggleFavorite = async () => {
   if (!isLoggedIn.value) {
-    router.push('/login')
+    ElMessage.warning('请先登录后再进行收藏操作')
+    openAuthDialog('login')
     return
   }
   if (!pet.value) return
@@ -522,7 +516,8 @@ const toggleFavorite = async () => {
 
 const toggleLike = async () => {
   if (!isLoggedIn.value) {
-    router.push('/login')
+    ElMessage.warning('请先登录后再进行点赞操作')
+    openAuthDialog('login')
     return
   }
   if (!pet.value) return
