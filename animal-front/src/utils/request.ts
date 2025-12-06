@@ -49,8 +49,10 @@ service.interceptors.response.use(
     const { code, message, data } = response.data
     console.log('🔍 响应拦截器 - 原始响应:', response.data)
 
-    // 根据业务状态码处理
+    // 根据业务状态码统一处理
     if (code === 200 || code === 0) {
+      // 统一返回整个 Result 对象（ApiResponse<T>）
+      // 这样现有代码中的 res.code / res.data 都可以正常工作
       console.log('✅ 响应成功，返回数据:', response.data)
       return response.data
     } else if (code === 401) {

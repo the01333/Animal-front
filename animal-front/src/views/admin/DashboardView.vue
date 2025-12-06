@@ -161,17 +161,26 @@ let trendChart: EChartsType | null = null
 async function fetchStatistics() {
   try {
     const res = await getStatistics()
-    Object.assign(stats, res.data)
+    if (res.data) {
+      Object.assign(stats, {
+        totalPets: res.data.totalPets || 0,
+        availablePets: res.data.availablePets || 0,
+        adoptedPets: res.data.adoptedPets || 0,
+        pendingApplications: res.data.pendingApplications || 0,
+        totalUsers: res.data.totalUsers || 0,
+        todayVisits: 0
+      })
+    }
   } catch (error) {
     console.error('获取统计数据失败:', error)
     // 使用模拟数据
     Object.assign(stats, {
-      totalPets: 128,
-      availablePets: 56,
-      adoptedPets: 72,
-      pendingApplications: 15,
-      totalUsers: 256,
-      todayVisits: 89
+      totalPets: 0,
+      availablePets: 0,
+      adoptedPets: 0,
+      pendingApplications: 0,
+      totalUsers: 0,
+      todayVisits: 0
     })
   }
 }
@@ -184,7 +193,8 @@ async function initCategoryChart() {
 
   try {
     const res = await getPetCategoryStats()
-    const data = res.data.map((item: any) => ({
+    // 这里 res 是 ApiResponse，真实数据在 res.data 中
+    const data = (res.data || []).map((item: any) => ({
       value: item.count,
       name: getCategoryName(item.category)
     }))
@@ -245,7 +255,8 @@ async function initStatusChart() {
 
   try {
     const res = await getApplicationStatusStats()
-    const data = res.data.map((item: any) => ({
+    // 这里 res 是 ApiResponse，真实数据在 res.data 中
+    const data = (res.data || []).map((item: any) => ({
       value: item.count,
       name: getStatusName(item.status)
     }))
@@ -303,13 +314,18 @@ async function initTrendChart() {
 
   try {
     const res = await getVisitTrend(7)
-    const dates = res.data.map((item: any) => item.date)
-    const counts = res.data.map((item: any) => item.count)
+    // 这里 res 是 ApiResponse，真实数据在 res.data 中
+    const dates = (res.data || []).map((item: any) => item.date)
+    const counts = (res.data || []).map((item: any) => item.count)
 
     const option = {
       tooltip: { trigger: 'axis' },
       xAxis: { type: 'category', data: dates },
-      yAxis: { type: 'value' },
+      yAxis: {
+        type: 'value',
+        min: 0,
+        interval: 1 // Y 轴刻度间隔 1
+      },
       series: [
         {
           data: counts,
