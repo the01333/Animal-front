@@ -48,7 +48,9 @@
         <el-table-column prop="title" label="标题" min-width="200" />
         <el-table-column label="分类" width="100">
           <template #default="{ row }">
-            <el-tag>{{ getCategoryText(row.category) }}</el-tag>
+            <el-tag :type="getCategoryTagType(row.category)" effect="light">
+              {{ getCategoryText(row.category) }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="author" label="作者" width="120" />
@@ -200,6 +202,18 @@ function handleDelete(row: Article) {
 
 function getCategoryText(category: string) {
   return categoryMap.value[category] || category
+}
+
+function getCategoryTagType(category: string) {
+  const keys = Object.keys(categoryMap.value)
+  const index = keys.indexOf(category)
+  const palette = ['success', 'warning', 'danger', 'info']
+
+  if (index === -1) {
+    return 'info'
+  }
+
+  return palette[index % palette.length]
 }
 
 onMounted(() => {

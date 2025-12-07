@@ -48,3 +48,13 @@ export function getVisitTrend(days: number = 7): Promise<
   })
 }
 
+/**
+ * 手动触发浏览次数同步任务
+ */
+export function manualSyncViewCount(): Promise<ApiResponse<void>> {
+  return request({
+    url: '/stats/view-count/sync',
+    method: 'post'
+  })
+}
+

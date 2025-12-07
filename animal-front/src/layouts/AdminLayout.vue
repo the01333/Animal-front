@@ -3,27 +3,24 @@
     <el-container>
       <!-- 侧边栏 -->
       <el-aside :width="sidebarWidth" class="admin-aside">
-        <div class="logo-container">
+        <div class="logo-container" @click="goToDashboard">
           <img src="http://localhost:9000/animal-adopt/backendIcon.png" alt="Logo" class="logo-img" />
           <span v-if="!appStore.sidebarCollapsed" class="logo-text">i宠园后台</span>
         </div>
-        <el-menu
-          :default-active="activeMenu"
-          :collapse="appStore.sidebarCollapsed"
-          :unique-opened="true"
-          background-color="#304156"
-          text-color="#bfcbd9"
-          active-text-color="#409EFF"
-          router
-        >
+        <el-menu :default-active="activeMenu" :collapse="appStore.sidebarCollapsed" :unique-opened="true"
+          background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" router>
           <el-menu-item index="/admin/dashboard">
-            <el-icon><DataAnalysis /></el-icon>
+            <el-icon>
+              <DataAnalysis />
+            </el-icon>
             <template #title>仪表盘</template>
           </el-menu-item>
 
           <el-sub-menu index="pet">
             <template #title>
-              <el-icon><Orange /></el-icon>
+              <el-icon>
+                <Orange />
+              </el-icon>
               <span>宠物管理</span>
             </template>
             <el-menu-item index="/admin/pet/list">宠物列表</el-menu-item>
@@ -32,7 +29,9 @@
 
           <el-sub-menu index="application">
             <template #title>
-              <el-icon><Document /></el-icon>
+              <el-icon>
+                <Document />
+              </el-icon>
               <span>申请管理</span>
             </template>
             <el-menu-item index="/admin/application/list">申请列表</el-menu-item>
@@ -41,7 +40,9 @@
 
           <el-sub-menu index="user">
             <template #title>
-              <el-icon><User /></el-icon>
+              <el-icon>
+                <User />
+              </el-icon>
               <span>用户管理</span>
             </template>
             <el-menu-item index="/admin/user/list">用户列表</el-menu-item>
@@ -50,7 +51,9 @@
 
           <el-sub-menu index="content">
             <template #title>
-              <el-icon><Reading /></el-icon>
+              <el-icon>
+                <Reading />
+              </el-icon>
               <span>内容管理</span>
             </template>
             <el-menu-item index="/admin/article/list">文章列表</el-menu-item>
@@ -58,12 +61,16 @@
           </el-sub-menu>
 
           <el-menu-item index="/admin/chat">
-            <el-icon><ChatDotRound /></el-icon>
+            <el-icon>
+              <ChatDotRound />
+            </el-icon>
             <template #title>客服管理</template>
           </el-menu-item>
 
           <el-menu-item index="/admin/settings">
-            <el-icon><Setting /></el-icon>
+            <el-icon>
+              <Setting />
+            </el-icon>
             <template #title>系统设置</template>
           </el-menu-item>
         </el-menu>
@@ -79,19 +86,17 @@
               <Fold v-else />
             </el-icon>
             <el-breadcrumb separator="/">
-              <el-breadcrumb-item
-                v-for="(item, index) in breadcrumbs"
-                :key="index"
-                :to="item.path"
-              >
+              <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="index" :to="item.path">
                 {{ item.title }}
               </el-breadcrumb-item>
             </el-breadcrumb>
           </div>
           <div class="header-right">
             <el-button text @click="goToFrontend">
-              <el-icon><House /></el-icon>
-              前台首页
+              <el-icon>
+                <House />
+              </el-icon>
+              <div class="header-right-front-home">前台首页</div>
             </el-button>
             <el-dropdown @command="handleCommand">
               <div class="user-info">
@@ -99,20 +104,28 @@
                   {{ userStore.userInfo?.username?.charAt(0) }}
                 </el-avatar>
                 <span class="username">{{ userStore.userInfo?.username }}</span>
-                <el-icon><ArrowDown /></el-icon>
+                <el-icon>
+                  <ArrowDown />
+                </el-icon>
               </div>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="profile">
-                    <el-icon><User /></el-icon>
+                    <el-icon>
+                      <User />
+                    </el-icon>
                     个人中心
                   </el-dropdown-item>
                   <el-dropdown-item command="password">
-                    <el-icon><Lock /></el-icon>
+                    <el-icon>
+                      <Lock />
+                    </el-icon>
                     修改密码
                   </el-dropdown-item>
                   <el-dropdown-item divided command="logout">
-                    <el-icon><SwitchButton /></el-icon>
+                    <el-icon>
+                      <SwitchButton />
+                    </el-icon>
                     退出登录
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -134,7 +147,7 @@
         <el-footer class="admin-footer">
           <div>Copyright © 2025 i宠园 - 宠物领养管理系统</div>
         </el-footer>
-        
+
         <AdminAuthDialog v-model="adminAuthVisible" @login-success="handleAdminLoginSuccess" />
       </el-container>
     </el-container>
@@ -195,7 +208,7 @@ const handleGlobalAuthDialog = () => {
 }
 
 function handleAdminLoginSuccess() {
-  userStore.getUserInfo().catch(() => {})
+  userStore.getUserInfo().catch(() => { })
 }
 
 onMounted(async () => {
@@ -243,12 +256,17 @@ function handleLogout() {
       router.push('/')
       ElMessage.success('退出成功')
     })
-    .catch(() => {})
+    .catch(() => { })
 }
 
 // 前往前台
 function goToFrontend() {
   router.push('/')
+}
+
+// 前往后台仪表盘
+const goToDashboard = () => {
+  router.push('/admin/dashboard')
 }
 </script>
 
@@ -288,6 +306,10 @@ function goToFrontend() {
       color: #fff;
       white-space: nowrap;
     }
+  }
+
+  .logo-container:hover {
+    cursor: pointer;
   }
 
   .el-menu {
@@ -347,6 +369,11 @@ function goToFrontend() {
         color: #303133;
       }
     }
+
+    .header-right-front-home {
+      margin-left: 5px;
+      margin-top: 2px;
+    }
   }
 }
 
@@ -354,11 +381,29 @@ function goToFrontend() {
   padding: 20px;
   overflow-y: auto;
 
-  :deep(.search-form) { margin-bottom: 16px; }
-  :deep(.toolbar) { margin-bottom: 12px; display: flex; gap: 10px; }
-  :deep(.el-card) { border-radius: 12px; }
-  :deep(.el-table__header-wrapper) { background: #fafafa; }
-  :deep(.pagination) { margin-top: 16px; display: flex; justify-content: flex-end; }
+  :deep(.search-form) {
+    margin-bottom: 16px;
+  }
+
+  :deep(.toolbar) {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+  }
+
+  :deep(.el-card) {
+    border-radius: 12px;
+  }
+
+  :deep(.el-table__header-wrapper) {
+    background: #fafafa;
+  }
+
+  :deep(.pagination) {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
 .admin-footer {
@@ -387,4 +432,3 @@ function goToFrontend() {
   transform: translateX(30px);
 }
 </style>
-

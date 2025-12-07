@@ -19,7 +19,7 @@
         <el-row :gutter="16">
           <el-col :span="8">
             <el-form-item label="关键词">
-              <el-input v-model="queryForm.keyword" placeholder="身份证号、手机号等" clearable />
+              <el-input v-model="queryForm.keyword" placeholder="身份证号或手机号" clearable />
             </el-form-item>
           </el-col>
           <el-col :span="8">

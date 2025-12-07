@@ -183,6 +183,25 @@ export function updateUserStatus(id: number, status: number): Promise<ApiRespons
 }
 
 /**
+ * 管理员编辑用户信息/角色/状态
+ */
+export function updateAdminUser(id: number, data: Partial<{
+  username: string
+  nickname: string
+  phone: string
+  email: string
+  avatar: string
+  role: string
+  status: number
+}>): Promise<ApiResponse<void>> {
+  return request({
+    url: `/user/${id}/admin`,
+    method: 'put',
+    data
+  })
+}
+
+/**
  * 获取用户认证信息
  */
 export function getCertificationInfo(): Promise<ApiResponse<{
