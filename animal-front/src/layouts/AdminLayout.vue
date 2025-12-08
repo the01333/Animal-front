@@ -60,11 +60,12 @@
             <el-menu-item index="/admin/article/add">发布文章</el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item index="/admin/chat">
-            <el-icon>
+          <el-menu-item index="/admin/chat" class="menu-item-chat">
+            <el-icon class="menu-chat-icon-wrapper">
               <ChatDotRound />
+              <span v-if="appStore.csUnreadForAgent > 0" class="menu-chat-unread-dot" />
             </el-icon>
-            <template #title>客服管理</template>
+            <template #title>客服会话</template>
           </el-menu-item>
 
           <el-menu-item index="/admin/settings">
@@ -320,6 +321,24 @@ const goToDashboard = () => {
 
   .el-menu {
     border-right: none;
+  }
+
+  .menu-item-chat {
+    position: relative;
+  }
+
+  .menu-chat-icon-wrapper {
+    position: relative;
+  }
+
+  .menu-chat-unread-dot {
+    position: absolute;
+    top: -5px;
+    right: -146px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #f56c6c;
   }
 }
 

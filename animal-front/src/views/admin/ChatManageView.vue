@@ -4,22 +4,11 @@
       <aside class="conversation-pane">
         <div class="conversation-header">
           <div class="conversation-title">客服会话</div>
-          <el-input
-            v-model="searchKeyword"
-            size="small"
-            placeholder="搜索用户..."
-            :prefix-icon="Search"
-            clearable
-          />
+          <el-input v-model="searchKeyword" placeholder="搜索用户..." :prefix-icon="Search" clearable />
         </div>
         <el-scrollbar class="conversation-list">
-          <div
-            v-for="session in filteredSessions"
-            :key="session.id"
-            class="conversation-item"
-            :class="{ active: session.id === activeSessionId }"
-            @click="selectSession(session.id)"
-          >
+          <div v-for="session in filteredSessions" :key="session.id" class="conversation-item"
+            :class="{ active: session.id === activeSessionId }" @click="selectSession(session.id)">
             <div class="conversation-avatar-wrapper">
               <el-avatar :size="40" :src="session.avatar" />
             </div>
@@ -50,14 +39,14 @@
             </div>
           </div>
           <div class="chat-header-actions">
-            <el-button size="small" text>查看资料</el-button>
-            <el-button size="small" text type="danger">结束会话</el-button>
+            <el-button text>查看资料</el-button>
+            <el-button text type="danger">结束会话</el-button>
           </div>
         </header>
 
         <div class="chat-body">
           <main class="message-pane" ref="messageContainer">
-            <el-scrollbar class="message-scroll">
+            <div class="message-scroll">
               <div
                 v-for="msg in currentMessages"
                 :key="msg.id"
@@ -69,7 +58,8 @@
                   <div class="message-time">{{ msg.time }}</div>
                 </div>
               </div>
-            </el-scrollbar>
+              <div class="message-bottom-spacer" />
+            </div>
           </main>
 
           <aside class="side-pane" :class="{ collapsed: sideCollapsed }">
@@ -85,12 +75,8 @@
               </div>
               <div class="side-section">
                 <div class="side-title">快捷回复</div>
-                <div
-                  v-for="item in quickReplies"
-                  :key="item.id"
-                  class="quick-reply-item"
-                  @click="appendQuickReply(item.text)"
-                >
+                <div v-for="item in quickReplies" :key="item.id" class="quick-reply-item"
+                  @click="appendQuickReply(item.text)">
                   {{ item.text }}
                 </div>
               </div>
@@ -103,11 +89,11 @@
             v-model="draft"
             type="textarea"
             :rows="3"
-            placeholder="输入回复内容...(按 Enter 发送, Ctrl+Enter 换行)"
-            @keydown.native="handleKeydown"
+            placeholder="在此输入回复内容..."
+            @keydown.ctrl.enter.prevent.native="sendMessage"
           />
           <div class="chat-input-actions">
-            <span class="hint">按 Enter 发送，Ctrl+Enter 换行</span>
+            <span class="hint">按 Ctrl+Enter 发送，Enter 换行</span>
             <el-button type="primary" size="small" @click="sendMessage" :disabled="!draft.trim()">
               发送
             </el-button>
@@ -123,9 +109,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
+import SockJS from 'sockjs-client'
+import { Client, type IMessage } from '@stomp/stompjs'
+import { useAppStore } from '@/stores/app'
+import {
+  pageManualCsSessions,
+  getManualCsMessages,
+  sendManualCsMessage,
+  readAckManualCs,
+  type CsSession,
+  type CsMessage
+} from '@/api/customerService'
 
 type Sender = 'user' | 'agent'
 
@@ -137,7 +134,7 @@ interface ChatMessage {
 }
 
 interface ChatSession {
-  id: string
+  id: number
   name: string
   avatar: string
   lastMessage: string
@@ -148,82 +145,10 @@ interface ChatSession {
   orders: string
 }
 
+const appStore = useAppStore()
 const searchKeyword = ref('')
-
-const sessions = ref<ChatSession[]>([
-  {
-    id: '1',
-    name: '林林1',
-    avatar: 'http://localhost:9000/animal-adopt/default.jpg',
-    lastMessage: '我想了解一下编号 #202401 的金毛犬情况。',
-    lastTime: '10:23',
-    unread: 1,
-    online: true,
-    preference: '大型犬、金毛、拉布拉多',
-    orders: '已领养 1 只，进行中 1 单'
-  },
-  {
-    id: '2',
-    name: '爱心领养-张',
-    avatar: 'http://localhost:9000/animal-adopt/default.jpg',
-    lastMessage: '好的，我明天下午过去。',
-    lastTime: '昨天',
-    unread: 0,
-    online: false,
-    preference: '小型犬、猫咪',
-    orders: '已领养 2 只'
-  },
-  {
-    id: '3',
-    name: '铲屎官2号',
-    avatar: 'http://localhost:9000/animal-adopt/default.jpg',
-    lastMessage: '谢谢！',
-    lastTime: '周一',
-    unread: 0,
-    online: true,
-    preference: '猫咪、短毛',
-    orders: '咨询中 1 单'
-  }
-])
-
-const messagesMap = ref<Record<string, ChatMessage[]>>({
-  '1': [
-    {
-      id: 'm1-1',
-      sender: 'user',
-      content: '你好，请问这只金毛还在吗？',
-      time: '10:20'
-    },
-    {
-      id: 'm1-2',
-      sender: 'agent',
-      content: '您好！在的，这只金毛目前还在基地等待领养。',
-      time: '10:21'
-    },
-    {
-      id: 'm1-3',
-      sender: 'user',
-      content: '我想了解一下编号 #202401 的金毛犬当前的健康状况。',
-      time: '10:23'
-    }
-  ],
-  '2': [
-    {
-      id: 'm2-1',
-      sender: 'user',
-      content: '好的，我明天下午过去。',
-      time: '昨天'
-    }
-  ],
-  '3': [
-    {
-      id: 'm3-1',
-      sender: 'user',
-      content: '谢谢！',
-      time: '周一'
-    }
-  ]
-})
+const sessions = ref<ChatSession[]>([])
+const messagesMap = ref<Record<number, ChatMessage[]>>({})
 
 const quickReplies = ref([
   { id: 'q1', text: '您好，这里是 i宠园客服，请问有什么可以帮您？' },
@@ -232,10 +157,32 @@ const quickReplies = ref([
   { id: 'q4', text: '好的，我们已为您记录需求，如有合适的宠物会第一时间联系您。' }
 ])
 
-const activeSessionId = ref<string | null>(sessions.value[0]?.id ?? null)
+// 当前选中的会话ID, 默认不选中任何会话
+const activeSessionId = ref<number | null>(null)
 const draft = ref('')
 const sideCollapsed = ref(false)
 const messageContainer = ref<HTMLElement | null>(null)
+
+const loadingSessions = ref(false)
+const loadingMessages = ref(false)
+const sending = ref(false)
+const stompClient = ref<Client | null>(null)
+const wsConnected = ref(false)
+let sessionsPollTimer: number | null = null
+let messagesPollTimer: number | null = null
+
+const getWsUrl = () => {
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
+  const base = apiBase.replace(/\/api\/?$/, '')
+  return `${base}/ws`
+}
+
+const formatTime = (iso?: string | null): string => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
 
 const filteredSessions = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase()
@@ -255,27 +202,205 @@ const currentMessages = computed(() => {
   return messagesMap.value[activeSessionId.value] || []
 })
 
-const selectSession = (id: string) => {
+const loadSessions = async () => {
+  loadingSessions.value = true
+  try {
+    const res = await pageManualCsSessions({ current: 1, size: 50 })
+    const pageData = res.data
+    const records: CsSession[] = pageData?.records || []
+
+    sessions.value = records.map<ChatSession>((item) => ({
+      id: item.id,
+      name: item.userNickname || `用户#${item.userId}`,
+      avatar: item.userAvatar || 'http://localhost:9000/animal-adopt/default.jpg',
+      lastMessage: item.lastMessage || '',
+      lastTime: item.lastTime ? formatTime(item.lastTime as unknown as string) : '',
+      unread: item.unreadForAgent || 0,
+      online: false,
+      preference: '',
+      orders: ''
+    }))
+
+    // 根据最新会话列表同步全局客服未读总数, 驱动左侧导航红点显示
+    const totalUnread = sessions.value.reduce((sum, s) => sum + (s.unread || 0), 0)
+    appStore.setCsUnreadForAgent(totalUnread)
+  } catch (error) {
+    console.error('加载客服会话列表失败:', error)
+    ElMessage.error('加载客服会话列表失败，请稍后重试')
+  } finally {
+    loadingSessions.value = false
+  }
+}
+
+const loadMessages = async (sessionId: number) => {
+  loadingMessages.value = true
+  try {
+    const res = await getManualCsMessages(sessionId)
+    const list: CsMessage[] = res.data || []
+
+    messagesMap.value[sessionId] = list.map<ChatMessage>((item) => ({
+      id: String(item.id),
+      sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
+      content: item.content,
+      time: item.createTime ? formatTime(item.createTime as unknown as string) : ''
+    }))
+
+    scrollToBottom()
+  } catch (error) {
+    console.error('加载会话消息失败:', error)
+    ElMessage.error('加载会话消息失败，请稍后重试')
+  } finally {
+    loadingMessages.value = false
+  }
+}
+
+const selectSession = async (id: number) => {
   activeSessionId.value = id
+  await loadMessages(id)
+  startMessagesPolling(id)
+
+  // 点击会话后, 将客服侧未读数清零
+  try {
+    await readAckManualCs(id, 'AGENT')
+    const target = sessions.value.find((s) => s.id === id)
+    if (target) {
+      target.unread = 0
+    }
+    // 重新计算客服未读总数并更新到全局，用于导航红点
+    const totalUnread = sessions.value.reduce((sum, s) => sum + (s.unread || 0), 0)
+    appStore.setCsUnreadForAgent(totalUnread)
+  } catch (error) {
+    console.error('更新客服侧未读状态失败:', error)
+  }
 }
 
 const scrollToBottom = () => {
   nextTick(() => {
     if (!messageContainer.value) return
-    const wrap = messageContainer.value.querySelector('.el-scrollbar__wrap') as HTMLElement | null
-    if (wrap) {
-      wrap.scrollTop = wrap.scrollHeight
-    }
+    messageContainer.value.scrollTop = messageContainer.value.scrollHeight
   })
 }
 
-const sendMessage = () => {
+const startSessionsPolling = () => {
+  // 只有在 WS 未连接时才使用轮询作为降级方案
+  if (wsConnected.value) return
+  if (sessionsPollTimer) {
+    window.clearInterval(sessionsPollTimer)
+    sessionsPollTimer = null
+  }
+  sessionsPollTimer = window.setInterval(async () => {
+    if (wsConnected.value) return
+    try {
+      await loadSessions()
+    } catch (e) {
+      console.error('轮询刷新会话列表失败', e)
+    }
+  }, 15000)
+}
+
+const startMessagesPolling = (sessionId: number) => {
+  // 只有在 WS 未连接时才使用轮询作为降级方案
+  if (wsConnected.value) return
+  if (messagesPollTimer) {
+    window.clearInterval(messagesPollTimer)
+    messagesPollTimer = null
+  }
+  messagesPollTimer = window.setInterval(async () => {
+    if (wsConnected.value) return
+    try {
+      await loadMessages(sessionId)
+    } catch (e) {
+      console.error('轮询刷新会话消息失败', e)
+    }
+  }, 10000)
+}
+
+const stopAllPolling = () => {
+  if (sessionsPollTimer) {
+    window.clearInterval(sessionsPollTimer)
+    sessionsPollTimer = null
+  }
+  if (messagesPollTimer) {
+    window.clearInterval(messagesPollTimer)
+    messagesPollTimer = null
+  }
+}
+
+const initWs = () => {
+  if (stompClient.value) return
+  const socketUrl = getWsUrl()
+  const socket = new SockJS(socketUrl)
+  const client = new Client({
+    webSocketFactory: () => socket as any,
+    reconnectDelay: 5000,
+    debug: () => { }
+  })
+
+  client.onConnect = () => {
+    wsConnected.value = true
+    client.subscribe('/user/queue/cs/chat', (frame: IMessage) => {
+      try {
+        const payload = JSON.parse(frame.body) as CsMessage
+        const sid = payload.sessionId
+        const list = messagesMap.value[sid] || []
+        list.push({
+          id: String(payload.id),
+          sender: payload.senderRole === 'AGENT' ? 'agent' : 'user',
+          content: payload.content,
+          time: payload.createTime ? formatTime(payload.createTime as unknown as string) : ''
+        })
+        messagesMap.value[sid] = list
+        const s = sessions.value.find((it) => it.id === sid)
+        if (s) {
+          s.lastMessage = payload.content
+          s.lastTime = payload.createTime
+            ? formatTime(payload.createTime as unknown as string)
+            : s.lastTime
+          if (payload.senderRole === 'USER') {
+            s.unread = (s.unread || 0) + 1
+          }
+        }
+        if (activeSessionId.value === sid) {
+          scrollToBottom()
+        }
+      } catch (e) {
+        console.error('解析客服WS消息失败', e)
+      }
+    })
+    // 订阅未读汇总推送, 更新全局客服未读数以驱动左侧导航红点
+    client.subscribe('/user/queue/cs/unread', (frame: IMessage) => {
+      try {
+        const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
+        if (typeof payload.unreadForAgent === 'number') {
+          appStore.setCsUnreadForAgent(payload.unreadForAgent)
+        }
+      } catch (e) {
+        console.error('解析客服未读汇总失败', e)
+      }
+    })
+  }
+
+  client.onStompError = () => {
+    wsConnected.value = false
+  }
+
+  client.onWebSocketClose = () => {
+    wsConnected.value = false
+  }
+
+  client.activate()
+  stompClient.value = client
+}
+
+const sendMessage = async () => {
   const content = draft.value.trim()
   if (!content) return
   if (!currentSession.value || !activeSessionId.value) {
     ElMessage.warning('请选择一个会话')
     return
   }
+
+  if (sending.value) return
 
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const msg: ChatMessage = {
@@ -290,15 +415,26 @@ const sendMessage = () => {
   messagesMap.value[activeSessionId.value] = list
   draft.value = ''
   scrollToBottom()
-}
 
-const handleKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'Enter') {
-    if (event.ctrlKey) {
-      return
+  try {
+    sending.value = true
+    if (stompClient.value && wsConnected.value) {
+      stompClient.value.publish({
+        destination: '/app/cs/chat',
+        body: JSON.stringify({
+          sessionId: activeSessionId.value,
+          messageType: 'text',
+          content
+        })
+      })
+    } else {
+      await sendManualCsMessage(activeSessionId.value, { content, messageType: 'text' })
     }
-    event.preventDefault()
-    sendMessage()
+  } catch (error) {
+    console.error('发送客服消息失败:', error)
+    ElMessage.error('发送失败，请稍后重试')
+  } finally {
+    sending.value = false
   }
 }
 
@@ -314,6 +450,16 @@ const appendQuickReply = (text: string) => {
 const toggleSide = () => {
   sideCollapsed.value = !sideCollapsed.value
 }
+
+onMounted(async () => {
+  await loadSessions()
+  initWs()
+  startSessionsPolling()
+})
+
+onUnmounted(() => {
+  stopAllPolling()
+})
 </script>
 
 <style scoped>
@@ -343,7 +489,7 @@ const toggleSide = () => {
 }
 
 .conversation-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   margin-bottom: 8px;
 }
@@ -418,6 +564,7 @@ const toggleSide = () => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .chat-header {
@@ -473,16 +620,23 @@ const toggleSide = () => {
   flex: 1;
   display: flex;
   background-color: #f5f7fa;
+  min-height: 0;
 }
 
 .message-pane {
   flex: 1;
   background-color: #e5ddd5;
   padding: 12px 16px;
+  overflow-y: auto;
 }
 
 .message-scroll {
   height: 100%;
+  padding-bottom: 8px;
+}
+
+.message-bottom-spacer {
+  height: 1px;
 }
 
 .message-row {
@@ -521,7 +675,7 @@ const toggleSide = () => {
 }
 
 .message-time {
-  margin-top: 4px;
+  margin-top: 2px;
   font-size: 11px;
   color: #909399;
   text-align: right;
@@ -561,18 +715,18 @@ const toggleSide = () => {
   overflow-y: auto;
 }
 
-.side-section + .side-section {
+.side-section+.side-section {
   margin-top: 16px;
 }
 
 .side-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
 }
 
 .side-item {
-  font-size: 13px;
+  font-size: 14px;
   color: #606266;
   margin-bottom: 4px;
 }
@@ -620,4 +774,3 @@ const toggleSide = () => {
   background-color: #f5f7fa;
 }
 </style>
-

@@ -7,7 +7,7 @@
             <div class="header-left">
               <img class="agent-avatar" :src="agentAvatar" alt="客服" />
               <div class="agent-info">
-                <div class="agent-name">人工客服小宠</div>
+                <div class="agent-name">人工客服</div>
                 <div class="agent-status">通常在几分钟内回复</div>
               </div>
             </div>
@@ -39,14 +39,8 @@
               </button>
             </div>
             <div class="input-row">
-              <textarea
-                v-model="draft"
-                class="chat-input"
-                placeholder="请输入您的问题..."
-                rows="2"
-                @keydown.enter.exact.prevent="handleSend"
-                @keydown.enter.ctrl.stop
-              />
+              <textarea v-model="draft" class="chat-input" placeholder="请输入您的问题..." rows="2"
+                @keydown.enter.exact.prevent="handleSend" @keydown.enter.ctrl.stop />
               <button class="send-btn" type="button" :disabled="!draft.trim()" @click="handleSend">
                 发送
               </button>
@@ -56,12 +50,7 @@
       </transition>
 
       <transition name="manual-chat-fade-slide">
-        <button
-          v-if="!isExpanded"
-          class="manual-chat-floating-btn"
-          type="button"
-          @click="open"
-        >
+        <button v-if="!isExpanded" class="manual-chat-floating-btn" type="button" @click="open">
           人工客服咨询
         </button>
       </transition>
@@ -70,7 +59,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineEmits, defineProps, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, defineEmits, defineProps, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import SockJS from 'sockjs-client'
+import { Client } from '@stomp/stompjs'
+import {
+  openManualCsSession,
+  getManualCsMessages,
+  longPollManualCsMessages,
+  sendManualCsMessage,
+  readAckManualCs,
+  type CsMessage
+} from '@/api/customerService'
 
 interface ManualMessage {
   id: string
@@ -90,6 +90,16 @@ const messages = ref<ManualMessage[]>([])
 const draft = ref('')
 const messageContainer = ref<HTMLElement | null>(null)
 
+// 后端会话ID (t_cs_session.id)
+const sessionId = ref<number | null>(null)
+const loadingSession = ref(false)
+const sending = ref(false)
+const stompClient = ref<Client | null>(null)
+const wsConnected = ref(false)
+const lastMessageId = ref<number | null>(null)
+let pollStopped = false
+let pollRunning = false
+
 const agentAvatar = computed(
   () => 'http://localhost:9000/animal-adopt/default.jpg'
 )
@@ -106,6 +116,13 @@ const ensureWelcome = () => {
   }
 }
 
+const formatTime = (iso?: string | null): string => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 const scrollToBottom = () => {
   nextTick(() => {
     if (messageContainer.value) {
@@ -114,25 +131,168 @@ const scrollToBottom = () => {
   })
 }
 
-const open = () => {
+const startPolling = async () => {
+  // 队列式长轮询: 始终通过 HTTP 长轮询获取新消息
+  if (pollRunning) return
+  pollStopped = false
+  pollRunning = true
+  while (!pollStopped && sessionId.value && isExpanded.value) {
+    try {
+      const res = await longPollManualCsMessages(
+        sessionId.value,
+        lastMessageId.value == null ? undefined : lastMessageId.value
+      )
+      const list: CsMessage[] = res.data || []
+      if (list.length > 0) {
+        for (const item of list) {
+          const idStr = String(item.id)
+          // 避免重复追加已经存在的消息
+          if (messages.value.some((m) => m.id === idStr)) continue
+          messages.value.push({
+            id: idStr,
+            sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
+            content: item.content,
+            time: formatTime(item.createTime)
+          })
+        }
+        lastMessageId.value = list[list.length - 1].id
+        scrollToBottom()
+      }
+    } catch (e) {
+      console.error('长轮询刷新客服消息失败', e)
+      // 出错时稍作等待，避免空转
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+  }
+  pollRunning = false
+}
+
+const stopPolling = () => {
+  pollStopped = true
+}
+
+const getWsUrl = () => {
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
+  const base = apiBase.replace(/\/api\/?$/, '')
+  return `${base}/ws`
+}
+
+const initWs = () => {
+  if (stompClient.value) return
+  const socketUrl = getWsUrl()
+  const socket = new SockJS(socketUrl)
+  const client = new Client({
+    webSocketFactory: () => socket as any,
+    reconnectDelay: 5000,
+    debug: () => { }
+  })
+
+  client.onConnect = () => {
+    wsConnected.value = true
+  }
+
+  client.onStompError = () => {
+    wsConnected.value = false
+  }
+
+  client.onWebSocketClose = () => {
+    wsConnected.value = false
+  }
+
+  client.activate()
+  stompClient.value = client
+}
+
+const loadHistory = async () => {
+  if (!sessionId.value) return
+  try {
+    const res = await getManualCsMessages(sessionId.value)
+    const list: CsMessage[] = res.data || []
+
+    if (list.length > 0) {
+      messages.value = list.map((item) => ({
+        id: String(item.id),
+        sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
+        content: item.content,
+        time: formatTime(item.createTime)
+      }))
+      // 记录当前最新消息ID, 供后续长轮询只拉取增量
+      lastMessageId.value = list[list.length - 1].id
+    } else {
+      messages.value = []
+      ensureWelcome()
+      lastMessageId.value = null
+    }
+
+    scrollToBottom()
+
+    // 打开窗口后, 将当前会话的用户侧未读数清零
+    if (sessionId.value) {
+      try {
+        await readAckManualCs(sessionId.value, 'USER')
+      } catch (err) {
+        console.error('发送用户侧已读回执失败:', err)
+      }
+    }
+  } catch (error) {
+    console.error('加载人工客服消息失败:', error)
+    if (messages.value.length === 0) {
+      ensureWelcome()
+    }
+    ElMessage.error('加载客服消息失败，请稍后再试')
+  }
+}
+
+const ensureSession = async () => {
+  if (loadingSession.value) return
+  loadingSession.value = true
+  try {
+    if (!sessionId.value) {
+      const res = await openManualCsSession()
+      sessionId.value = res.data.id
+    }
+    await loadHistory()
+    // 会话就绪后启动长轮询获取新消息
+    startPolling()
+  } catch (error) {
+    console.error('打开人工客服会话失败:', error)
+    if (messages.value.length === 0) {
+      ensureWelcome()
+      scrollToBottom()
+    }
+    ElMessage.error('人工客服暂时不可用，请稍后再试')
+  } finally {
+    loadingSession.value = false
+  }
+}
+
+const open = async () => {
   isExpanded.value = true
   emit('update:visible', true)
-  ensureWelcome()
-  scrollToBottom()
+  await ensureSession()
 }
 
 const minimize = () => {
   isExpanded.value = false
   emit('update:visible', false)
+  stopPolling()
 }
 
-const handleSend = () => {
+const handleSend = async () => {
   const content = draft.value.trim()
-  if (!content) return
+  if (!content || sending.value) return
+
+  if (!sessionId.value) {
+    await ensureSession()
+  }
+  if (!sessionId.value) return
 
   const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const localId = `${Date.now()}-u`
+
+  // 本地先显示用户消息
   messages.value.push({
-    id: `${Date.now()}-u`,
+    id: localId,
     sender: 'user',
     content,
     time: now
@@ -140,36 +300,50 @@ const handleSend = () => {
   draft.value = ''
   scrollToBottom()
 
-  setTimeout(() => {
-    messages.value.push({
-      id: `${Date.now()}-a`,
-      sender: 'agent',
-      content: '我们已收到您的消息，稍后会有工作人员为您解答。',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    })
-    scrollToBottom()
-  }, 600)
+  sending.value = true
+  try {
+    const res = await sendManualCsMessage(sessionId.value, { content, messageType: 'text' })
+    const serverMsg = res.data
+    if (serverMsg && typeof serverMsg.id === 'number') {
+      lastMessageId.value = serverMsg.id
+      const idx = messages.value.findIndex((m) => m.id === localId)
+      if (idx !== -1) {
+        messages.value[idx].id = String(serverMsg.id)
+        messages.value[idx].time = formatTime(serverMsg.createTime)
+      }
+    }
+  } catch (error) {
+    console.error('发送人工客服消息失败:', error)
+    ElMessage.error('发送失败，请稍后重试')
+  } finally {
+    sending.value = false
+  }
 }
 
 watch(
   () => props.visible,
-  (val) => {
+  async (val) => {
     if (typeof val === 'boolean') {
       isExpanded.value = val
       if (val) {
-        ensureWelcome()
-        scrollToBottom()
+        await ensureSession()
+      } else {
+        stopPolling()
       }
     }
   },
   { immediate: true }
 )
 
-onMounted(() => {
+onMounted(async () => {
+  initWs()
   if (props.visible) {
-    ensureWelcome()
-    scrollToBottom()
+    await ensureSession()
   }
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
 
@@ -177,7 +351,7 @@ onMounted(() => {
 .manual-chat-root {
   position: fixed;
   right: 24px;
-  bottom: 24px;
+  bottom: 100px;
   z-index: 2200;
 }
 
@@ -228,7 +402,7 @@ onMounted(() => {
 
 .agent-status {
   font-size: 12px;
-  opacity: 0.9;
+  opacity: 0.75;
 }
 
 .header-actions {
@@ -287,6 +461,8 @@ onMounted(() => {
 }
 
 .bubble-time {
+  text-align: right;
+  margin-left: 25px;
   margin-top: 4px;
   font-size: 11px;
   opacity: 0.7;
@@ -346,15 +522,15 @@ onMounted(() => {
 }
 
 .manual-chat-floating-btn {
-  width: 54px;
-  height: 54px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   border: none;
   background: linear-gradient(135deg, #ff9557 0%, #ff6b35 100%);
   color: #fff;
   box-shadow: 0 10px 25px rgba(255, 107, 53, 0.45);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .manual-chat-fade-slide-enter-active,

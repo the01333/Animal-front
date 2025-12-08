@@ -1,3 +1,4 @@
+import './polyfill-global'
 import './assets/main.css'
 import './assets/markdown.css'
 

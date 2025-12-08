@@ -16,12 +16,8 @@
     <ManualChatWidget v-model:visible="manualChatVisible" />
 
     <!-- 全局登录/注册弹窗 -->
-    <AuthDialog
-      v-model="authDialogVisible"
-      :default-tab="authDefaultTab"
-      @login-success="handleAuthSuccess"
-      @register-success="handleRegisterSuccess"
-    />
+    <AuthDialog v-model="authDialogVisible" :default-tab="authDefaultTab" @login-success="handleAuthSuccess"
+      @register-success="handleRegisterSuccess" />
   </div>
 </template>
 
@@ -145,4 +141,3 @@ watch(
   }
 }
 </style>
-

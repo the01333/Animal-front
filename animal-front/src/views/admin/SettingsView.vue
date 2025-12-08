@@ -20,7 +20,7 @@
         </el-tabs>
 
         <div class="toolbar">
-          <el-button type="primary" size="medium" @click="handleCreate">新增</el-button>
+          <el-button type="primary" @click="handleCreate">新增</el-button>
         </div>
 
         <el-table v-loading="loading" :data="tableData" border style="width: 100%">
@@ -37,8 +37,8 @@
           <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
           <el-table-column label="操作" width="160" fixed="right" header-align="center">
             <template #default="{ row }">
-              <el-button type="primary" text size="medium" @click="handleEdit(row)">编辑</el-button>
-              <el-button type="danger" text size="medium" @click="handleDelete(row)">删除</el-button>
+              <el-button type="primary" text @click="handleEdit(row)">编辑</el-button>
+              <el-button type="danger" text @click="handleDelete(row)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -295,6 +295,13 @@ watch(activeTab, () => {
 /* 顶部“下拉选项管理 / 系统工具”小 Tab 栏样式 */
 .settings-section-tabs {
   margin-top: 0;
+  margin-right: 5px;
+}
+
+.settings-section-tabs :deep(.el-tabs__item) {
+  font-size: 15px !important;
+  height: 45px !important;
+  border-radius: 23px !important;
 }
 
 .settings-section-tabs :deep(.el-tabs__header) {

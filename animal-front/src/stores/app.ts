@@ -13,6 +13,9 @@ export const useAppStore = defineStore(
     // 主题
     const theme = ref<'light' | 'dark'>('light')
 
+    // 客服未读总数（客服端），用于左侧导航红点提示
+    const csUnreadForAgent = ref(0)
+
     // 切换侧边栏
     function toggleSidebar() {
       sidebarCollapsed.value = !sidebarCollapsed.value
@@ -28,13 +31,20 @@ export const useAppStore = defineStore(
       theme.value = theme.value === 'light' ? 'dark' : 'light'
     }
 
+    // 设置客服未读总数
+    function setCsUnreadForAgent(count: number) {
+      csUnreadForAgent.value = count > 0 ? count : 0
+    }
+
     return {
       sidebarCollapsed,
       device,
       theme,
+      csUnreadForAgent,
       toggleSidebar,
       setDevice,
-      toggleTheme
+      toggleTheme,
+      setCsUnreadForAgent
     }
   },
   {
