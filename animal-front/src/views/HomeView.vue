@@ -31,7 +31,7 @@
               <el-icon>
                 <ChatDotRound />
               </el-icon>
-              <span>AI客服咨询</span>
+              <span>AI客服答疑</span>
             </el-button>
           </div>
         </div>

@@ -456,8 +456,6 @@ const handleLoginByCode = async () => {
             dialogVisible.value = false
             emit('login-success')
           }, 300)
-        } else {
-          ElMessage.error(res.message || '登录失败')
         }
       })
     } else {
@@ -475,13 +473,11 @@ const handleLoginByCode = async () => {
             dialogVisible.value = false
             emit('login-success')
           }, 300)
-        } else {
-          ElMessage.error(res.message || '登录失败')
         }
       })
     }
   } catch (error: any) {
-    ElMessage.error(error?.response?.data?.message || '登录失败，请稍后重试')
+    console.error('登录失败:', error)
   } finally {
     loginLoading.value = false
   }
@@ -508,12 +504,10 @@ const handleLoginByPassword = async () => {
           dialogVisible.value = false
           emit('login-success')
         }, 300)
-      } else {
-        ElMessage.error(res.message || '登录失败')
       }
     })
   } catch (error: any) {
-    ElMessage.error(error?.response?.data?.message || '登录失败，请稍后重试')
+    console.error('登录失败:', error)
   } finally {
     loginLoading.value = false
   }

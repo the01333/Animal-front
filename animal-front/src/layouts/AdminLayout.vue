@@ -19,7 +19,7 @@
           <el-sub-menu index="pet">
             <template #title>
               <el-icon>
-                <Orange />
+                <House />
               </el-icon>
               <span>宠物管理</span>
             </template>
@@ -45,7 +45,7 @@
               </el-icon>
               <span>用户管理</span>
             </template>
-            <el-menu-item index="/admin/user/list">用户列表</el-menu-item>
+            <el-menu-item v-if="isSuperAdmin" index="/admin/user/list">用户列表</el-menu-item>
             <el-menu-item index="/admin/user/certification">认证审核</el-menu-item>
           </el-sub-menu>
 
@@ -203,6 +203,11 @@ const userAvatar = computed(() => {
   return avatar ? processImageUrl(avatar) : ''
 })
 
+const isSuperAdmin = computed(() => {
+  const role = String(userStore.userInfo?.role || '').toLowerCase()
+  return role === 'super_admin'
+})
+
 const handleGlobalAuthDialog = () => {
   adminAuthVisible.value = true
 }
@@ -301,6 +306,7 @@ const goToDashboard = () => {
 
     .logo-text {
       margin-left: 10px;
+      margin-right: 10px;
       font-size: 18px;
       font-weight: bold;
       color: #fff;

@@ -156,9 +156,7 @@ const queryForm = reactive({
 const roleOptions = [
   { label: '普通用户', value: 'user' },
   { label: '管理员', value: 'admin' },
-  { label: '超级管理员', value: 'super_admin' },
-  { label: '审核员', value: 'application_auditor' },
-  { label: '管家', value: 'housekeeper' }
+  { label: '超级管理员', value: 'super_admin' }
 ]
 
 const activeFilters = computed(() => {

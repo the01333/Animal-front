@@ -16,7 +16,7 @@ export const useUserStore = defineStore(
     })
     const isManager = computed(() => {
       const role = String(userInfo.value?.role || '').toLowerCase()
-      return role === 'admin' || role === 'super_admin' || role === 'application_auditor'
+      return role === 'admin' || role === 'super_admin'
     })
 
     // 登录

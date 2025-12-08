@@ -1,6 +1,6 @@
 <template>
   <div class="front-layout">
-    <Navbar @show-auth-dialog="handleShowAuthDialog" />
+    <Navbar @show-auth-dialog="handleShowAuthDialog" @open-manual-chat="openManualChat" />
     <main class="main-content" :class="{ 'blurred-background': authDialogVisible }">
       <router-view v-slot="{ Component }" :key="$route.fullPath">
         <transition name="fade" mode="out-in">
@@ -11,6 +11,9 @@
     <Footer />
     <!-- AI客服助手 -->
     <AIChatWidget />
+
+    <!-- 人工客服悬浮聊天 -->
+    <ManualChatWidget v-model:visible="manualChatVisible" />
 
     <!-- 全局登录/注册弹窗 -->
     <AuthDialog
@@ -30,9 +33,11 @@ import Navbar from '@/components/layout/Navbar.vue'
 import Footer from '@/components/layout/Footer.vue'
 import AIChatWidget from '@/components/AIChatWidget.vue'
 import AuthDialog from '@/components/auth/AuthDialog.vue'
+import ManualChatWidget from '@/components/ManualChatWidget.vue'
 
 const authDialogVisible = ref(false)
 const authDefaultTab = ref<'login' | 'register'>('login')
+const manualChatVisible = ref(false)
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -40,6 +45,10 @@ const userStore = useUserStore()
 const handleShowAuthDialog = (tab: 'login' | 'register' = 'login') => {
   authDefaultTab.value = tab
   authDialogVisible.value = true
+}
+
+const openManualChat = () => {
+  manualChatVisible.value = true
 }
 
 const handleGlobalAuthDialog = (event: Event) => {

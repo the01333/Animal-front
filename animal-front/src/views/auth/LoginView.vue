@@ -184,11 +184,9 @@ const handlePasswordLogin = async () => {
         localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo))
         showSuccessTip('登录成功！正在跳转...')
         redirectAfterLogin()
-      } else {
-        ElMessage.error(response.message || '登录失败')
       }
     } catch (error: any) {
-      ElMessage.error(error.response?.data?.message || '登录失败，请检查网络连接')
+      console.error('登录失败:', error)
     } finally {
       loading.value = false
     }
@@ -212,11 +210,9 @@ const handleCodeLogin = async () => {
         localStorage.setItem('userInfo', JSON.stringify(resp.data.userInfo))
         showSuccessTip('登录成功！正在跳转...')
         redirectAfterLogin(1000)
-      } else {
-        ElMessage.error(resp.message || '登录失败')
       }
     } catch (error: any) {
-      ElMessage.error(error.response?.data?.message || '登录失败')
+      console.error('登录失败:', error)
     } finally {
       loading.value = false
     }

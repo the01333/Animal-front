@@ -119,7 +119,10 @@ function handleTokenExpired() {
     type: 'warning',
     duration: 5000
   })
-  
+  if (window.location.hash !== '#/') {
+    window.location.hash = '#/'
+  }
+
   // 不立即跳转，让用户继续查看内容
   // 下次用户尝试操作时，会被重定向到登录页
 }

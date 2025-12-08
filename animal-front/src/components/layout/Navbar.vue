@@ -36,30 +36,35 @@
 
       <div class="nav-right">
         <template v-if="isLoggedIn">
-          <el-dropdown trigger="hover" @command="handleUserCommand">
-            <div class="user-entry">
-              <el-avatar :size="32" :src="userAvatar">
-                <UserFilled />
-              </el-avatar>
-              <span class="user-name">{{ displayName }}</span>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">
-                  <el-icon>
-                    <User />
-                  </el-icon>
-                  <span>个人中心</span>
-                </el-dropdown-item>
-                <el-dropdown-item divided command="logout">
-                  <el-icon>
-                    <SwitchButton />
-                  </el-icon>
-                  <span>退出登录</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <div class="nav-right-actions">
+            <button class="manual-chat-entry" type="button" @click="emitOpenManualChat">
+              人工客服
+            </button>
+            <el-dropdown trigger="hover" @command="handleUserCommand">
+              <div class="user-entry">
+                <el-avatar :size="32" :src="userAvatar">
+                  <UserFilled />
+                </el-avatar>
+                <span class="user-name">{{ displayName }}</span>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="profile">
+                    <el-icon>
+                      <User />
+                    </el-icon>
+                    <span>个人中心</span>
+                  </el-dropdown-item>
+                  <el-dropdown-item divided command="logout">
+                    <el-icon>
+                      <SwitchButton />
+                    </el-icon>
+                    <span>退出登录</span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
         </template>
 
         <template v-else>
@@ -88,6 +93,7 @@ const { isLoggedIn, userInfo } = storeToRefs(userStore)
 
 const emit = defineEmits<{
   (e: 'show-auth-dialog', tab?: 'login' | 'register'): void
+  (e: 'open-manual-chat'): void
 }>()
 
 const isProfilePage = computed(() => route.path.startsWith('/profile'))
@@ -159,6 +165,10 @@ const handleUserCommand = async (command: 'profile' | 'logout') => {
 const emitShowAuthDialog = (tab: 'login' | 'register' = 'login') => {
   emit('show-auth-dialog', tab)
   openAuthDialog(tab)
+}
+
+const emitOpenManualChat = () => {
+  emit('open-manual-chat')
 }
 
 // 计算滑块位置（百分比）
@@ -330,6 +340,27 @@ function getSliderPosition(): number {
   gap: 15px;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.nav-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.manual-chat-entry {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  background: linear-gradient(135deg, #ff9557 0%, #ff6b35 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(255, 107, 53, 0.3);
+}
+
+.manual-chat-entry:hover {
+  opacity: 0.9;
 }
 
 .user-entry {
