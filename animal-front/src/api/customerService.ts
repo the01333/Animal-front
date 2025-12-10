@@ -13,6 +13,7 @@ export interface CsSession {
   lastTime?: string
   unreadForUser?: number
   unreadForAgent?: number
+  online?: boolean
 }
 
 export interface CsMessage {

@@ -162,15 +162,109 @@ import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminAuthDialog from '@/components/auth/AdminAuthDialog.vue'
+import SockJS from 'sockjs-client'
+import { Client } from '@stomp/stompjs'
+import { storeToRefs } from 'pinia'
+import { pageManualCsSessions, type CsSession } from '@/api/customerService'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
 const adminAuthVisible = ref(false)
+const { token } = storeToRefs(userStore)
+
+const adminWsClient = ref<Client | null>(null)
+const adminWsConnected = ref(false)
 
 const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '200px'))
 const activeMenu = computed(() => route.path)
+
+const isAdminRole = computed(() => {
+  const role = String(userStore.userInfo?.role || '').toLowerCase()
+  return role === 'admin' || role === 'super_admin'
+})
+
+const getAdminWsUrl = () => {
+  const base = '/api/ws'
+  if (typeof window === 'undefined') return base
+  const t = localStorage.getItem('token')
+  if (t) {
+    return `${base}?token=${encodeURIComponent(t)}`
+  }
+  return base
+}
+
+const initAdminWs = () => {
+  if (adminWsClient.value) return
+  const socket = new SockJS(getAdminWsUrl())
+  const client = new Client({
+    webSocketFactory: () => socket as any,
+    reconnectDelay: 5000,
+    debug: () => { }
+  })
+
+  client.onConnect = () => {
+    adminWsConnected.value = true
+    client.subscribe('/user/queue/cs/unread', (frame: any) => {
+      try {
+        const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
+        if (typeof payload.unreadForAgent === 'number') {
+          appStore.setCsUnreadForAgent(payload.unreadForAgent)
+        }
+      } catch (e) {
+        console.error('解析客服未读汇总失败(后台布局)', e)
+      }
+    })
+  }
+
+  client.onStompError = () => {
+    adminWsConnected.value = false
+  }
+
+  client.onWebSocketClose = () => {
+    adminWsConnected.value = false
+  }
+
+  client.activate()
+  adminWsClient.value = client
+}
+
+const refreshAgentUnreadFromHttp = async () => {
+  if (!isAdminRole.value) return
+  try {
+    const res = await pageManualCsSessions({ current: 1, size: 50 })
+    const pageData = res.data
+    const records: CsSession[] = pageData?.records || []
+    const total = records.reduce((sum, item) => sum + (item.unreadForAgent || 0), 0)
+    appStore.setCsUnreadForAgent(total)
+  } catch (e) {
+    console.error('加载客服未读汇总失败(后台布局)', e)
+  }
+}
+
+watch(
+  () => token.value,
+  (val, oldVal) => {
+    if (val && val !== oldVal) {
+      if (adminWsClient.value) {
+        adminWsClient.value.deactivate()
+        adminWsClient.value = null
+        adminWsConnected.value = false
+      }
+      initAdminWs()
+      refreshAgentUnreadFromHttp()
+    }
+
+    if (!val && adminWsClient.value) {
+      adminWsClient.value.deactivate()
+      adminWsClient.value = null
+      adminWsConnected.value = false
+      appStore.setCsUnreadForAgent(0)
+    }
+  },
+  { immediate: true }
+)
 
 // 面包屑导航
 const breadcrumbs = computed(() => {
@@ -227,11 +321,20 @@ onMounted(async () => {
   if (typeof window !== 'undefined') {
     window.addEventListener('openAuthDialog', handleGlobalAuthDialog as EventListener)
   }
+
+  if (userStore.userInfo) {
+    refreshAgentUnreadFromHttp()
+  }
 })
 
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('openAuthDialog', handleGlobalAuthDialog as EventListener)
+  }
+  if (adminWsClient.value) {
+    adminWsClient.value.deactivate()
+    adminWsClient.value = null
+    adminWsConnected.value = false
   }
 })
 

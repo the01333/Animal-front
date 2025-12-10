@@ -135,6 +135,7 @@ interface ChatMessage {
 
 interface ChatSession {
   id: number
+  userId: number
   name: string
   avatar: string
   lastMessage: string
@@ -217,12 +218,13 @@ const loadSessions = async () => {
 
     sessions.value = records.map<ChatSession>((item) => ({
       id: item.id,
+      userId: item.userId,
       name: item.userNickname || `用户#${item.userId}`,
       avatar: item.userAvatar || 'http://localhost:9000/animal-adopt/default.jpg',
       lastMessage: item.lastMessage || '',
       lastTime: item.lastTime ? formatTime(item.lastTime as unknown as string) : '',
       unread: item.unreadForAgent || 0,
-      online: false,
+      online: !!item.online,
       preference: '',
       orders: ''
     }))
@@ -382,6 +384,20 @@ const initWs = () => {
         }
       } catch (e) {
         console.error('解析客服未读汇总失败', e)
+      }
+    })
+
+    // 订阅用户在线状态变更，实时更新会话列表中的 online 状态
+    client.subscribe('/topic/cs/presence', (frame: IMessage) => {
+      try {
+        const payload = JSON.parse(frame.body) as { userId?: number; online?: boolean }
+        if (!payload || typeof payload.userId !== 'number') return
+        const target = sessions.value.find((s) => s.userId === payload.userId)
+        if (target) {
+          target.online = !!payload.online
+        }
+      } catch (e) {
+        console.error('解析客服在线状态推送失败', e)
       }
     })
   }
