@@ -39,6 +39,7 @@
           <div class="nav-right-actions">
             <button class="manual-chat-entry" type="button" @click="emitOpenManualChat">
               人工客服
+              <span v-if="csUnreadForUser > 0" class="manual-chat-unread-dot"></span>
             </button>
             <el-dropdown trigger="hover" @command="handleUserCommand">
               <div class="user-entry">
@@ -85,11 +86,14 @@ import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import { openAuthDialog } from '@/utils/authHelper'
+import { useAppStore } from '@/stores/app'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const appStore = useAppStore()
 const { isLoggedIn, userInfo } = storeToRefs(userStore)
+const { csUnreadForUser } = storeToRefs(appStore)
 
 const emit = defineEmits<{
   (e: 'show-auth-dialog', tab?: 'login' | 'register'): void
@@ -349,6 +353,7 @@ function getSliderPosition(): number {
 }
 
 .manual-chat-entry {
+  position: relative;
   border: none;
   border-radius: 999px;
   padding: 6px 14px;
@@ -361,6 +366,16 @@ function getSliderPosition(): number {
 
 .manual-chat-entry:hover {
   opacity: 0.9;
+}
+
+.manual-chat-unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f56c6c;
 }
 
 .user-entry {

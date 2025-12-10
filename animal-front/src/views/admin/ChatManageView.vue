@@ -172,9 +172,15 @@ let sessionsPollTimer: number | null = null
 let messagesPollTimer: number | null = null
 
 const getWsUrl = () => {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
-  const base = apiBase.replace(/\/api\/?$/, '')
-  return `${base}/ws`
+  // 后端设置了 server.servlet.context-path=/api, WebSocket endpoint 实际为 /api/ws
+  // 通过查询参数 token 将当前登录 token 传给后端, 便于握手阶段绑定用户ID
+  const base = '/api/ws'
+  if (typeof window === 'undefined') return base
+  const token = localStorage.getItem('token')
+  if (token) {
+    return `${base}?token=${encodeURIComponent(token)}`
+  }
+  return base
 }
 
 const formatTime = (iso?: string | null): string => {
@@ -418,18 +424,8 @@ const sendMessage = async () => {
 
   try {
     sending.value = true
-    if (stompClient.value && wsConnected.value) {
-      stompClient.value.publish({
-        destination: '/app/cs/chat',
-        body: JSON.stringify({
-          sessionId: activeSessionId.value,
-          messageType: 'text',
-          content
-        })
-      })
-    } else {
-      await sendManualCsMessage(activeSessionId.value, { content, messageType: 'text' })
-    }
+    // 统一通过 HTTP 接口发送消息，由后端负责写入数据库并通过 WebSocket 推送给双方
+    await sendManualCsMessage(activeSessionId.value, { content, messageType: 'text' })
   } catch (error) {
     console.error('发送客服消息失败:', error)
     ElMessage.error('发送失败，请稍后重试')

@@ -71,6 +71,9 @@ import {
   readAckManualCs,
   type CsMessage
 } from '@/api/customerService'
+import { useAppStore } from '@/stores/app'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
 
 interface ManualMessage {
   id: string
@@ -103,6 +106,10 @@ let pollRunning = false
 const agentAvatar = computed(
   () => 'http://localhost:9000/animal-adopt/default.jpg'
 )
+
+const appStore = useAppStore()
+const userStore = useUserStore()
+const { token } = storeToRefs(userStore)
 
 const ensureWelcome = () => {
   if (messages.value.length === 0) {
@@ -172,9 +179,15 @@ const stopPolling = () => {
 }
 
 const getWsUrl = () => {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
-  const base = apiBase.replace(/\/api\/?$/, '')
-  return `${base}/ws`
+  // 后端设置了 server.servlet.context-path=/api, WebSocket endpoint 实际为 /api/ws
+  // 通过查询参数 token 将当前登录 token 传给后端, 便于握手阶段绑定用户ID
+  const base = '/api/ws'
+  if (typeof window === 'undefined') return base
+  const token = localStorage.getItem('token')
+  if (token) {
+    return `${base}?token=${encodeURIComponent(token)}`
+  }
+  return base
 }
 
 const initWs = () => {
@@ -189,6 +202,21 @@ const initWs = () => {
 
   client.onConnect = () => {
     wsConnected.value = true
+
+    // 订阅未读汇总推送, 更新用户侧客服未读数以驱动前台入口红点
+    client.subscribe('/user/queue/cs/unread', (frame: any) => {
+      try {
+        console.log('[WS] 收到未读汇总原始帧', frame)
+        const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
+        console.log('[WS] 解析后的未读汇总', payload)
+        if (typeof payload.unreadForUser === 'number') {
+          appStore.setCsUnreadForUser(payload.unreadForUser)
+          console.log('[WS] 已更新 appStore.csUnreadForUser =', payload.unreadForUser)
+        }
+      } catch (e) {
+        console.error('解析客服未读汇总失败', e, frame && frame.body)
+      }
+    })
   }
 
   client.onStompError = () => {
@@ -202,6 +230,27 @@ const initWs = () => {
   client.activate()
   stompClient.value = client
 }
+
+watch(
+  () => token.value,
+  (val, oldVal) => {
+    if (val && val !== oldVal) {
+      if (stompClient.value) {
+        stompClient.value.deactivate()
+        stompClient.value = null
+        wsConnected.value = false
+      }
+      initWs()
+    }
+
+    if (!val && stompClient.value) {
+      stompClient.value.deactivate()
+      stompClient.value = null
+      wsConnected.value = false
+    }
+  },
+  { immediate: true }
+)
 
 const loadHistory = async () => {
   if (!sessionId.value) return
@@ -230,6 +279,8 @@ const loadHistory = async () => {
     if (sessionId.value) {
       try {
         await readAckManualCs(sessionId.value, 'USER')
+        // 用户打开会话并发送已读回执后, 将前台入口未读数清零
+        appStore.setCsUnreadForUser(0)
       } catch (err) {
         console.error('发送用户侧已读回执失败:', err)
       }
@@ -249,7 +300,11 @@ const ensureSession = async () => {
   try {
     if (!sessionId.value) {
       const res = await openManualCsSession()
-      sessionId.value = res.data.id
+      const session = res.data
+      sessionId.value = session.id
+      if (session && typeof session.unreadForUser === 'number') {
+        appStore.setCsUnreadForUser(session.unreadForUser)
+      }
     }
     await loadHistory()
     // 会话就绪后启动长轮询获取新消息
