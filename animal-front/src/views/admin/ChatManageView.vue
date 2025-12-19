@@ -47,16 +47,14 @@
         <div class="chat-body">
           <main class="message-pane" ref="messageContainer">
             <div class="message-scroll">
-              <div
-                v-for="msg in currentMessages"
-                :key="msg.id"
-                class="message-row"
-                :class="msg.sender"
-              >
+              <div v-for="msg in currentMessages" :key="msg.id" class="message-row" :class="msg.sender">
+                <el-avatar v-if="msg.sender === 'user'" :size="34" :src="currentSession.avatar"
+                  class="message-avatar" />
                 <div class="message-bubble" :class="msg.sender">
                   <div class="message-content" v-html="msg.content" />
                   <div class="message-time">{{ msg.time }}</div>
                 </div>
+                <el-avatar v-if="msg.sender === 'agent'" :size="34" :src="agentAvatar" class="message-avatar" />
               </div>
               <div class="message-bottom-spacer" />
             </div>
@@ -85,16 +83,11 @@
         </div>
 
         <footer class="chat-input">
-          <el-input
-            v-model="draft"
-            type="textarea"
-            :rows="3"
-            placeholder="在此输入回复内容..."
-            @keydown.ctrl.enter.prevent.native="sendMessage"
-          />
+          <el-input v-model="draft" type="textarea" :rows="3" placeholder="在此输入回复内容..."
+            @keydown.ctrl.enter.prevent="sendMessage" />
           <div class="chat-input-actions">
             <span class="hint">按 Ctrl+Enter 发送，Enter 换行</span>
-            <el-button type="primary" size="small" @click="sendMessage" :disabled="!draft.trim()">
+            <el-button type="primary" size="medium" @click="sendMessage" :disabled="!draft.trim()">
               发送
             </el-button>
           </div>
@@ -115,6 +108,7 @@ import { Search } from '@element-plus/icons-vue'
 import SockJS from 'sockjs-client'
 import { Client, type IMessage } from '@stomp/stompjs'
 import { useAppStore } from '@/stores/app'
+import { useUserStore } from '@/stores/user'
 import {
   pageManualCsSessions,
   getManualCsMessages,
@@ -123,6 +117,7 @@ import {
   type CsSession,
   type CsMessage
 } from '@/api/customerService'
+import { processImageUrl } from '@/utils/image'
 
 type Sender = 'user' | 'agent'
 
@@ -147,9 +142,15 @@ interface ChatSession {
 }
 
 const appStore = useAppStore()
+const userStore = useUserStore()
 const searchKeyword = ref('')
 const sessions = ref<ChatSession[]>([])
 const messagesMap = ref<Record<number, ChatMessage[]>>({})
+
+const agentAvatar = computed(() => {
+  const avatar = userStore.userInfo?.avatar || ''
+  return avatar ? processImageUrl(avatar) : 'http://localhost:9000/animal-adopt/default.jpg'
+})
 
 const quickReplies = ref([
   { id: 'q1', text: '您好，这里是 i宠园客服，请问有什么可以帮您？' },
@@ -174,13 +175,9 @@ let messagesPollTimer: number | null = null
 
 const getWsUrl = () => {
   // 后端设置了 server.servlet.context-path=/api, WebSocket endpoint 实际为 /api/ws
-  // 通过查询参数 token 将当前登录 token 传给后端, 便于握手阶段绑定用户ID
+  // 通过 STOMP CONNECT headers 携带 Authorization, 便于 CONNECT 阶段绑定用户ID
   const base = '/api/ws'
   if (typeof window === 'undefined') return base
-  const token = localStorage.getItem('token')
-  if (token) {
-    return `${base}?token=${encodeURIComponent(token)}`
-  }
   return base
 }
 
@@ -219,8 +216,8 @@ const loadSessions = async () => {
     sessions.value = records.map<ChatSession>((item) => ({
       id: item.id,
       userId: item.userId,
-      name: item.userNickname || `用户#${item.userId}`,
-      avatar: item.userAvatar || 'http://localhost:9000/animal-adopt/default.jpg',
+      name: item.userUsername || item.userNickname || `用户#${item.userId}`,
+      avatar: item.userAvatar ? processImageUrl(item.userAvatar) : 'http://localhost:9000/animal-adopt/default.jpg',
       lastMessage: item.lastMessage || '',
       lastTime: item.lastTime ? formatTime(item.lastTime as unknown as string) : '',
       unread: item.unreadForAgent || 0,
@@ -262,24 +259,46 @@ const loadMessages = async (sessionId: number) => {
   }
 }
 
+const ackingSessionIds = new Set<number>()
+const pendingAckSessionIds = new Set<number>()
+
+const ackAgentRead = async (sessionId: number) => {
+  if (!sessionId || sessionId <= 0) return
+  if (ackingSessionIds.has(sessionId)) {
+    pendingAckSessionIds.add(sessionId)
+    return
+  }
+  ackingSessionIds.add(sessionId)
+  try {
+    do {
+      pendingAckSessionIds.delete(sessionId)
+      // 立即清零本地会话的未读数，确保UI立即响应
+      const target = sessions.value.find((s) => s.id === sessionId)
+      if (target) {
+        target.unread = 0
+      }
+      // 立即重新计算并更新全局未读总数
+      const totalUnread = sessions.value.reduce((sum, s) => sum + (s.unread || 0), 0)
+      appStore.setCsUnreadForAgent(totalUnread)
+      
+      // 发送ack到后端，后端会清零数据库并再次广播未读数（作为兜底同步）
+      await readAckManualCs(sessionId, 'AGENT')
+    } while (pendingAckSessionIds.has(sessionId))
+  } catch (error) {
+    console.error('更新客服侧未读状态失败:', error)
+  } finally {
+    ackingSessionIds.delete(sessionId)
+    pendingAckSessionIds.delete(sessionId)
+  }
+}
+
 const selectSession = async (id: number) => {
   activeSessionId.value = id
   await loadMessages(id)
   startMessagesPolling(id)
 
   // 点击会话后, 将客服侧未读数清零
-  try {
-    await readAckManualCs(id, 'AGENT')
-    const target = sessions.value.find((s) => s.id === id)
-    if (target) {
-      target.unread = 0
-    }
-    // 重新计算客服未读总数并更新到全局，用于导航红点
-    const totalUnread = sessions.value.reduce((sum, s) => sum + (s.unread || 0), 0)
-    appStore.setCsUnreadForAgent(totalUnread)
-  } catch (error) {
-    console.error('更新客服侧未读状态失败:', error)
-  }
+  await ackAgentRead(id)
 }
 
 const scrollToBottom = () => {
@@ -291,7 +310,6 @@ const scrollToBottom = () => {
 
 const startSessionsPolling = () => {
   // 只有在 WS 未连接时才使用轮询作为降级方案
-  if (wsConnected.value) return
   if (sessionsPollTimer) {
     window.clearInterval(sessionsPollTimer)
     sessionsPollTimer = null
@@ -308,7 +326,6 @@ const startSessionsPolling = () => {
 
 const startMessagesPolling = (sessionId: number) => {
   // 只有在 WS 未连接时才使用轮询作为降级方案
-  if (wsConnected.value) return
   if (messagesPollTimer) {
     window.clearInterval(messagesPollTimer)
     messagesPollTimer = null
@@ -338,8 +355,10 @@ const initWs = () => {
   if (stompClient.value) return
   const socketUrl = getWsUrl()
   const socket = new SockJS(socketUrl)
+  const tokenValue = localStorage.getItem('token')
   const client = new Client({
     webSocketFactory: () => socket as any,
+    connectHeaders: tokenValue ? { Authorization: `Bearer ${tokenValue}` } : {},
     reconnectDelay: 5000,
     debug: () => { }
   })
@@ -350,36 +369,85 @@ const initWs = () => {
       try {
         const payload = JSON.parse(frame.body) as CsMessage
         const sid = payload.sessionId
-        const list = messagesMap.value[sid] || []
-        list.push({
-          id: String(payload.id),
+        const msgId = String(payload.id)
+        const existingList = messagesMap.value[sid] || []
+
+        console.log('[WS消息] 收到消息', { 
+          sessionId: sid, 
+          msgId, 
+          senderRole: payload.senderRole, 
+          content: payload.content,
+          isCurrentSession: activeSessionId.value === sid 
+        })
+
+        // WS 断线重连/重复订阅时可能会收到重复帧，这里按消息ID去重，避免重复渲染 & 重复累加未读
+        if (existingList.some((m) => m.id === msgId)) {
+          console.log('[WS消息] 重复消息，已忽略', msgId)
+          return
+        }
+
+        const newMsg = {
+          id: msgId,
           sender: payload.senderRole === 'AGENT' ? 'agent' : 'user',
           content: payload.content,
           time: payload.createTime ? formatTime(payload.createTime as unknown as string) : ''
-        })
-        messagesMap.value[sid] = list
+        }
+        
+        // 直接创建新数组，确保Vue响应式系统能检测到变化
+        const newList = [...existingList, newMsg]
+        messagesMap.value = { ...messagesMap.value, [sid]: newList }
+        console.log('[WS消息] 消息已添加到messagesMap', { sessionId: sid, 消息总数: newList.length })
+        
         const s = sessions.value.find((it) => it.id === sid)
         if (s) {
+          // 实时更新会话列表中的最新消息和时间
           s.lastMessage = payload.content
           s.lastTime = payload.createTime
             ? formatTime(payload.createTime as unknown as string)
             : s.lastTime
+          
+          // 只有用户发送的消息才需要累加未读数
           if (payload.senderRole === 'USER') {
-            s.unread = (s.unread || 0) + 1
+            if (activeSessionId.value === sid) {
+              // 当前正在查看的会话收到消息：立即发送ack，不增加未读数
+              console.log('[WS消息] 当前会话收到用户消息，立即发送ack')
+              ackAgentRead(sid)
+            } else {
+              // 其他会话收到消息：本地未读数+1
+              s.unread = (s.unread || 0) + 1
+              // 立即重新计算全局未读总数并更新导航栏红点
+              const totalUnread = sessions.value.reduce((sum, sess) => sum + (sess.unread || 0), 0)
+              appStore.setCsUnreadForAgent(totalUnread)
+              console.log('[WS消息] 其他会话收到消息，未读数+1', { sessionId: sid, unread: s.unread, totalUnread })
+            }
+          }
+          
+          // 收到新消息后，将该会话置顶（模拟微信效果）
+          const idx = sessions.value.findIndex(sess => sess.id === sid)
+          if (idx > 0) {
+            const [movedSession] = sessions.value.splice(idx, 1)
+            sessions.value.unshift(movedSession)
+            console.log('[WS消息] 会话已置顶', { sessionId: sid, fromIndex: idx })
           }
         }
+        
         if (activeSessionId.value === sid) {
-          scrollToBottom()
+          console.log('[WS消息] 触发滚动到底部')
+          nextTick(() => {
+            scrollToBottom()
+          })
         }
       } catch (e) {
         console.error('解析客服WS消息失败', e)
       }
     })
-    // 订阅未读汇总推送, 更新全局客服未读数以驱动左侧导航红点
+    // 订阅未读汇总推送，仅作为后端的兜底同步机制
+    // 正常情况下，会话列表的unread由前端本地维护，这里只同步全局红点
     client.subscribe('/user/queue/cs/unread', (frame: IMessage) => {
       try {
         const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
         if (typeof payload.unreadForAgent === 'number') {
+          // 仅更新全局红点，不影响会话列表的unread数字（由本地维护）
           appStore.setCsUnreadForAgent(payload.unreadForAgent)
         }
       } catch (e) {
@@ -400,6 +468,7 @@ const initWs = () => {
         console.error('解析客服在线状态推送失败', e)
       }
     })
+    loadSessions()
   }
 
   client.onStompError = () => {
@@ -471,6 +540,11 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopAllPolling()
+  if (stompClient.value) {
+    stompClient.value.deactivate()
+    stompClient.value = null
+    wsConnected.value = false
+  }
 })
 </script>
 
@@ -518,7 +592,7 @@ onUnmounted(() => {
 }
 
 .conversation-item.active {
-  background-color: #f0f9ff;
+  background-color: #e0e9f0;
 }
 
 .conversation-avatar-wrapper {
@@ -637,7 +711,8 @@ onUnmounted(() => {
 
 .message-pane {
   flex: 1;
-  background-color: #e5ddd5;
+  /* background-color: #e5ddd5; */
+  background-color: #e8f1f3;
   padding: 12px 16px;
   overflow-y: auto;
 }
@@ -653,7 +728,13 @@ onUnmounted(() => {
 
 .message-row {
   display: flex;
+  align-items: flex-start;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+.message-avatar {
+  flex-shrink: 0;
 }
 
 .message-row.user {
@@ -774,7 +855,7 @@ onUnmounted(() => {
 }
 
 .chat-input-actions .hint {
-  font-size: 12px;
+  font-size: 13px;
   color: #909399;
 }
 

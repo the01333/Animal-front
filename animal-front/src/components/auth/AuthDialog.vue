@@ -36,7 +36,7 @@
                 <el-form-item prop="code">
                   <div class="code-input-wrapper">
                     <el-input v-model="loginPhoneForm.code" placeholder="请输入验证码" @keyup.enter="handleLoginByCode" />
-                    <el-button :disabled="loginCountdown > 0" @click="sendLoginCode('phone')">
+                    <el-button :disabled="loginCountdown > 0 || loginCodeSending" @click="sendLoginCode('phone')">
                       {{ loginCountdown > 0 ? `${loginCountdown}秒后重试` : '获取验证码' }}
                     </el-button>
                   </div>
@@ -59,7 +59,7 @@
                 <el-form-item prop="code">
                   <div class="code-input-wrapper">
                     <el-input v-model="loginEmailForm.code" placeholder="请输入验证码" @keyup.enter="handleLoginByCode" />
-                    <el-button :disabled="loginCountdown > 0" @click="sendLoginCode('email')">
+                    <el-button :disabled="loginCountdown > 0 || loginCodeSending" @click="sendLoginCode('email')">
                       {{ loginCountdown > 0 ? `${loginCountdown}秒后重试` : '获取验证码' }}
                     </el-button>
                   </div>
@@ -113,7 +113,7 @@
                   <div class="code-input-wrapper">
                     <el-input v-model="registerPhoneForm.code" placeholder="请输入验证码"
                       @keyup.enter="handleRegisterByCode" />
-                    <el-button :disabled="registerCountdown > 0" @click="sendRegisterCode('phone')">
+                    <el-button :disabled="registerCountdown > 0 || registerCodeSending" @click="sendRegisterCode('phone')">
                       {{ registerCountdown > 0 ? `${registerCountdown}秒后重试` : '获取验证码' }}
                     </el-button>
                   </div>
@@ -148,7 +148,7 @@
                   <div class="code-input-wrapper">
                     <el-input v-model="registerEmailForm.code" placeholder="请输入验证码"
                       @keyup.enter="handleRegisterByCode" />
-                    <el-button :disabled="registerCountdown > 0" @click="sendRegisterCode('email')">
+                    <el-button :disabled="registerCountdown > 0 || registerCodeSending" @click="sendRegisterCode('email')">
                       {{ registerCountdown > 0 ? `${registerCountdown}秒后重试` : '获取验证码' }}
                     </el-button>
                   </div>
@@ -335,6 +335,10 @@ let loginTimer: number | null = null
 const registerCountdown = ref(0)
 let registerTimer: number | null = null
 
+// 验证码发送中标记，防止接口返回前重复点击
+const loginCodeSending = ref(false)
+const registerCodeSending = ref(false)
+
 const loginLoading = ref(false)
 const registerLoading = ref(false)
 
@@ -373,12 +377,26 @@ const startRegisterCountdown = () => {
 
 // 发送登录验证码
 const sendLoginCode = async (type: 'phone' | 'email') => {
+  if (loginCountdown.value > 0 || loginCodeSending.value) {
+    return
+  }
+
+  // 先校验输入是否完整
+  if (type === 'phone') {
+    if (!loginPhoneForm.phone) {
+      ElMessage.warning('请先输入手机号')
+      return
+    }
+  } else {
+    if (!loginEmailForm.email) {
+      ElMessage.warning('请先输入邮箱')
+      return
+    }
+  }
+
+  loginCodeSending.value = true
   try {
     if (type === 'phone') {
-      if (!loginPhoneForm.phone) {
-        ElMessage.warning('请先输入手机号')
-        return
-      }
       const res = await sendPhoneVerificationCode(loginPhoneForm.phone, 'login')
       if (res.code === 200) {
         ElMessage.success('验证码已发送')
@@ -387,10 +405,6 @@ const sendLoginCode = async (type: 'phone' | 'email') => {
         ElMessage.error(res.message || '发送验证码失败')
       }
     } else {
-      if (!loginEmailForm.email) {
-        ElMessage.warning('请先输入邮箱')
-        return
-      }
       const res = await sendEmailVerificationCode(loginEmailForm.email, 'login')
       if (res.code === 200) {
         ElMessage.success('验证码已发送')
@@ -401,17 +415,34 @@ const sendLoginCode = async (type: 'phone' | 'email') => {
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || '发送验证码失败')
+  } finally {
+    loginCodeSending.value = false
   }
 }
 
 // 发送注册验证码（本质上也是登录验证码，后端会自动完成首次注册）
 const sendRegisterCode = async (type: 'phone' | 'email') => {
+  if (registerCountdown.value > 0 || registerCodeSending.value) {
+    return
+  }
+
+  // 先校验输入是否完整
+  if (type === 'phone') {
+    if (!registerPhoneForm.phone) {
+      ElMessage.warning('请先输入手机号')
+      return
+    }
+    registerCodeSending.value = true
+  } else {
+    if (!registerEmailForm.email) {
+      ElMessage.warning('请先输入邮箱')
+      return
+    }
+    registerCodeSending.value = true
+  }
+
   try {
     if (type === 'phone') {
-      if (!registerPhoneForm.phone) {
-        ElMessage.warning('请先输入手机号')
-        return
-      }
       const res = await sendPhoneVerificationCode(registerPhoneForm.phone, 'login')
       if (res.code === 200) {
         ElMessage.success('验证码已发送')
@@ -420,10 +451,6 @@ const sendRegisterCode = async (type: 'phone' | 'email') => {
         ElMessage.error(res.message || '发送验证码失败')
       }
     } else {
-      if (!registerEmailForm.email) {
-        ElMessage.warning('请先输入邮箱')
-        return
-      }
       const res = await sendEmailVerificationCode(registerEmailForm.email, 'login')
       if (res.code === 200) {
         ElMessage.success('验证码已发送')
@@ -434,6 +461,8 @@ const sendRegisterCode = async (type: 'phone' | 'email') => {
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || '发送验证码失败')
+  } finally {
+    registerCodeSending.value = false
   }
 }
 

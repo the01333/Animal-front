@@ -60,7 +60,7 @@
             <el-menu-item index="/admin/article/add">发布文章</el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item index="/admin/chat" class="menu-item-chat">
+          <el-menu-item v-if="isSuperAdmin" index="/admin/chat" class="menu-item-chat">
             <el-icon class="menu-chat-icon-wrapper">
               <ChatDotRound />
               <span v-if="appStore.csUnreadForAgent > 0" class="menu-chat-unread-dot" />
@@ -180,26 +180,27 @@ const adminWsConnected = ref(false)
 const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '200px'))
 const activeMenu = computed(() => route.path)
 
-const isAdminRole = computed(() => {
+const isSuperAdmin = computed(() => {
   const role = String(userStore.userInfo?.role || '').toLowerCase()
-  return role === 'admin' || role === 'super_admin'
+  return role === 'super_admin'
 })
+
+// 客服相关逻辑仅在超级管理员下生效
+const isAdminRole = computed(() => isSuperAdmin.value)
 
 const getAdminWsUrl = () => {
   const base = '/api/ws'
   if (typeof window === 'undefined') return base
-  const t = localStorage.getItem('token')
-  if (t) {
-    return `${base}?token=${encodeURIComponent(t)}`
-  }
   return base
 }
 
 const initAdminWs = () => {
   if (adminWsClient.value) return
   const socket = new SockJS(getAdminWsUrl())
+  const tokenValue = token.value || localStorage.getItem('token')
   const client = new Client({
     webSocketFactory: () => socket as any,
+    connectHeaders: tokenValue ? { Authorization: `Bearer ${tokenValue}` } : {},
     reconnectDelay: 5000,
     debug: () => { }
   })
@@ -298,10 +299,7 @@ const userAvatar = computed(() => {
   return avatar ? processImageUrl(avatar) : ''
 })
 
-const isSuperAdmin = computed(() => {
-  const role = String(userStore.userInfo?.role || '').toLowerCase()
-  return role === 'super_admin'
-})
+// 上面已定义 isSuperAdmin，这里不再重复定义
 
 const handleGlobalAuthDialog = () => {
   adminAuthVisible.value = true
@@ -442,6 +440,12 @@ const goToDashboard = () => {
     height: 8px;
     border-radius: 50%;
     background-color: #f56c6c;
+  }
+
+  .el-menu--collapse {
+    .menu-chat-unread-dot {
+      right: -2px;
+    }
   }
 }
 

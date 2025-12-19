@@ -158,7 +158,7 @@ const handleUserCommand = async (command: 'profile' | 'logout') => {
 
   // 退出登录
   userStore.logout()
-  
+
   // 如果在个人中心页面，重定向到首页并打开登录注册弹窗
   if (isProfilePage.value) {
     await router.push('/')
@@ -408,6 +408,7 @@ function getSliderPosition(): number {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
+  height: 15px;
 }
 
 /* 移除头像的边框和背景 */

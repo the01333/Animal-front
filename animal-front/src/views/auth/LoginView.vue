@@ -82,7 +82,7 @@
                     @keyup.enter="handleCodeLogin"
                   />
                   <el-button 
-                    :disabled="countdown > 0"
+                    :disabled="countdown > 0 || sendingCode"
                     @click="sendVerificationCode"
                   >
                     {{ countdown > 0 ? `${countdown}秒后重试` : '获取验证码' }}
@@ -165,6 +165,7 @@ const codeRules = reactive<FormRules>({
 
 const countdown = ref(0)
 let countdownTimer: number | null = null
+const sendingCode = ref(false)
 
 // 密码登录
 const handlePasswordLogin = async () => {
@@ -226,6 +227,11 @@ const sendVerificationCode = async () => {
     return
   }
 
+  if (countdown.value > 0 || sendingCode.value) {
+    return
+  }
+
+  sendingCode.value = true
   try {
     const endpoint = codeType.value === 'email' ? '/api/verification/email/send' : '/api/verification/phone/send'
     const response = await axios.post(endpoint, {
@@ -241,6 +247,8 @@ const sendVerificationCode = async () => {
     }
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message || '发送失败')
+  } finally {
+    sendingCode.value = false
   }
 }
 

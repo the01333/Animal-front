@@ -4,6 +4,7 @@ import type { ApiResponse, PageResponse } from '@/types'
 export interface CsSession {
   id: number
   userId: number
+  userUsername?: string
   userNickname?: string
   userAvatar?: string
   agentId?: number

@@ -14,6 +14,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
+    extensions: ['.mjs', '.ts', '.js', '.jsx', '.tsx', '.json'],
   },
   server: {
     proxy: {

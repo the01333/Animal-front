@@ -48,12 +48,6 @@
           </footer>
         </div>
       </transition>
-
-      <transition name="manual-chat-fade-slide">
-        <button v-if="!isExpanded" class="manual-chat-floating-btn" type="button" @click="open">
-          人工客服咨询
-        </button>
-      </transition>
     </div>
   </Teleport>
 </template>
@@ -77,6 +71,7 @@ import { storeToRefs } from 'pinia'
 
 interface ManualMessage {
   id: string
+  serverId?: number
   sender: 'user' | 'agent'
   content: string
   time: string
@@ -102,6 +97,9 @@ const wsConnected = ref(false)
 const lastMessageId = ref<number | null>(null)
 let pollStopped = false
 let pollRunning = false
+let unreadPollTimer: number | null = null
+const refreshingUnread = ref(false)
+const sendingReadAck = ref(false)
 
 const agentAvatar = computed(
   () => 'http://localhost:9000/animal-adopt/default.jpg'
@@ -120,6 +118,30 @@ const ensureWelcome = () => {
         '您好，我是人工客服小宠。如果您在领养流程、宠物健康或平台使用上有任何问题，都可以直接在这里告诉我哦~',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     })
+  }
+}
+
+const startUnreadPolling = () => {
+  if (typeof window === 'undefined') return
+  if (unreadPollTimer) {
+    window.clearInterval(unreadPollTimer)
+    unreadPollTimer = null
+  }
+  unreadPollTimer = window.setInterval(async () => {
+    if (isExpanded.value) return
+    try {
+      await refreshUnreadFromHttp()
+    } catch (e) {
+      console.error('轮询刷新客服未读数失败', e)
+    }
+  }, 15000)
+}
+
+const stopUnreadPolling = () => {
+  if (typeof window === 'undefined') return
+  if (unreadPollTimer) {
+    window.clearInterval(unreadPollTimer)
+    unreadPollTimer = null
   }
 }
 
@@ -149,14 +171,36 @@ const startPolling = async () => {
         sessionId.value,
         lastMessageId.value == null ? undefined : lastMessageId.value
       )
+      if (pollStopped || !isExpanded.value) {
+        break
+      }
       const list: CsMessage[] = res.data || []
       if (list.length > 0) {
         for (const item of list) {
-          const idStr = String(item.id)
+          const serverId = item.id
+          const idStr = String(serverId)
           // 避免重复追加已经存在的消息
-          if (messages.value.some((m) => m.id === idStr)) continue
+          if (messages.value.some((m) => m.serverId === serverId || m.id === idStr)) continue
+
+          // 用户端发送的消息可能已在本地回显，长轮询再拉到时应合并而不是追加
+          if (item.senderRole === 'USER') {
+            for (let i = messages.value.length - 1; i >= 0; i--) {
+              const m = messages.value[i]
+              if (m.sender !== 'user') continue
+              if (typeof m.serverId === 'number') continue
+              if (!m.id.endsWith('-u')) continue
+              if (m.content !== item.content) continue
+              m.serverId = serverId
+              m.time = formatTime(item.createTime)
+              break
+            }
+            // 如果成功合并，本轮无需 push
+            if (messages.value.some((m) => m.serverId === serverId)) continue
+          }
+
           messages.value.push({
             id: idStr,
+            serverId,
             sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
             content: item.content,
             time: formatTime(item.createTime)
@@ -164,6 +208,10 @@ const startPolling = async () => {
         }
         lastMessageId.value = list[list.length - 1].id
         scrollToBottom()
+
+        if (list.some((it) => it.senderRole === 'AGENT')) {
+          ackUserRead()
+        }
       }
     } catch (e) {
       console.error('长轮询刷新客服消息失败', e)
@@ -178,15 +226,53 @@ const stopPolling = () => {
   pollStopped = true
 }
 
+const ackUserRead = async () => {
+  if (sendingReadAck.value) return
+  const tokenValue = token.value || localStorage.getItem('token')
+  if (!tokenValue) return
+  if (!sessionId.value) return
+  sendingReadAck.value = true
+  try {
+    await readAckManualCs(sessionId.value, 'USER')
+    appStore.setCsUnreadForUser(0)
+  } catch (err) {
+    console.error('发送用户侧已读回执失败:', err)
+  } finally {
+    sendingReadAck.value = false
+  }
+}
+
+const refreshUnreadFromHttp = async () => {
+  if (refreshingUnread.value) return
+  const tokenValue = token.value || localStorage.getItem('token')
+  if (!tokenValue) return
+  refreshingUnread.value = true
+  try {
+    const res = await openManualCsSession()
+    const session = res.data
+    if (session && typeof session.id === 'number') {
+      sessionId.value = session.id
+    }
+    if (session && typeof session.unreadForUser === 'number') {
+      if (isExpanded.value && sessionId.value && session.unreadForUser > 0) {
+        appStore.setCsUnreadForUser(0)
+        ackUserRead()
+      } else {
+        appStore.setCsUnreadForUser(session.unreadForUser)
+      }
+    }
+  } catch (e) {
+    console.error('加载客服未读数失败', e)
+  } finally {
+    refreshingUnread.value = false
+  }
+}
+
 const getWsUrl = () => {
   // 后端设置了 server.servlet.context-path=/api, WebSocket endpoint 实际为 /api/ws
-  // 通过查询参数 token 将当前登录 token 传给后端, 便于握手阶段绑定用户ID
+  // 通过 STOMP CONNECT headers 携带 Authorization, 便于 CONNECT 阶段绑定用户ID
   const base = '/api/ws'
   if (typeof window === 'undefined') return base
-  const token = localStorage.getItem('token')
-  if (token) {
-    return `${base}?token=${encodeURIComponent(token)}`
-  }
   return base
 }
 
@@ -194,8 +280,10 @@ const initWs = () => {
   if (stompClient.value) return
   const socketUrl = getWsUrl()
   const socket = new SockJS(socketUrl)
+  const tokenValue = token.value || localStorage.getItem('token')
   const client = new Client({
     webSocketFactory: () => socket as any,
+    connectHeaders: tokenValue ? { Authorization: `Bearer ${tokenValue}` } : {},
     reconnectDelay: 5000,
     debug: () => { }
   })
@@ -210,13 +298,22 @@ const initWs = () => {
         const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
         console.log('[WS] 解析后的未读汇总', payload)
         if (typeof payload.unreadForUser === 'number') {
-          appStore.setCsUnreadForUser(payload.unreadForUser)
-          console.log('[WS] 已更新 appStore.csUnreadForUser =', payload.unreadForUser)
+          if (isExpanded.value && sessionId.value && payload.unreadForUser > 0) {
+            appStore.setCsUnreadForUser(0)
+            ackUserRead()
+            console.log('[WS] 已更新 appStore.csUnreadForUser =', 0)
+          } else {
+            appStore.setCsUnreadForUser(payload.unreadForUser)
+            console.log('[WS] 已更新 appStore.csUnreadForUser =', payload.unreadForUser)
+          }
         }
       } catch (e) {
         console.error('解析客服未读汇总失败', e, frame && frame.body)
       }
     })
+
+    // WS 连接成功后主动拉一次未读数，避免用户离线期间错过 push 导致红点不更新
+    refreshUnreadFromHttp()
   }
 
   client.onStompError = () => {
@@ -241,12 +338,14 @@ watch(
         wsConnected.value = false
       }
       initWs()
+      refreshUnreadFromHttp()
     }
 
     if (!val && stompClient.value) {
       stompClient.value.deactivate()
       stompClient.value = null
       wsConnected.value = false
+      appStore.setCsUnreadForUser(0)
     }
   },
   { immediate: true }
@@ -261,6 +360,7 @@ const loadHistory = async () => {
     if (list.length > 0) {
       messages.value = list.map((item) => ({
         id: String(item.id),
+        serverId: item.id,
         sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
         content: item.content,
         time: formatTime(item.createTime)
@@ -276,15 +376,7 @@ const loadHistory = async () => {
     scrollToBottom()
 
     // 打开窗口后, 将当前会话的用户侧未读数清零
-    if (sessionId.value) {
-      try {
-        await readAckManualCs(sessionId.value, 'USER')
-        // 用户打开会话并发送已读回执后, 将前台入口未读数清零
-        appStore.setCsUnreadForUser(0)
-      } catch (err) {
-        console.error('发送用户侧已读回执失败:', err)
-      }
-    }
+    await ackUserRead()
   } catch (error) {
     console.error('加载人工客服消息失败:', error)
     if (messages.value.length === 0) {
@@ -322,6 +414,7 @@ const ensureSession = async () => {
 }
 
 const open = async () => {
+  // 保留方法以兼容外部可能的调用，但当前入口由外层 v-model 控制
   isExpanded.value = true
   emit('update:visible', true)
   await ensureSession()
@@ -331,6 +424,8 @@ const minimize = () => {
   isExpanded.value = false
   emit('update:visible', false)
   stopPolling()
+  appStore.setCsUnreadForUser(0)
+  ackUserRead()
 }
 
 const handleSend = async () => {
@@ -361,10 +456,18 @@ const handleSend = async () => {
     const serverMsg = res.data
     if (serverMsg && typeof serverMsg.id === 'number') {
       lastMessageId.value = serverMsg.id
-      const idx = messages.value.findIndex((m) => m.id === localId)
-      if (idx !== -1) {
-        messages.value[idx].id = String(serverMsg.id)
-        messages.value[idx].time = formatTime(serverMsg.createTime)
+      const serverId = serverMsg.id
+      const serverIdStr = String(serverId)
+      let localIdx = messages.value.findIndex((m) => m.id === localId)
+      const dupIdx = messages.value.findIndex((m) => m.serverId === serverId || m.id === serverIdStr)
+
+      if (localIdx !== -1) {
+        if (dupIdx !== -1 && dupIdx !== localIdx) {
+          messages.value.splice(dupIdx, 1)
+          if (dupIdx < localIdx) localIdx -= 1
+        }
+        messages.value[localIdx].serverId = serverId
+        messages.value[localIdx].time = formatTime(serverMsg.createTime)
       }
     }
   } catch (error) {
@@ -377,13 +480,17 @@ const handleSend = async () => {
 
 watch(
   () => props.visible,
-  async (val) => {
+  async (val, oldVal) => {
     if (typeof val === 'boolean') {
       isExpanded.value = val
       if (val) {
         await ensureSession()
       } else {
         stopPolling()
+        if (oldVal) {
+          appStore.setCsUnreadForUser(0)
+          ackUserRead()
+        }
       }
     }
   },
@@ -392,6 +499,8 @@ watch(
 
 onMounted(async () => {
   initWs()
+  refreshUnreadFromHttp()
+  startUnreadPolling()
   if (props.visible) {
     await ensureSession()
   }
@@ -399,6 +508,12 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopPolling()
+  stopUnreadPolling()
+  if (stompClient.value) {
+    stompClient.value.deactivate()
+    stompClient.value = null
+    wsConnected.value = false
+  }
 })
 </script>
 
