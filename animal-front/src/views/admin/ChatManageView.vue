@@ -341,6 +341,7 @@ const scrollToBottom = () => {
   })
 }
 
+// TODO: 后台消息轮询时间
 const startSessionsPolling = () => {
   // 只有在 WS 未连接时才使用轮询作为降级方案
   if (sessionsPollTimer) {
@@ -354,7 +355,7 @@ const startSessionsPolling = () => {
     } catch (e) {
       console.error('轮询刷新会话列表失败', e)
     }
-  }, 5000)
+  }, 3000)
 }
 
 const startMessagesPolling = (sessionId: number) => {

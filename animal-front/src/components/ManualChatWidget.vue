@@ -121,6 +121,7 @@ const ensureWelcome = () => {
   }
 }
 
+// TODO: 前台未读红点渲染时间
 const startUnreadPolling = () => {
   if (typeof window === 'undefined') return
   if (unreadPollTimer) {
@@ -134,7 +135,7 @@ const startUnreadPolling = () => {
     } catch (e) {
       console.error('轮询刷新客服未读数失败', e)
     }
-  }, 5000)
+  }, 3000)
 }
 
 const stopUnreadPolling = () => {
@@ -314,7 +315,6 @@ const initWs = () => {
 
     // WS 连接成功后主动拉一次未读数，避免用户离线期间错过 push 导致红点不更新
     refreshUnreadFromHttp()
-    stopUnreadPolling()
   }
 
   client.onStompError = () => {

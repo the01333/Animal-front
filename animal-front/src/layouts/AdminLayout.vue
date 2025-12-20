@@ -241,10 +241,11 @@ const shouldHandleAgentUnreadFromWs = () => {
   return !(window as any).__csAdminChatViewActive
 }
 
+// TODO: 后台未读红点轮询时间
 const startAdminUnreadPolling = () => {
   if (typeof window === 'undefined') return
   if (adminUnreadPollTimer) return
-  // 兜底轮询未读汇总，避免极端情况下 WS 未读推送丢失时红点不同步
+  // TODO: 兜底轮询未读汇总，避免极端情况下 WS 未读推送丢失时红点不同步
   adminUnreadPollTimer = window.setInterval(() => {
     scheduleAdminUnreadHttpRefresh()
   }, 1000)
