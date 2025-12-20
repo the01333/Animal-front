@@ -134,7 +134,7 @@ const startUnreadPolling = () => {
     } catch (e) {
       console.error('轮询刷新客服未读数失败', e)
     }
-  }, 15000)
+  }, 1000)
 }
 
 const stopUnreadPolling = () => {

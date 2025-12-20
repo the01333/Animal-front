@@ -61,10 +61,12 @@
           </el-sub-menu>
 
           <el-menu-item v-if="isSuperAdmin" index="/admin/chat" class="menu-item-chat">
-            <el-icon class="menu-chat-icon-wrapper">
-              <ChatDotRound />
-              <span v-if="appStore.csUnreadForAgent > 0" class="menu-chat-unread-dot" />
-            </el-icon>
+            <el-badge class="menu-chat-badge" :value="appStore.csUnreadForAgent" :max="99"
+              :hidden="appStore.csUnreadForAgent === 0">
+              <el-icon>
+                <ChatDotRound />
+              </el-icon>
+            </el-badge>
             <template #title>客服会话</template>
           </el-menu-item>
 
@@ -178,6 +180,7 @@ const adminWsClient = ref<Client | null>(null)
 const adminWsConnected = ref(false)
 let adminWsReconnectTimer: number | null = null
 let lastAdminUnreadHttpRefresh = 0
+let adminUnreadPollTimer: number | null = null
 
 const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '200px'))
 const activeMenu = computed(() => route.path)
@@ -215,9 +218,25 @@ const scheduleAdminUnreadHttpRefresh = () => {
   if (typeof window === 'undefined') return
   if (!isAdminRole.value) return
   const now = Date.now()
-  if (now - lastAdminUnreadHttpRefresh < 5000) return
+  if (now - lastAdminUnreadHttpRefresh < 1000) return
   lastAdminUnreadHttpRefresh = now
   refreshAgentUnreadFromHttp()
+}
+
+const startAdminUnreadPolling = () => {
+  if (typeof window === 'undefined') return
+  if (adminUnreadPollTimer) return
+  // 兜底轮询未读汇总，避免极端情况下 WS 未读推送丢失时红点不同步
+  adminUnreadPollTimer = window.setInterval(() => {
+    scheduleAdminUnreadHttpRefresh()
+  }, 1000)
+}
+
+const stopAdminUnreadPolling = () => {
+  if (adminUnreadPollTimer) {
+    clearInterval(adminUnreadPollTimer)
+    adminUnreadPollTimer = null
+  }
 }
 
 const initAdminWs = () => {
@@ -225,7 +244,7 @@ const initAdminWs = () => {
     console.log('[AdminLayout WS] WebSocket 已存在，跳过初始化')
     return
   }
-  
+
   console.log('[AdminLayout WS] 开始初始化 WebSocket 连接')
   const socket = new SockJS(getAdminWsUrl())
   const tokenValue = token.value || localStorage.getItem('token')
@@ -249,17 +268,24 @@ const initAdminWs = () => {
       console.log('[AdminLayout WS] transport url', rawUrl)
     } catch (e) {
     }
-    
+
     client.subscribe('/user/queue/cs/unread', (frame: any) => {
       try {
         const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
         console.log('[AdminLayout WS] 收到未读消息推送', payload)
         if (typeof payload.unreadForAgent === 'number') {
-          console.log('[AdminLayout WS] 更新全局未读数', { 
-            旧值: appStore.csUnreadForAgent, 
-            新值: payload.unreadForAgent 
-          })
-          appStore.setCsUnreadForAgent(payload.unreadForAgent)
+          const oldVal = appStore.csUnreadForAgent
+          const newVal = payload.unreadForAgent
+          console.log('[AdminLayout WS] 更新全局未读数', { 旧值: oldVal, 新值: newVal })
+          appStore.setCsUnreadForAgent(newVal)
+
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('cs-ws-unread-agent', {
+                detail: { oldVal, newVal }
+              })
+            )
+          }
         }
       } catch (e) {
         console.error('[AdminLayout WS] 解析客服未读汇总失败', e)
@@ -341,6 +367,7 @@ watch(
       }
       initAdminWs()
       refreshAgentUnreadFromHttp()
+      startAdminUnreadPolling()
     }
 
     if (!val && adminWsClient.value) {
@@ -351,6 +378,7 @@ watch(
         clearTimeout(adminWsReconnectTimer)
         adminWsReconnectTimer = null
       }
+      stopAdminUnreadPolling()
       appStore.setCsUnreadForAgent(0)
     }
   },
@@ -415,6 +443,8 @@ onMounted(async () => {
     initAdminWs()
     // 刷新未读数
     refreshAgentUnreadFromHttp()
+    // 启动未读轮询兜底, 确保在任意栏目下侧边栏红点都能更新
+    startAdminUnreadPolling()
   }
 })
 
@@ -426,6 +456,7 @@ onBeforeUnmount(() => {
     clearTimeout(adminWsReconnectTimer)
     adminWsReconnectTimer = null
   }
+  stopAdminUnreadPolling()
   if (adminWsClient.value) {
     adminWsClient.value.deactivate()
     adminWsClient.value = null
@@ -522,26 +553,9 @@ const goToDashboard = () => {
   }
 
   .menu-item-chat {
-    position: relative;
-  }
-
-  .menu-chat-icon-wrapper {
-    position: relative;
-  }
-
-  .menu-chat-unread-dot {
-    position: absolute;
-    top: -5px;
-    right: -146px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: #f56c6c;
-  }
-
-  .el-menu--collapse {
-    .menu-chat-unread-dot {
-      right: -2px;
+    .menu-chat-badge {
+      display: inline-flex;
+      align-items: center;
     }
   }
 }

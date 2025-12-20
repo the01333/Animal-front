@@ -112,6 +112,7 @@ import { useUserStore } from '@/stores/user'
 import {
   pageManualCsSessions,
   getManualCsMessages,
+  longPollManualCsMessages,
   sendManualCsMessage,
   readAckManualCs,
   type CsSession,
@@ -175,6 +176,7 @@ let messagesPollTimer: number | null = null
 let wsSessionsRefreshTimer: number | null = null
 let chatEventListener: EventListener | null = null
 let presenceEventListener: EventListener | null = null
+let agentUnreadEventListener: EventListener | null = null
 
 const scheduleSessionsRefresh = () => {
   if (typeof window === 'undefined') return
@@ -258,21 +260,9 @@ const loadMessages = async (sessionId: number) => {
     // 已追加的新消息。这里改为按 id 合并，避免覆盖掉更“新”的本地消息。
     const existing = messagesMap.value[sessionId] || []
 
-    // 若服务端返回的消息看起来“更旧”（例如缓存/延迟），则不应用本次拉取，避免把 WS 新消息“挤没”。
     const toNum = (id: string) => {
       const n = Number(id)
       return Number.isFinite(n) ? n : null
-    }
-    const existingMax = existing.reduce<number>((max, m) => {
-      const n = toNum(m.id)
-      return n == null ? max : Math.max(max, n)
-    }, 0)
-    const serverMax = serverMsgs.reduce<number>((max, m) => {
-      const n = toNum(m.id)
-      return n == null ? max : Math.max(max, n)
-    }, 0)
-    if (existingMax > 0 && serverMax > 0 && serverMax < existingMax) {
-      return
     }
 
     const mergedMap = new Map<string, ChatMessage>()
@@ -372,14 +362,42 @@ const startMessagesPolling = (sessionId: number) => {
     window.clearInterval(messagesPollTimer)
     messagesPollTimer = null
   }
-  messagesPollTimer = window.setInterval(async () => {
-    if (wsConnected.value) return
+  startMessagesLongPolling(sessionId)
+}
+
+const startMessagesLongPolling = async (sessionId: number) => {
+  // 基于 longPollManualCsMessages 的长轮询，有新消息就立即返回并复用 WS 处理逻辑
+  while (activeSessionId.value === sessionId) {
     try {
-      await loadMessages(sessionId)
+      const existing = messagesMap.value[sessionId] || []
+      let lastNumericId: number | null = null
+      for (let i = existing.length - 1; i >= 0; i--) {
+        const n = Number(existing[i].id)
+        if (Number.isFinite(n)) {
+          lastNumericId = n
+          break
+        }
+      }
+
+      const res = await longPollManualCsMessages(
+        sessionId,
+        lastNumericId == null ? undefined : lastNumericId
+      )
+      if (activeSessionId.value !== sessionId) break
+
+      const list: CsMessage[] = res.data || []
+      if (list.length > 0) {
+        for (const item of list) {
+          // 统一走 WS 的处理分支，保证去重、会话排序、未读/已读逻辑一致
+          handleChatWsPayload(item)
+        }
+      }
     } catch (e) {
-      console.error('轮询刷新会话消息失败', e)
+      console.error('长轮询刷新会话消息失败', e)
+      // 出错时稍作等待，避免空转
+      await new Promise((resolve) => setTimeout(resolve, 1000))
     }
-  }, 10000)
+  }
 }
 
 const stopAllPolling = () => {
@@ -463,11 +481,6 @@ const handleChatWsPayload = (payload: any) => {
   }
 }
 
-const initWs = () => {
-  // 由 AdminLayout 统一维护 WS 连接，这里只消费事件
-  wsConnected.value = true
-}
-
 const sendMessage = async () => {
   const content = draft.value.trim()
   if (!content) return
@@ -478,24 +491,59 @@ const sendMessage = async () => {
 
   if (sending.value) return
 
+  const sessionId = activeSessionId.value
+  const localId = `${Date.now()}`
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  const msg: ChatMessage = {
-    id: `${Date.now()}`,
+
+  // 本地先回显一条消息，提升发送体验
+  const list = messagesMap.value[sessionId] || []
+  list.push({
+    id: localId,
     sender: 'agent',
     content,
     time
-  }
-
-  const list = messagesMap.value[activeSessionId.value] || []
-  list.push(msg)
-  messagesMap.value[activeSessionId.value] = list
+  })
+  messagesMap.value[sessionId] = list
   draft.value = ''
   scrollToBottom()
 
   try {
     sending.value = true
     // 统一通过 HTTP 接口发送消息，由后端负责写入数据库并通过 WebSocket 推送给双方
-    await sendManualCsMessage(activeSessionId.value, { content, messageType: 'text' })
+    const res = await sendManualCsMessage(sessionId, { content, messageType: 'text' })
+    const serverMsg = res.data as CsMessage | undefined
+    if (serverMsg && typeof serverMsg.id === 'number') {
+      const serverIdStr = String(serverMsg.id)
+      const targetList = messagesMap.value[sessionId] || []
+      let localIdx = targetList.findIndex((m) => m.id === localId)
+      const dupIdx = targetList.findIndex((m) => m.id === serverIdStr)
+
+      if (localIdx !== -1) {
+        // 如果列表中已经存在同一个 serverId 的消息，去重后复用本地那条
+        if (dupIdx !== -1 && dupIdx !== localIdx) {
+          targetList.splice(dupIdx, 1)
+          if (dupIdx < localIdx) localIdx -= 1
+        }
+        const target = targetList[localIdx]
+        target.id = serverIdStr
+        target.time = serverMsg.createTime
+          ? formatTime(serverMsg.createTime as unknown as string)
+          : target.time
+      } else if (dupIdx === -1) {
+        // 未找到本地回显的那条，则直接追加一条以服务端为准的消息
+        targetList.push({
+          id: serverIdStr,
+          sender: serverMsg.senderRole === 'AGENT' ? 'agent' : 'user',
+          content: serverMsg.content,
+          time: serverMsg.createTime
+            ? formatTime(serverMsg.createTime as unknown as string)
+            : ''
+        })
+      }
+
+      messagesMap.value[sessionId] = targetList
+      scrollToBottom()
+    }
   } catch (error) {
     console.error('发送客服消息失败:', error)
     ElMessage.error('发送失败，请稍后重试')
@@ -536,7 +584,6 @@ const endSession = async () => {
 
 onMounted(async () => {
   await loadSessions()
-  initWs()
   startSessionsPolling()
 
   if (typeof window !== 'undefined') {
@@ -564,11 +611,32 @@ onMounted(async () => {
       }
     }) as EventListener
     window.addEventListener('cs-ws-presence', presenceEventListener)
+
+    agentUnreadEventListener = ((event: Event) => {
+      try {
+        const detail = (event as CustomEvent).detail as { oldVal?: number; newVal?: number }
+        console.log('[ChatManageView WS] 收到 cs-ws-unread-agent 事件', detail)
+        if (!detail || typeof detail.newVal !== 'number' || typeof detail.oldVal !== 'number') return
+        if (detail.newVal <= detail.oldVal) return
+
+        // 客服未读数变大，说明可能有新消息到达，刷新会话及当前会话消息
+        loadSessions()
+        if (activeSessionId.value) {
+          loadMessages(activeSessionId.value)
+        }
+      } catch (e) {
+        console.error('[ChatManageView WS] 处理客服未读事件异常', e)
+      }
+    }) as EventListener
+    window.addEventListener('cs-ws-unread-agent', agentUnreadEventListener)
   }
 })
 
 onUnmounted(() => {
   stopAllPolling()
+
+  // 清空当前会话以终止可能存在的长轮询循环
+  activeSessionId.value = null
 
   if (typeof window !== 'undefined') {
     if (chatEventListener) {
@@ -578,6 +646,10 @@ onUnmounted(() => {
     if (presenceEventListener) {
       window.removeEventListener('cs-ws-presence', presenceEventListener)
       presenceEventListener = null
+    }
+    if (agentUnreadEventListener) {
+      window.removeEventListener('cs-ws-unread-agent', agentUnreadEventListener)
+      agentUnreadEventListener = null
     }
   }
   if (wsSessionsRefreshTimer) {
