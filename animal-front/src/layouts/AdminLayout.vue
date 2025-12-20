@@ -176,6 +176,8 @@ const { token } = storeToRefs(userStore)
 
 const adminWsClient = ref<Client | null>(null)
 const adminWsConnected = ref(false)
+let adminWsReconnectTimer: number | null = null
+let lastAdminUnreadHttpRefresh = 0
 
 const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '200px'))
 const activeMenu = computed(() => route.path)
@@ -194,8 +196,37 @@ const getAdminWsUrl = () => {
   return base
 }
 
+const scheduleAdminWsReconnect = () => {
+  if (typeof window === 'undefined') return
+  if (adminWsReconnectTimer) return
+  if (!isAdminRole.value) return
+  const tokenValue = token.value || localStorage.getItem('token')
+  if (!tokenValue) return
+  adminWsReconnectTimer = window.setTimeout(() => {
+    adminWsReconnectTimer = null
+    const latestToken = token.value || localStorage.getItem('token')
+    if (!latestToken) return
+    if (!isAdminRole.value) return
+    initAdminWs()
+  }, 5000)
+}
+
+const scheduleAdminUnreadHttpRefresh = () => {
+  if (typeof window === 'undefined') return
+  if (!isAdminRole.value) return
+  const now = Date.now()
+  if (now - lastAdminUnreadHttpRefresh < 5000) return
+  lastAdminUnreadHttpRefresh = now
+  refreshAgentUnreadFromHttp()
+}
+
 const initAdminWs = () => {
-  if (adminWsClient.value) return
+  if (adminWsClient.value) {
+    console.log('[AdminLayout WS] WebSocket 已存在，跳过初始化')
+    return
+  }
+  
+  console.log('[AdminLayout WS] 开始初始化 WebSocket 连接')
   const socket = new SockJS(getAdminWsUrl())
   const tokenValue = token.value || localStorage.getItem('token')
   const client = new Client({
@@ -207,28 +238,48 @@ const initAdminWs = () => {
 
   client.onConnect = () => {
     adminWsConnected.value = true
+    console.log('[AdminLayout WS] WebSocket 连接成功，订阅未读消息推送')
+    
     client.subscribe('/user/queue/cs/unread', (frame: any) => {
       try {
         const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
+        console.log('[AdminLayout WS] 收到未读消息推送', payload)
         if (typeof payload.unreadForAgent === 'number') {
+          console.log('[AdminLayout WS] 更新全局未读数', { 
+            旧值: appStore.csUnreadForAgent, 
+            新值: payload.unreadForAgent 
+          })
           appStore.setCsUnreadForAgent(payload.unreadForAgent)
         }
       } catch (e) {
-        console.error('解析客服未读汇总失败(后台布局)', e)
+        console.error('[AdminLayout WS] 解析客服未读汇总失败', e)
       }
     })
   }
 
-  client.onStompError = () => {
+  client.onStompError = (error) => {
     adminWsConnected.value = false
+    console.error('[AdminLayout WS] STOMP 错误', error)
+    if (adminWsClient.value !== client) return
+    adminWsClient.value = null
+    client.deactivate()
+    scheduleAdminUnreadHttpRefresh()
+    scheduleAdminWsReconnect()
   }
 
-  client.onWebSocketClose = () => {
+  client.onWebSocketClose = (event) => {
     adminWsConnected.value = false
+    console.log('[AdminLayout WS] WebSocket 连接关闭', event)
+    if (adminWsClient.value !== client) return
+    adminWsClient.value = null
+    client.deactivate()
+    scheduleAdminUnreadHttpRefresh()
+    scheduleAdminWsReconnect()
   }
 
   client.activate()
   adminWsClient.value = client
+  console.log('[AdminLayout WS] WebSocket 客户端已激活')
 }
 
 const refreshAgentUnreadFromHttp = async () => {
@@ -261,6 +312,10 @@ watch(
       adminWsClient.value.deactivate()
       adminWsClient.value = null
       adminWsConnected.value = false
+      if (adminWsReconnectTimer) {
+        clearTimeout(adminWsReconnectTimer)
+        adminWsReconnectTimer = null
+      }
       appStore.setCsUnreadForAgent(0)
     }
   },
@@ -320,7 +375,10 @@ onMounted(async () => {
     window.addEventListener('openAuthDialog', handleGlobalAuthDialog as EventListener)
   }
 
-  if (userStore.userInfo) {
+  if (userStore.userInfo && token.value) {
+    // 初始化 WebSocket 连接
+    initAdminWs()
+    // 刷新未读数
     refreshAgentUnreadFromHttp()
   }
 })
@@ -328,6 +386,10 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('openAuthDialog', handleGlobalAuthDialog as EventListener)
+  }
+  if (adminWsReconnectTimer) {
+    clearTimeout(adminWsReconnectTimer)
+    adminWsReconnectTimer = null
   }
   if (adminWsClient.value) {
     adminWsClient.value.deactivate()

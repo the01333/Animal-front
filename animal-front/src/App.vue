@@ -25,6 +25,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 重置样式 */
 * {
   margin: 0;
   padding: 0;

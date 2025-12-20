@@ -29,6 +29,10 @@ export const useUserStore = defineStore(
       return res
     }
 
+    async function loginWithPassword(payload: { username: string; password: string }) {
+      return login(payload.username, payload.password)
+    }
+
     // 获取用户信息
     async function getUserInfo() {
       const res = await getUserInfoApi()
@@ -68,6 +72,7 @@ export const useUserStore = defineStore(
       isAdmin,
       isManager,
       login,
+      loginWithPassword,
       getUserInfo,
       logout,
       restoreFromStorage
