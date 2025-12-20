@@ -61,13 +61,22 @@
           </el-sub-menu>
 
           <el-menu-item v-if="isSuperAdmin" index="/admin/chat" class="menu-item-chat">
-            <el-badge class="menu-chat-badge" :value="appStore.csUnreadForAgent" :max="99"
-              :hidden="appStore.csUnreadForAgent === 0">
+            <!-- 图标处的红点: 只在侧边栏收起时显示 -->
+            <el-badge class="menu-chat-icon-badge" :value="appStore.csUnreadForAgent" :max="99"
+              :hidden="appStore.csUnreadForAgent === 0 || !appStore.sidebarCollapsed">
               <el-icon>
                 <ChatDotRound />
               </el-icon>
             </el-badge>
-            <template #title>客服会话</template>
+
+            <!-- 标题处的红点: 只在侧边栏展开时显示 -->
+            <template #title>
+              <span class="menu-chat-title">
+                <span>客服会话</span>
+                <el-badge class="menu-chat-title-badge" :value="appStore.csUnreadForAgent" :max="99"
+                  :hidden="appStore.csUnreadForAgent === 0 || appStore.sidebarCollapsed" />
+              </span>
+            </template>
           </el-menu-item>
 
           <el-menu-item index="/admin/settings">
@@ -217,10 +226,19 @@ const scheduleAdminWsReconnect = () => {
 const scheduleAdminUnreadHttpRefresh = () => {
   if (typeof window === 'undefined') return
   if (!isAdminRole.value) return
+  if ((window as any).__csAdminChatViewActive === true) {
+    // 在客服会话详情页时，未读数由 ChatManageView 通过 WS 统一维护，这里直接返回
+    return
+  }
   const now = Date.now()
   if (now - lastAdminUnreadHttpRefresh < 1000) return
   lastAdminUnreadHttpRefresh = now
   refreshAgentUnreadFromHttp()
+}
+
+const shouldHandleAgentUnreadFromWs = () => {
+  if (typeof window === 'undefined') return true
+  return !(window as any).__csAdminChatViewActive
 }
 
 const startAdminUnreadPolling = () => {
@@ -277,7 +295,9 @@ const initAdminWs = () => {
           const oldVal = appStore.csUnreadForAgent
           const newVal = payload.unreadForAgent
           console.log('[AdminLayout WS] 更新全局未读数', { 旧值: oldVal, 新值: newVal })
-          appStore.setCsUnreadForAgent(newVal)
+          if (shouldHandleAgentUnreadFromWs()) {
+            appStore.setCsUnreadForAgent(newVal)
+          }
 
           if (typeof window !== 'undefined') {
             window.dispatchEvent(
@@ -553,9 +573,22 @@ const goToDashboard = () => {
   }
 
   .menu-item-chat {
-    .menu-chat-badge {
+    .menu-chat-title {
       display: inline-flex;
       align-items: center;
+      gap: 0;
+    }
+
+    .menu-chat-title-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 58px;
+    }
+
+    .menu-chat-icon-badge {
+      :deep(.el-badge__content.is-fixed) {
+        transform: translate(116%, 30%);
+      }
     }
   }
 }

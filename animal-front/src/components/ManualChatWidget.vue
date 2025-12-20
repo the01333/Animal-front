@@ -134,7 +134,7 @@ const startUnreadPolling = () => {
     } catch (e) {
       console.error('轮询刷新客服未读数失败', e)
     }
-  }, 1000)
+  }, 5000)
 }
 
 const stopUnreadPolling = () => {
@@ -314,14 +314,19 @@ const initWs = () => {
 
     // WS 连接成功后主动拉一次未读数，避免用户离线期间错过 push 导致红点不更新
     refreshUnreadFromHttp()
+    stopUnreadPolling()
   }
 
   client.onStompError = () => {
     wsConnected.value = false
+    // WS 异常时启用低频 HTTP 轮询兜底
+    startUnreadPolling()
   }
 
   client.onWebSocketClose = () => {
     wsConnected.value = false
+    // WS 断开时启用低频 HTTP 轮询兜底
+    startUnreadPolling()
   }
 
   client.activate()
@@ -500,6 +505,7 @@ watch(
 onMounted(async () => {
   initWs()
   refreshUnreadFromHttp()
+  // 初始阶段先开启低频 HTTP 兜底, 等 WS 连接成功后会自动 stop
   startUnreadPolling()
   if (props.visible) {
     await ensureSession()

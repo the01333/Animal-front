@@ -177,6 +177,7 @@ let wsSessionsRefreshTimer: number | null = null
 let chatEventListener: EventListener | null = null
 let presenceEventListener: EventListener | null = null
 let agentUnreadEventListener: EventListener | null = null
+const hasChatWsMessageEverArrived = ref(false)
 
 const scheduleSessionsRefresh = () => {
   if (typeof window === 'undefined') return
@@ -184,7 +185,7 @@ const scheduleSessionsRefresh = () => {
   wsSessionsRefreshTimer = window.setTimeout(() => {
     wsSessionsRefreshTimer = null
     loadSessions()
-  }, 500)
+  }, 0)
 }
 
 const formatTime = (iso?: string | null): string => {
@@ -353,7 +354,7 @@ const startSessionsPolling = () => {
     } catch (e) {
       console.error('轮询刷新会话列表失败', e)
     }
-  }, 15000)
+  }, 5000)
 }
 
 const startMessagesPolling = (sessionId: number) => {
@@ -583,12 +584,17 @@ const endSession = async () => {
 }
 
 onMounted(async () => {
+  if (typeof window !== 'undefined') {
+    ;(window as any).__csAdminChatViewActive = true
+  }
+
   await loadSessions()
   startSessionsPolling()
 
   if (typeof window !== 'undefined') {
     chatEventListener = ((event: Event) => {
       const detail = (event as CustomEvent).detail
+      hasChatWsMessageEverArrived.value = true
       console.log('[ChatManageView WS] 收到 cs-ws-chat 事件', {
         sessionId: (detail as any)?.sessionId,
         id: (detail as any)?.id
@@ -619,10 +625,16 @@ onMounted(async () => {
         if (!detail || typeof detail.newVal !== 'number' || typeof detail.oldVal !== 'number') return
         if (detail.newVal <= detail.oldVal) return
 
-        // 客服未读数变大，说明可能有新消息到达，刷新会话及当前会话消息
-        loadSessions()
-        if (activeSessionId.value) {
-          loadMessages(activeSessionId.value)
+        // 客服未读数变大，说明可能有新消息到达
+        // 如果当前已经在正常接收聊天 WS 消息（hasChatWsMessageEverArrived 为 true），
+        // 会话列表和未读红点已经通过 handleChatWsPayload 实时更新，这里就不再触发额外的 HTTP 刷新，
+        // 避免因为接口延迟导致“红点和最新消息不同步”的观感。
+        if (!hasChatWsMessageEverArrived.value) {
+          // 仅在还未收到过聊天 WS 时，将未读推送当作兜底信号，主动刷新一次会话列表和当前会话消息。
+          loadSessions()
+          if (activeSessionId.value) {
+            loadMessages(activeSessionId.value)
+          }
         }
       } catch (e) {
         console.error('[ChatManageView WS] 处理客服未读事件异常', e)
@@ -635,10 +647,10 @@ onMounted(async () => {
 onUnmounted(() => {
   stopAllPolling()
 
-  // 清空当前会话以终止可能存在的长轮询循环
   activeSessionId.value = null
 
   if (typeof window !== 'undefined') {
+    ;(window as any).__csAdminChatViewActive = false
     if (chatEventListener) {
       window.removeEventListener('cs-ws-chat', chatEventListener)
       chatEventListener = null
