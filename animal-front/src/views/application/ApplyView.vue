@@ -843,6 +843,29 @@ onMounted(() => {
   color: #047857;
 }
 
+.btn-confirm {
+  padding: 0.1rem 0.5rem;
+  border: none;
+  border-radius: 12px;
+  margin: 5px 3px 0 1px;
+  background-color: #a2d6c5;
+}
+
+.btn-confirm:hover {
+  background-color: #3dae8f;
+}
+
+.btn-cancel {
+  padding: 0.1rem 0.5rem;
+  border: none;
+  border-radius: 12px;
+  background-color: #ecc4c4;
+}
+
+.btn-cancel:hover {
+  background-color: #c97878;
+}
+
 .form-step {
   background: #fff;
   border-radius: 12px;
@@ -1354,6 +1377,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   box-shadow: 0 12px 25px rgba(244, 63, 94, 0.3);
+  margin-left: 5px;
 }
 
 .modify-info-btn:hover {
@@ -1424,6 +1448,7 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
+  margin-left: 3px;
 }
 
 .btn-prev {

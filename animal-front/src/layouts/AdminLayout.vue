@@ -46,7 +46,7 @@
               <span>用户管理</span>
             </template>
             <el-menu-item v-if="isSuperAdmin" index="/admin/user/list">用户列表</el-menu-item>
-            <el-menu-item index="/admin/user/certification">认证审核</el-menu-item>
+            <el-menu-item v-if="isSuperAdmin" index="/admin/user/certification">认证审核</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="content">
@@ -79,7 +79,7 @@
             </template>
           </el-menu-item>
 
-          <el-menu-item index="/admin/settings">
+          <el-menu-item v-if="isSuperAdmin" index="/admin/settings">
             <el-icon>
               <Setting />
             </el-icon>

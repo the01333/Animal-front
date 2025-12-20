@@ -55,9 +55,9 @@
               <el-form-item prop="agreeTerms">
                 <el-checkbox v-model="emailForm.agreeTerms">
                   我已阅读并同意
-                  <el-link type="primary" :underline="false">《用户协议》</el-link>
+                  <el-link type="primary" :underline="false" @click.stop="openPolicyFromRegister('terms')">《用户协议》</el-link>
                   和
-                  <el-link type="primary" :underline="false">《隐私政策》</el-link>
+                  <el-link type="primary" :underline="false" @click.stop="openPolicyFromRegister('privacy')">《隐私政策》</el-link>
                 </el-checkbox>
               </el-form-item>
 
@@ -112,9 +112,9 @@
               <el-form-item prop="agreeTerms">
                 <el-checkbox v-model="phoneForm.agreeTerms">
                   我已阅读并同意
-                  <el-link type="primary" :underline="false">《用户协议》</el-link>
+                  <el-link type="primary" :underline="false" @click.stop="openPolicyFromRegister('terms')">《用户协议》</el-link>
                   和
-                  <el-link type="primary" :underline="false">《隐私政策》</el-link>
+                  <el-link type="primary" :underline="false" @click.stop="openPolicyFromRegister('privacy')">《隐私政策》</el-link>
                 </el-checkbox>
               </el-form-item>
 
@@ -371,6 +371,15 @@ const showSuccessTip = (message: string) => {
   setTimeout(() => {
     showTip.value = false
   }, 3000)
+}
+
+const openPolicyFromRegister = (type: 'terms' | 'privacy') => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent('openPolicyDialog', {
+      detail: { type: type === 'terms' ? 'terms' : 'privacy' }
+    })
+  )
 }
 </script>
 

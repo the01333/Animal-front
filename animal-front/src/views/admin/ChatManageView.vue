@@ -7,7 +7,7 @@
           <el-input v-model="searchKeyword" placeholder="搜索用户..." :prefix-icon="Search" clearable />
         </div>
         <el-scrollbar class="conversation-list">
-          <div v-for="session in filteredSessions" :key="session.id" class="conversation-item"
+          <div v-for="session in sessions" :key="session.id" class="conversation-item"
             :class="{ active: session.id === activeSessionId }" @click="selectSession(session.id)">
             <div class="conversation-avatar-wrapper">
               <el-avatar :size="40" :src="session.avatar" />
@@ -28,7 +28,7 @@
 
       <section v-if="currentSession" class="chat-main">
         <header class="chat-header">
-          <div class="chat-header-left">
+          <div class="chat-header-left" @click="openUserProfile">
             <el-avatar :size="40" :src="currentSession.avatar" />
             <div class="chat-user-info">
               <div class="chat-user-name">{{ currentSession.name }}</div>
@@ -39,7 +39,7 @@
             </div>
           </div>
           <div class="chat-header-actions">
-            <el-button text>查看资料</el-button>
+            <el-button text @click="openUserProfile">查看资料</el-button>
             <el-button text type="danger" @click="endSession">结束会话</el-button>
           </div>
         </header>
@@ -47,14 +47,19 @@
         <div class="chat-body">
           <main class="message-pane" ref="messageContainer">
             <div class="message-scroll">
-              <div v-for="msg in currentMessages" :key="msg.id" class="message-row" :class="msg.sender">
-                <el-avatar v-if="msg.sender === 'user'" :size="34" :src="currentSession.avatar"
-                  class="message-avatar" />
-                <div class="message-bubble" :class="msg.sender">
-                  <div class="message-content" v-html="msg.content" />
-                  <div class="message-time">{{ msg.time }}</div>
+              <div v-for="(msg, index) in currentMessages" :key="msg.id">
+                <div v-if="shouldShowDateDivider(index)" class="message-date-divider">
+                  <span class="message-date-label">{{ getMessageDateLabel(msg) }}</span>
                 </div>
-                <el-avatar v-if="msg.sender === 'agent'" :size="34" :src="agentAvatar" class="message-avatar" />
+                <div class="message-row" :class="msg.sender">
+                  <el-avatar v-if="msg.sender === 'user'" :size="34" :src="currentSession.avatar"
+                    class="message-avatar" />
+                  <div class="message-bubble" :class="msg.sender">
+                    <div class="message-content" v-html="msg.content" />
+                    <div class="message-time">{{ msg.time }}</div>
+                  </div>
+                  <el-avatar v-if="msg.sender === 'agent'" :size="34" :src="agentAvatar" class="message-avatar" />
+                </div>
               </div>
               <div class="message-bottom-spacer" />
             </div>
@@ -65,11 +70,9 @@
               <span>{{ sideCollapsed ? '‹' : '›' }}</span>
             </div>
             <div v-if="!sideCollapsed" class="side-content">
-              <div class="side-section">
+              <div class="side-section side-user-info">
                 <div class="side-title">用户信息</div>
                 <div class="side-item"><span>昵称：</span>{{ currentSession.name }}</div>
-                <div class="side-item"><span>宠物偏好：</span>{{ currentSession.preference }}</div>
-                <div class="side-item"><span>历史订单：</span>{{ currentSession.orders }}</div>
               </div>
               <div class="side-section">
                 <div class="side-title">快捷回复</div>
@@ -97,6 +100,40 @@
       <section v-else class="chat-main-empty">
         <el-empty description="请选择左侧的用户会话开始聊天" />
       </section>
+
+      <transition name="user-profile">
+        <div v-if="showUserProfile && currentSession" class="user-profile-overlay" @click="closeUserProfile">
+          <div class="user-profile-dialog" @click.stop>
+            <div class="user-profile-header">
+              <el-avatar :size="64" :src="currentSession.avatar" />
+              <div class="user-profile-basic">
+                <div class="user-profile-name">{{ currentSession.name }}</div>
+                <div class="user-profile-status">
+                  <span class="status-dot" :class="{ online: currentSession.online }" />
+                  <span>{{ currentSession.online ? '在线' : '离线' }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="user-profile-body">
+              <div class="user-profile-row">
+                <span class="label">用户ID：</span>
+                <span class="value">{{ currentSession.userId }}</span>
+              </div>
+              <div class="user-profile-row">
+                <span class="label">最近消息：</span>
+                <span class="value">{{ currentSession.lastMessage || '暂无' }}</span>
+              </div>
+              <div class="user-profile-row">
+                <span class="label">最近时间：</span>
+                <span class="value">{{ currentSession.lastTimeFull || '暂无' }}</span>
+              </div>
+            </div>
+            <div class="user-profile-footer">
+              <el-button size="default" @click="closeUserProfile">关闭</el-button>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -127,6 +164,7 @@ interface ChatMessage {
   sender: Sender
   content: string
   time: string
+  isoTime?: string | null
 }
 
 interface ChatSession {
@@ -136,6 +174,7 @@ interface ChatSession {
   avatar: string
   lastMessage: string
   lastTime: string
+  lastTimeFull: string
   unread: number
   online: boolean
   preference: string
@@ -166,6 +205,7 @@ const activeSessionId = ref<number | null>(null)
 const draft = ref('')
 const sideCollapsed = ref(false)
 const messageContainer = ref<HTMLElement | null>(null)
+const showUserProfile = ref(false)
 
 const loadingSessions = ref(false)
 const loadingMessages = ref(false)
@@ -195,13 +235,18 @@ const formatTime = (iso?: string | null): string => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-const filteredSessions = computed(() => {
-  const keyword = searchKeyword.value.trim().toLowerCase()
-  if (!keyword) return sessions.value
-  return sessions.value.filter((s) =>
-    s.name.toLowerCase().includes(keyword) || s.lastMessage.toLowerCase().includes(keyword)
-  )
-})
+const formatTimeFull = (iso?: string | null): string => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => (n < 10 ? `0${n}` : String(n))
+  const y = d.getFullYear()
+  const m = pad(d.getMonth() + 1)
+  const day = pad(d.getDate())
+  const h = pad(d.getHours())
+  const min = pad(d.getMinutes())
+  return `${y}-${m}-${day} ${h}:${min}`
+}
 
 const currentSession = computed(() => {
   if (!activeSessionId.value) return null
@@ -213,10 +258,58 @@ const currentMessages = computed(() => {
   return messagesMap.value[activeSessionId.value] || []
 })
 
+const formatDateOnly = (iso?: string | null): string => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => (n < 10 ? `0${n}` : String(n))
+  const y = d.getFullYear()
+  const m = pad(d.getMonth() + 1)
+  const day = pad(d.getDate())
+  return `${y}-${m}-${day}`
+}
+
+const isTodayIso = (iso?: string | null): boolean => {
+  if (!iso) return false
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return false
+  const now = new Date()
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
+}
+
+const getMessageDateLabel = (msg: ChatMessage): string => {
+  if (!msg || !msg.isoTime) return ''
+  if (isTodayIso(msg.isoTime)) return '今天'
+  return formatDateOnly(msg.isoTime)
+}
+
+const shouldShowDateDivider = (index: number): boolean => {
+  const list = currentMessages.value
+  if (index < 0 || index >= list.length) return false
+  const msg = list[index]
+  if (!msg || !msg.isoTime) return false
+  const currentLabel = getMessageDateLabel(msg)
+  if (!currentLabel) return false
+  if (index === 0) return true
+  const prev = list[index - 1]
+  if (!prev || !prev.isoTime) return true
+  const prevLabel = getMessageDateLabel(prev)
+  return currentLabel !== prevLabel
+}
+
 const loadSessions = async () => {
   loadingSessions.value = true
   try {
-    const res = await pageManualCsSessions({ current: 1, size: 50 })
+    const keyword = searchKeyword.value.trim()
+    const res = await pageManualCsSessions({
+      current: 1,
+      size: 50,
+      keyword: keyword || undefined
+    })
     const pageData = res.data
     const records: CsSession[] = pageData?.records || []
 
@@ -227,6 +320,7 @@ const loadSessions = async () => {
       avatar: item.userAvatar ? processImageUrl(item.userAvatar) : 'http://localhost:9000/animal-adopt/default.jpg',
       lastMessage: item.lastMessage || '',
       lastTime: item.lastTime ? formatTime(item.lastTime as unknown as string) : '',
+      lastTimeFull: item.lastTime ? formatTimeFull(item.lastTime as unknown as string) : '',
       unread: item.unreadForAgent || 0,
       online: !!item.online,
       preference: '',
@@ -244,6 +338,14 @@ const loadSessions = async () => {
   }
 }
 
+watch(
+  () => searchKeyword.value,
+  () => {
+    // 根据输入关键字走接口按用户账号模糊搜索会话列表
+    loadSessions()
+  }
+)
+
 const loadMessages = async (sessionId: number) => {
   loadingMessages.value = true
   try {
@@ -254,7 +356,8 @@ const loadMessages = async (sessionId: number) => {
       id: String(item.id),
       sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
       content: item.content,
-      time: item.createTime ? formatTime(item.createTime as unknown as string) : ''
+      time: item.createTime ? formatTime(item.createTime as unknown as string) : '',
+      isoTime: (item.createTime as unknown as string) || ''
     }))
 
     // 注意：当 WS 正常但页面仍“需要刷新才能看到”时，常见原因是这里的 HTTP 拉取覆盖了 WS
@@ -439,7 +542,8 @@ const handleChatWsPayload = (payload: any) => {
       id: msgId,
       sender: (msg as any).senderRole === 'AGENT' ? 'agent' : 'user',
       content: (msg as any).content,
-      time: (msg as any).createTime ? formatTime((msg as any).createTime as unknown as string) : ''
+      time: (msg as any).createTime ? formatTime((msg as any).createTime as unknown as string) : '',
+      isoTime: (msg as any).createTime as unknown as string
     }
     const newList = [...existingList, newMsg]
     messagesMap.value = { ...messagesMap.value, [sid]: newList }
@@ -450,6 +554,9 @@ const handleChatWsPayload = (payload: any) => {
       s.lastTime = (msg as any).createTime
         ? formatTime((msg as any).createTime as unknown as string)
         : s.lastTime
+      s.lastTimeFull = (msg as any).createTime
+        ? formatTimeFull((msg as any).createTime as unknown as string)
+        : s.lastTimeFull
 
       if ((msg as any).senderRole === 'USER') {
         if (activeSessionId.value === sid) {
@@ -503,7 +610,8 @@ const sendMessage = async () => {
     id: localId,
     sender: 'agent',
     content,
-    time
+    time,
+    isoTime: new Date().toISOString()
   })
   messagesMap.value[sessionId] = list
   draft.value = ''
@@ -531,6 +639,7 @@ const sendMessage = async () => {
         target.time = serverMsg.createTime
           ? formatTime(serverMsg.createTime as unknown as string)
           : target.time
+        target.isoTime = (serverMsg.createTime as unknown as string) || target.isoTime
       } else if (dupIdx === -1) {
         // 未找到本地回显的那条，则直接追加一条以服务端为准的消息
         targetList.push({
@@ -539,7 +648,8 @@ const sendMessage = async () => {
           content: serverMsg.content,
           time: serverMsg.createTime
             ? formatTime(serverMsg.createTime as unknown as string)
-            : ''
+            : '',
+          isoTime: (serverMsg.createTime as unknown as string) || ''
         })
       }
 
@@ -565,6 +675,15 @@ const appendQuickReply = (text: string) => {
 
 const toggleSide = () => {
   sideCollapsed.value = !sideCollapsed.value
+}
+
+const openUserProfile = () => {
+  if (!currentSession.value) return
+  showUserProfile.value = true
+}
+
+const closeUserProfile = () => {
+  showUserProfile.value = false
 }
 
 const endSession = async () => {
@@ -793,6 +912,11 @@ onUnmounted(() => {
   gap: 10px;
 }
 
+.chat-header-left:hover {
+  /* 移动鼠标由箭头变指针 */
+  cursor: pointer;
+}
+
 .chat-user-info {
   display: flex;
   flex-direction: column;
@@ -836,7 +960,7 @@ onUnmounted(() => {
 .message-pane {
   flex: 1;
   /* background-color: #e5ddd5; */
-  background-color: #e8f1f3;
+  background-color: #daead6;
   padding: 12px 16px;
   overflow-y: auto;
 }
@@ -896,6 +1020,22 @@ onUnmounted(() => {
   font-size: 11px;
   color: #909399;
   text-align: right;
+}
+
+.message-date-divider {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+  font-size: 12px;
+  color: #333334;
+  height: 25px;
+  text-align: center;
+}
+
+.message-date-label {
+  padding: 2px 10px;
+  background-color: #ece8e8;
+  border-radius: 999px;
 }
 
 .side-pane {
@@ -989,5 +1129,91 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   background-color: #f5f7fa;
+}
+
+.side-user-info:hover {
+  background-color: #f5f7fa;
+}
+
+.user-profile-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.user-profile-dialog {
+  width: 420px;
+  max-width: 90vw;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+  padding: 20px 24px 16px;
+}
+
+.user-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.user-profile-basic {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-profile-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.user-profile-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.user-profile-body {
+  font-size: 14px;
+  color: #606266;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.user-profile-row {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+
+.user-profile-row .label {
+  color: #909399;
+  margin-right: 6px;
+}
+
+.user-profile-footer {
+  text-align: right;
+}
+
+.user-profile-enter-active,
+.user-profile-leave-active {
+  transition: all 0.25s ease;
+}
+
+.user-profile-enter-from,
+.user-profile-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(10px);
 }
 </style>
