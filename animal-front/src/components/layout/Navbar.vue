@@ -36,30 +36,36 @@
 
       <div class="nav-right">
         <template v-if="isLoggedIn">
-          <el-dropdown trigger="hover" @command="handleUserCommand">
-            <div class="user-entry">
-              <el-avatar :size="32" :src="userAvatar">
-                <UserFilled />
-              </el-avatar>
-              <span class="user-name">{{ displayName }}</span>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">
-                  <el-icon>
-                    <User />
-                  </el-icon>
-                  <span>个人中心</span>
-                </el-dropdown-item>
-                <el-dropdown-item divided command="logout">
-                  <el-icon>
-                    <SwitchButton />
-                  </el-icon>
-                  <span>退出登录</span>
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <div class="nav-right-actions">
+            <button class="manual-chat-entry" type="button" @click="emitOpenManualChat">
+              人工客服
+              <span v-if="csUnreadForUser > 0" class="manual-chat-unread-dot"></span>
+            </button>
+            <el-dropdown trigger="hover" @command="handleUserCommand">
+              <div class="user-entry">
+                <el-avatar :size="32" :src="userAvatar">
+                  <UserFilled />
+                </el-avatar>
+                <span class="user-name">{{ displayName }}</span>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="profile">
+                    <el-icon>
+                      <User />
+                    </el-icon>
+                    <span>个人中心</span>
+                  </el-dropdown-item>
+                  <el-dropdown-item divided command="logout">
+                    <el-icon>
+                      <SwitchButton />
+                    </el-icon>
+                    <span>退出登录</span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
         </template>
 
         <template v-else>
@@ -80,14 +86,18 @@ import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import { openAuthDialog } from '@/utils/authHelper'
+import { useAppStore } from '@/stores/app'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const appStore = useAppStore()
 const { isLoggedIn, userInfo } = storeToRefs(userStore)
+const { csUnreadForUser } = storeToRefs(appStore)
 
 const emit = defineEmits<{
   (e: 'show-auth-dialog', tab?: 'login' | 'register'): void
+  (e: 'open-manual-chat'): void
 }>()
 
 const isProfilePage = computed(() => route.path.startsWith('/profile'))
@@ -148,7 +158,7 @@ const handleUserCommand = async (command: 'profile' | 'logout') => {
 
   // 退出登录
   userStore.logout()
-  
+
   // 如果在个人中心页面，重定向到首页并打开登录注册弹窗
   if (isProfilePage.value) {
     await router.push('/')
@@ -159,6 +169,10 @@ const handleUserCommand = async (command: 'profile' | 'logout') => {
 const emitShowAuthDialog = (tab: 'login' | 'register' = 'login') => {
   emit('show-auth-dialog', tab)
   openAuthDialog(tab)
+}
+
+const emitOpenManualChat = () => {
+  emit('open-manual-chat')
 }
 
 // 计算滑块位置（百分比）
@@ -332,6 +346,38 @@ function getSliderPosition(): number {
   white-space: nowrap;
 }
 
+.nav-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.manual-chat-entry {
+  position: relative;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  background: linear-gradient(135deg, #ff9557 0%, #ff6b35 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(255, 107, 53, 0.3);
+}
+
+.manual-chat-entry:hover {
+  opacity: 0.9;
+}
+
+.manual-chat-unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f56c6c;
+}
+
 .user-entry {
   display: inline-flex;
   align-items: center;
@@ -362,6 +408,7 @@ function getSliderPosition(): number {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 14px;
+  height: 15px;
 }
 
 /* 移除头像的边框和背景 */

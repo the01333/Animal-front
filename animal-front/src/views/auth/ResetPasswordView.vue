@@ -37,10 +37,10 @@
                   placeholder="请输入验证码"
                 />
                 <el-button
-                  :disabled="emailCountdown > 0"
+                  :disabled="emailCountdown > 0 || emailCodeSending"
                   @click="sendEmailCode"
                 >
-                  {{ emailCountdown > 0 ? `${emailCountdown}秒后重试` : '获取验证码' }}
+                  {{ emailCountdown > 0 ? `${emailCountdown}秒后重试` : emailCodeSending ? '发送中...' : '获取验证码' }}
                 </el-button>
               </div>
             </el-form-item>
@@ -96,7 +96,7 @@
                   placeholder="请输入验证码"
                 />
                 <el-button
-                  :disabled="phoneCountdown > 0"
+                  :disabled="phoneCountdown > 0 || phoneCodeSending"
                   @click="sendPhoneCode"
                 >
                   {{ phoneCountdown > 0 ? `${phoneCountdown}秒后重试` : '获取验证码' }}
@@ -235,6 +235,9 @@ let emailTimer: number | null = null
 const phoneCountdown = ref(0)
 let phoneTimer: number | null = null
 
+const emailCodeSending = ref(false)
+const phoneCodeSending = ref(false)
+
 const emailLoading = ref(false)
 const phoneLoading = ref(false)
 
@@ -268,6 +271,10 @@ const sendEmailCode = async () => {
     ElMessage.warning('请先输入邮箱')
     return
   }
+  if (emailCountdown.value > 0 || emailCodeSending.value) {
+    return
+  }
+  emailCodeSending.value = true
   try {
     const res = await sendEmailVerificationCode(emailForm.email, 'reset_password')
     if (res.code === 200) {
@@ -278,6 +285,8 @@ const sendEmailCode = async () => {
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || '发送验证码失败')
+  } finally {
+    emailCodeSending.value = false
   }
 }
 
@@ -287,6 +296,10 @@ const sendPhoneCode = async () => {
     ElMessage.warning('请先输入手机号')
     return
   }
+  if (phoneCountdown.value > 0 || phoneCodeSending.value) {
+    return
+  }
+  phoneCodeSending.value = true
   try {
     const res = await sendPhoneVerificationCode(phoneForm.phone, 'reset_password')
     if (res.code === 200) {

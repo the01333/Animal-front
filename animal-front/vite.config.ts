@@ -14,6 +14,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
+    extensions: ['.mjs', '.ts', '.js', '.jsx', '.tsx', '.json'],
   },
   server: {
     proxy: {
@@ -24,6 +25,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+        // 同时代理 HTTP 与 WebSocket（包括 SockJS 的 websocket 通道）
+        ws: true,
       },
     },
   },

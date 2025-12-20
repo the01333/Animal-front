@@ -82,7 +82,7 @@
                     @keyup.enter="handleCodeLogin"
                   />
                   <el-button 
-                    :disabled="countdown > 0"
+                    :disabled="countdown > 0 || sendingCode"
                     @click="sendVerificationCode"
                   >
                     {{ countdown > 0 ? `${countdown}秒后重试` : '获取验证码' }}
@@ -165,6 +165,7 @@ const codeRules = reactive<FormRules>({
 
 const countdown = ref(0)
 let countdownTimer: number | null = null
+const sendingCode = ref(false)
 
 // 密码登录
 const handlePasswordLogin = async () => {
@@ -184,11 +185,9 @@ const handlePasswordLogin = async () => {
         localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo))
         showSuccessTip('登录成功！正在跳转...')
         redirectAfterLogin()
-      } else {
-        ElMessage.error(response.message || '登录失败')
       }
     } catch (error: any) {
-      ElMessage.error(error.response?.data?.message || '登录失败，请检查网络连接')
+      console.error('登录失败:', error)
     } finally {
       loading.value = false
     }
@@ -212,11 +211,9 @@ const handleCodeLogin = async () => {
         localStorage.setItem('userInfo', JSON.stringify(resp.data.userInfo))
         showSuccessTip('登录成功！正在跳转...')
         redirectAfterLogin(1000)
-      } else {
-        ElMessage.error(resp.message || '登录失败')
       }
     } catch (error: any) {
-      ElMessage.error(error.response?.data?.message || '登录失败')
+      console.error('登录失败:', error)
     } finally {
       loading.value = false
     }
@@ -230,6 +227,11 @@ const sendVerificationCode = async () => {
     return
   }
 
+  if (countdown.value > 0 || sendingCode.value) {
+    return
+  }
+
+  sendingCode.value = true
   try {
     const endpoint = codeType.value === 'email' ? '/api/verification/email/send' : '/api/verification/phone/send'
     const response = await axios.post(endpoint, {
@@ -245,6 +247,8 @@ const sendVerificationCode = async () => {
     }
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message || '发送失败')
+  } finally {
+    sendingCode.value = false
   }
 }
 

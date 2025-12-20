@@ -32,21 +32,27 @@
                 <el-icon>
                   <Message />
                 </el-icon>
-                <a href="mailto:linyyccc@gmail.com"
-                  style="text-decoration: none; color: inherit;">linyyccc@gmail.com</a>
-                <!-- <span>邮箱: linyyccc@gmail.com</span> -->
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=linyyccc@gmail.com" target="_blank"
+                  rel="noopener noreferrer" style="text-decoration: none; color: inherit;">
+                  linyyccc@gmail.com
+                </a>
               </div>
               <div class="contact-item">
                 <el-icon>
                   <Iphone />
                 </el-icon>
-                <span>电话: 130xxxxxxxx</span>
+                <a href="tel:130xxxxxxxx" style="text-decoration: none; color: inherit;">
+                  电话：130xxxxxxxx
+                </a>
               </div>
               <div class="contact-item">
                 <el-icon>
                   <Location />
                 </el-icon>
-                <span>地址: 福建省漳州市xx号</span>
+                <a href="https://uri.amap.com/search?keyword=福建省漳州市" target="_blank"
+                  style="text-decoration: none; color: inherit;">
+                  地址：福建省漳州市
+                </a>
               </div>
             </el-space>
           </div>
@@ -65,17 +71,26 @@
                 <el-icon>
                   <Star />
                 </el-icon>
-                动物保护协会
+                <a href="https://www.worldanimalprotection.org.cn/" target="_blank" rel="noopener noreferrer"
+                  style="text-decoration: none; color: inherit;">
+                  动物保护协会
+                </a>
               </el-link>
               <el-link href="#" :underline="false" class="footer-link">
                 <el-icon><first-aid-kit /></el-icon>
-                宠物医院联盟
+                <a href="https://www.ruichen.com/index.html" target="_blank" rel="noopener noreferrer"
+                  style="text-decoration: none; color: inherit;">
+                  宠物医院联盟
+                </a>
               </el-link>
               <el-link href="#" :underline="false" class="footer-link">
                 <el-icon>
                   <UserFilled />
                 </el-icon>
-                志愿者组织
+                <a href="https://www.undp.org/zh/china/lianheguozhiyuanrenyuanzuzhi" target="_blank"
+                  rel="noopener noreferrer" style="text-decoration: none; color: inherit;">
+                  志愿者组织
+                </a>
               </el-link>
             </el-space>
           </div>
@@ -97,7 +112,11 @@
         <el-divider direction="vertical" />
         <el-link type="info" :underline="false">使用条款</el-link>
         <el-divider direction="vertical" />
-        <el-link type="info" :underline="false">网站地图</el-link>
+        <el-link type="info" :underline="false">
+          <a href="https://uri.amap.com/search" target="_blank" style="text-decoration: none; color: inherit;">
+            网站地图
+          </a>
+        </el-link>
       </el-space>
     </div>
   </footer>

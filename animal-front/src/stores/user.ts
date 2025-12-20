@@ -16,7 +16,7 @@ export const useUserStore = defineStore(
     })
     const isManager = computed(() => {
       const role = String(userInfo.value?.role || '').toLowerCase()
-      return role === 'admin' || role === 'super_admin' || role === 'application_auditor'
+      return role === 'admin' || role === 'super_admin'
     })
 
     // 登录
@@ -27,6 +27,10 @@ export const useUserStore = defineStore(
       localStorage.setItem('token', token.value)
       localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
       return res
+    }
+
+    async function loginWithPassword(payload: { username: string; password: string }) {
+      return login(payload.username, payload.password)
     }
 
     // 获取用户信息
@@ -68,6 +72,7 @@ export const useUserStore = defineStore(
       isAdmin,
       isManager,
       login,
+      loginWithPassword,
       getUserInfo,
       logout,
       restoreFromStorage

@@ -3,27 +3,24 @@
     <el-container>
       <!-- 侧边栏 -->
       <el-aside :width="sidebarWidth" class="admin-aside">
-        <div class="logo-container">
+        <div class="logo-container" @click="goToDashboard">
           <img src="http://localhost:9000/animal-adopt/backendIcon.png" alt="Logo" class="logo-img" />
           <span v-if="!appStore.sidebarCollapsed" class="logo-text">i宠园后台</span>
         </div>
-        <el-menu
-          :default-active="activeMenu"
-          :collapse="appStore.sidebarCollapsed"
-          :unique-opened="true"
-          background-color="#304156"
-          text-color="#bfcbd9"
-          active-text-color="#409EFF"
-          router
-        >
+        <el-menu :default-active="activeMenu" :collapse="appStore.sidebarCollapsed" :unique-opened="true"
+          background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" router>
           <el-menu-item index="/admin/dashboard">
-            <el-icon><DataAnalysis /></el-icon>
+            <el-icon>
+              <DataAnalysis />
+            </el-icon>
             <template #title>仪表盘</template>
           </el-menu-item>
 
           <el-sub-menu index="pet">
             <template #title>
-              <el-icon><Orange /></el-icon>
+              <el-icon>
+                <House />
+              </el-icon>
               <span>宠物管理</span>
             </template>
             <el-menu-item index="/admin/pet/list">宠物列表</el-menu-item>
@@ -32,7 +29,9 @@
 
           <el-sub-menu index="application">
             <template #title>
-              <el-icon><Document /></el-icon>
+              <el-icon>
+                <Document />
+              </el-icon>
               <span>申请管理</span>
             </template>
             <el-menu-item index="/admin/application/list">申请列表</el-menu-item>
@@ -41,29 +40,49 @@
 
           <el-sub-menu index="user">
             <template #title>
-              <el-icon><User /></el-icon>
+              <el-icon>
+                <User />
+              </el-icon>
               <span>用户管理</span>
             </template>
-            <el-menu-item index="/admin/user/list">用户列表</el-menu-item>
+            <el-menu-item v-if="isSuperAdmin" index="/admin/user/list">用户列表</el-menu-item>
             <el-menu-item index="/admin/user/certification">认证审核</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="content">
             <template #title>
-              <el-icon><Reading /></el-icon>
+              <el-icon>
+                <Reading />
+              </el-icon>
               <span>内容管理</span>
             </template>
             <el-menu-item index="/admin/article/list">文章列表</el-menu-item>
             <el-menu-item index="/admin/article/add">发布文章</el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item index="/admin/chat">
-            <el-icon><ChatDotRound /></el-icon>
-            <template #title>客服管理</template>
+          <el-menu-item v-if="isSuperAdmin" index="/admin/chat" class="menu-item-chat">
+            <!-- 图标处的红点: 只在侧边栏收起时显示 -->
+            <el-badge class="menu-chat-icon-badge" :value="appStore.csUnreadForAgent" :max="99"
+              :hidden="appStore.csUnreadForAgent === 0 || !appStore.sidebarCollapsed">
+              <el-icon>
+                <ChatDotRound />
+              </el-icon>
+            </el-badge>
+
+            <!-- 标题处的红点: 只在侧边栏展开时显示 -->
+            <template #title>
+              <span class="menu-chat-title">
+                <span>客服会话</span>
+                <el-badge class="menu-chat-title-badge" :value="appStore.csUnreadForAgent" :max="99"
+                  :hidden="appStore.csUnreadForAgent === 0 || appStore.sidebarCollapsed" />
+              </span>
+            </template>
           </el-menu-item>
 
           <el-menu-item index="/admin/settings">
-            <el-icon><Setting /></el-icon>
+            <el-icon>
+              <Setting />
+            </el-icon>
             <template #title>系统设置</template>
           </el-menu-item>
         </el-menu>
@@ -79,19 +98,17 @@
               <Fold v-else />
             </el-icon>
             <el-breadcrumb separator="/">
-              <el-breadcrumb-item
-                v-for="(item, index) in breadcrumbs"
-                :key="index"
-                :to="item.path"
-              >
+              <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="index" :to="item.path">
                 {{ item.title }}
               </el-breadcrumb-item>
             </el-breadcrumb>
           </div>
           <div class="header-right">
             <el-button text @click="goToFrontend">
-              <el-icon><House /></el-icon>
-              前台首页
+              <el-icon>
+                <House />
+              </el-icon>
+              <div class="header-right-front-home">前台首页</div>
             </el-button>
             <el-dropdown @command="handleCommand">
               <div class="user-info">
@@ -99,20 +116,28 @@
                   {{ userStore.userInfo?.username?.charAt(0) }}
                 </el-avatar>
                 <span class="username">{{ userStore.userInfo?.username }}</span>
-                <el-icon><ArrowDown /></el-icon>
+                <el-icon>
+                  <ArrowDown />
+                </el-icon>
               </div>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="profile">
-                    <el-icon><User /></el-icon>
+                    <el-icon>
+                      <User />
+                    </el-icon>
                     个人中心
                   </el-dropdown-item>
                   <el-dropdown-item command="password">
-                    <el-icon><Lock /></el-icon>
+                    <el-icon>
+                      <Lock />
+                    </el-icon>
                     修改密码
                   </el-dropdown-item>
                   <el-dropdown-item divided command="logout">
-                    <el-icon><SwitchButton /></el-icon>
+                    <el-icon>
+                      <SwitchButton />
+                    </el-icon>
                     退出登录
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -134,7 +159,7 @@
         <el-footer class="admin-footer">
           <div>Copyright © 2025 i宠园 - 宠物领养管理系统</div>
         </el-footer>
-        
+
         <AdminAuthDialog v-model="adminAuthVisible" @login-success="handleAdminLoginSuccess" />
       </el-container>
     </el-container>
@@ -148,15 +173,237 @@ import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminAuthDialog from '@/components/auth/AdminAuthDialog.vue'
+import SockJS from 'sockjs-client'
+import { Client } from '@stomp/stompjs'
+import { storeToRefs } from 'pinia'
+import { pageManualCsSessions, type CsSession } from '@/api/customerService'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const appStore = useAppStore()
 const adminAuthVisible = ref(false)
+const { token } = storeToRefs(userStore)
+
+const adminWsClient = ref<Client | null>(null)
+const adminWsConnected = ref(false)
+let adminWsReconnectTimer: number | null = null
+let lastAdminUnreadHttpRefresh = 0
+let adminUnreadPollTimer: number | null = null
 
 const sidebarWidth = computed(() => (appStore.sidebarCollapsed ? '64px' : '200px'))
 const activeMenu = computed(() => route.path)
+
+const isSuperAdmin = computed(() => {
+  const role = String(userStore.userInfo?.role || '').toLowerCase()
+  return role === 'super_admin'
+})
+
+// 客服相关逻辑仅在超级管理员下生效
+const isAdminRole = computed(() => isSuperAdmin.value)
+
+const getAdminWsUrl = () => {
+  const base = '/api/ws'
+  if (typeof window === 'undefined') return base
+  return base
+}
+
+const scheduleAdminWsReconnect = () => {
+  if (typeof window === 'undefined') return
+  if (adminWsReconnectTimer) return
+  if (!isAdminRole.value) return
+  const tokenValue = token.value || localStorage.getItem('token')
+  if (!tokenValue) return
+  adminWsReconnectTimer = window.setTimeout(() => {
+    adminWsReconnectTimer = null
+    const latestToken = token.value || localStorage.getItem('token')
+    if (!latestToken) return
+    if (!isAdminRole.value) return
+    initAdminWs()
+  }, 5000)
+}
+
+const scheduleAdminUnreadHttpRefresh = () => {
+  if (typeof window === 'undefined') return
+  if (!isAdminRole.value) return
+  if ((window as any).__csAdminChatViewActive === true) {
+    // 在客服会话详情页时，未读数由 ChatManageView 通过 WS 统一维护，这里直接返回
+    return
+  }
+  const now = Date.now()
+  if (now - lastAdminUnreadHttpRefresh < 1000) return
+  lastAdminUnreadHttpRefresh = now
+  refreshAgentUnreadFromHttp()
+}
+
+const shouldHandleAgentUnreadFromWs = () => {
+  if (typeof window === 'undefined') return true
+  return !(window as any).__csAdminChatViewActive
+}
+
+const startAdminUnreadPolling = () => {
+  if (typeof window === 'undefined') return
+  if (adminUnreadPollTimer) return
+  // 兜底轮询未读汇总，避免极端情况下 WS 未读推送丢失时红点不同步
+  adminUnreadPollTimer = window.setInterval(() => {
+    scheduleAdminUnreadHttpRefresh()
+  }, 1000)
+}
+
+const stopAdminUnreadPolling = () => {
+  if (adminUnreadPollTimer) {
+    clearInterval(adminUnreadPollTimer)
+    adminUnreadPollTimer = null
+  }
+}
+
+const initAdminWs = () => {
+  if (adminWsClient.value) {
+    console.log('[AdminLayout WS] WebSocket 已存在，跳过初始化')
+    return
+  }
+
+  console.log('[AdminLayout WS] 开始初始化 WebSocket 连接')
+  const socket = new SockJS(getAdminWsUrl())
+  const tokenValue = token.value || localStorage.getItem('token')
+  const client = new Client({
+    webSocketFactory: () => socket as any,
+    connectHeaders: tokenValue ? { Authorization: `Bearer ${tokenValue}` } : {},
+    reconnectDelay: 5000,
+    debug: (msg: string) => {
+      // 打印 STOMP 底层调试信息，便于确认是否真的收到了 MESSAGE 帧
+      console.log('[AdminLayout WS debug]', msg)
+    }
+  })
+
+  client.onConnect = () => {
+    adminWsConnected.value = true
+    console.log('[AdminLayout WS] WebSocket 连接成功，订阅未读消息推送')
+
+    try {
+      const ws = (client as any)?._stompHandler?._webSocket
+      const rawUrl = ws?._transport?.url || ws?._transport?.ws?.url || ws?.url
+      console.log('[AdminLayout WS] transport url', rawUrl)
+    } catch (e) {
+    }
+
+    client.subscribe('/user/queue/cs/unread', (frame: any) => {
+      try {
+        const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
+        console.log('[AdminLayout WS] 收到未读消息推送', payload)
+        if (typeof payload.unreadForAgent === 'number') {
+          const oldVal = appStore.csUnreadForAgent
+          const newVal = payload.unreadForAgent
+          console.log('[AdminLayout WS] 更新全局未读数', { 旧值: oldVal, 新值: newVal })
+          if (shouldHandleAgentUnreadFromWs()) {
+            appStore.setCsUnreadForAgent(newVal)
+          }
+
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('cs-ws-unread-agent', {
+                detail: { oldVal, newVal }
+              })
+            )
+          }
+        }
+      } catch (e) {
+        console.error('[AdminLayout WS] 解析客服未读汇总失败', e)
+      }
+    })
+
+    client.subscribe('/user/queue/cs/chat', (frame: any) => {
+      console.log('[AdminLayout WS] 收到聊天消息推送', { bodyLength: frame?.body?.length })
+      try {
+        const payload = JSON.parse(frame.body)
+        if (typeof window !== 'undefined') {
+          console.log('[AdminLayout WS] 分发 cs-ws-chat 事件', { sessionId: payload?.sessionId, id: payload?.id })
+          window.dispatchEvent(new CustomEvent('cs-ws-chat', { detail: payload }))
+        }
+      } catch (e) {
+        console.error('[AdminLayout WS] 解析客服聊天消息失败', e)
+      }
+    })
+
+    client.subscribe('/topic/cs/presence', (frame: any) => {
+      console.log('[AdminLayout WS] 收到在线状态推送', { bodyLength: frame?.body?.length })
+      try {
+        const payload = JSON.parse(frame.body)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('cs-ws-presence', { detail: payload }))
+        }
+      } catch (e) {
+        console.error('[AdminLayout WS] 解析客服在线状态失败', e)
+      }
+    })
+  }
+
+  client.onStompError = (error) => {
+    adminWsConnected.value = false
+    console.error('[AdminLayout WS] STOMP 错误', error)
+    if (adminWsClient.value !== client) return
+    adminWsClient.value = null
+    client.deactivate()
+    scheduleAdminUnreadHttpRefresh()
+    scheduleAdminWsReconnect()
+  }
+
+  client.onWebSocketClose = (event) => {
+    adminWsConnected.value = false
+    console.log('[AdminLayout WS] WebSocket 连接关闭', event)
+    if (adminWsClient.value !== client) return
+    adminWsClient.value = null
+    client.deactivate()
+    scheduleAdminUnreadHttpRefresh()
+    scheduleAdminWsReconnect()
+  }
+
+  client.activate()
+  adminWsClient.value = client
+  console.log('[AdminLayout WS] WebSocket 客户端已激活')
+}
+
+const refreshAgentUnreadFromHttp = async () => {
+  if (!isAdminRole.value) return
+  try {
+    const res = await pageManualCsSessions({ current: 1, size: 50 })
+    const pageData = res.data
+    const records: CsSession[] = pageData?.records || []
+    const total = records.reduce((sum, item) => sum + (item.unreadForAgent || 0), 0)
+    appStore.setCsUnreadForAgent(total)
+  } catch (e) {
+    console.error('加载客服未读汇总失败(后台布局)', e)
+  }
+}
+
+watch(
+  () => token.value,
+  (val, oldVal) => {
+    if (val && val !== oldVal) {
+      if (adminWsClient.value) {
+        adminWsClient.value.deactivate()
+        adminWsClient.value = null
+        adminWsConnected.value = false
+      }
+      initAdminWs()
+      refreshAgentUnreadFromHttp()
+      startAdminUnreadPolling()
+    }
+
+    if (!val && adminWsClient.value) {
+      adminWsClient.value.deactivate()
+      adminWsClient.value = null
+      adminWsConnected.value = false
+      if (adminWsReconnectTimer) {
+        clearTimeout(adminWsReconnectTimer)
+        adminWsReconnectTimer = null
+      }
+      stopAdminUnreadPolling()
+      appStore.setCsUnreadForAgent(0)
+    }
+  },
+  { immediate: true }
+)
 
 // 面包屑导航
 const breadcrumbs = computed(() => {
@@ -190,12 +437,14 @@ const userAvatar = computed(() => {
   return avatar ? processImageUrl(avatar) : ''
 })
 
+// 上面已定义 isSuperAdmin，这里不再重复定义
+
 const handleGlobalAuthDialog = () => {
   adminAuthVisible.value = true
 }
 
 function handleAdminLoginSuccess() {
-  userStore.getUserInfo().catch(() => {})
+  userStore.getUserInfo().catch(() => { })
 }
 
 onMounted(async () => {
@@ -208,11 +457,30 @@ onMounted(async () => {
   if (typeof window !== 'undefined') {
     window.addEventListener('openAuthDialog', handleGlobalAuthDialog as EventListener)
   }
+
+  if (userStore.userInfo && token.value) {
+    // 初始化 WebSocket 连接
+    initAdminWs()
+    // 刷新未读数
+    refreshAgentUnreadFromHttp()
+    // 启动未读轮询兜底, 确保在任意栏目下侧边栏红点都能更新
+    startAdminUnreadPolling()
+  }
 })
 
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('openAuthDialog', handleGlobalAuthDialog as EventListener)
+  }
+  if (adminWsReconnectTimer) {
+    clearTimeout(adminWsReconnectTimer)
+    adminWsReconnectTimer = null
+  }
+  stopAdminUnreadPolling()
+  if (adminWsClient.value) {
+    adminWsClient.value.deactivate()
+    adminWsClient.value = null
+    adminWsConnected.value = false
   }
 })
 
@@ -243,12 +511,17 @@ function handleLogout() {
       router.push('/')
       ElMessage.success('退出成功')
     })
-    .catch(() => {})
+    .catch(() => { })
 }
 
 // 前往前台
 function goToFrontend() {
   router.push('/')
+}
+
+// 前往后台仪表盘
+const goToDashboard = () => {
+  router.push('/admin/dashboard')
 }
 </script>
 
@@ -283,6 +556,7 @@ function goToFrontend() {
 
     .logo-text {
       margin-left: 10px;
+      margin-right: 10px;
       font-size: 18px;
       font-weight: bold;
       color: #fff;
@@ -290,8 +564,32 @@ function goToFrontend() {
     }
   }
 
+  .logo-container:hover {
+    cursor: pointer;
+  }
+
   .el-menu {
     border-right: none;
+  }
+
+  .menu-item-chat {
+    .menu-chat-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .menu-chat-title-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 58px;
+    }
+
+    .menu-chat-icon-badge {
+      :deep(.el-badge__content.is-fixed) {
+        transform: translate(116%, 30%);
+      }
+    }
   }
 }
 
@@ -347,6 +645,11 @@ function goToFrontend() {
         color: #303133;
       }
     }
+
+    .header-right-front-home {
+      margin-left: 5px;
+      margin-top: 2px;
+    }
   }
 }
 
@@ -354,11 +657,29 @@ function goToFrontend() {
   padding: 20px;
   overflow-y: auto;
 
-  :deep(.search-form) { margin-bottom: 16px; }
-  :deep(.toolbar) { margin-bottom: 12px; display: flex; gap: 10px; }
-  :deep(.el-card) { border-radius: 12px; }
-  :deep(.el-table__header-wrapper) { background: #fafafa; }
-  :deep(.pagination) { margin-top: 16px; display: flex; justify-content: flex-end; }
+  :deep(.search-form) {
+    margin-bottom: 16px;
+  }
+
+  :deep(.toolbar) {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+  }
+
+  :deep(.el-card) {
+    border-radius: 12px;
+  }
+
+  :deep(.el-table__header-wrapper) {
+    background: #fafafa;
+  }
+
+  :deep(.pagination) {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
 .admin-footer {
@@ -387,4 +708,3 @@ function goToFrontend() {
   transform: translateX(30px);
 }
 </style>
-

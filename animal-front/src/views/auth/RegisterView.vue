@@ -34,7 +34,7 @@
                     placeholder="请输入验证码"
                   />
                   <el-button 
-                    :disabled="countdown > 0"
+                    :disabled="countdown > 0 || sendingCode"
                     @click="sendEmailCode"
                   >
                     {{ countdown > 0 ? `${countdown}秒后重试` : '获取验证码' }}
@@ -91,7 +91,7 @@
                     placeholder="请输入验证码"
                   />
                   <el-button 
-                    :disabled="countdown > 0"
+                    :disabled="countdown > 0 || sendingCode"
                     @click="sendPhoneCode"
                   >
                     {{ countdown > 0 ? `${countdown}秒后重试` : '获取验证码' }}
@@ -226,6 +226,7 @@ const phoneRules = reactive<FormRules>({
 
 const countdown = ref(0)
 let countdownTimer: number | null = null
+const sendingCode = ref(false)
 
 // 邮箱注册
 const handleEmailRegister = async () => {
@@ -298,6 +299,11 @@ const sendEmailCode = async () => {
     return
   }
 
+  if (countdown.value > 0 || sendingCode.value) {
+    return
+  }
+
+  sendingCode.value = true
   try {
     const response = await axios.post('/api/verification/email/send', {
       email: emailForm.email,
@@ -312,6 +318,8 @@ const sendEmailCode = async () => {
     }
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message || '发送失败')
+  } finally {
+    sendingCode.value = false
   }
 }
 
@@ -322,6 +330,11 @@ const sendPhoneCode = async () => {
     return
   }
 
+  if (countdown.value > 0 || sendingCode.value) {
+    return
+  }
+
+  sendingCode.value = true
   try {
     const response = await axios.post('/api/verification/phone/send', {
       phone: phoneForm.phone,

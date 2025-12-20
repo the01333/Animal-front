@@ -17,7 +17,7 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="宠物类型" prop="category">
-                <el-select v-model="form.category" placeholder="请选择类型" filterable default-first-option
+                <el-select v-model="form.category" placeholder="请选择宠物类型" filterable default-first-option
                   @change="handleCategoryChange">
                   <el-option v-for="opt in categoryOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                   <el-option :value="ADD_CATEGORY_FLAG" class="add-category-option">
@@ -157,6 +157,7 @@
               @keyup.enter="confirmAddCategory" />
           </el-form-item>
         </el-form>
+        <div class="add-category-tip">【提示：新增的类别会同步到系统中，供所有宠物使用】</div>
       </div>
       <template #footer>
         <span class="dialog-footer">
@@ -172,7 +173,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getPetDetail, createPet, updatePet } from '@/api/pet'
-import { getPetCategories, getAdoptionStatuses, getHealthStatuses } from '@/api/dict'
+import { getPetCategories, getAdoptionStatuses, getHealthStatuses, createPetCategoryAuto } from '@/api/dict'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -203,7 +204,7 @@ const lastValidCategory = ref<string>('')
 
 const form = reactive<Partial<Pet>>({
   name: '',
-  category: 'cat',
+  category: '',
   breed: '',
   gender: 1,
   age: 0,
@@ -245,9 +246,6 @@ async function loadDictData() {
         value,
         label: label as string
       }))
-      if (!categoryOptions.value.find(opt => opt.value === form.category) && categoryOptions.value.length > 0) {
-        form.category = categoryOptions.value[0].value
-      }
       lastValidCategory.value = form.category || ''
     }
 
@@ -277,6 +275,7 @@ async function fetchDetail() {
   try {
     const res = await getPetDetail(id)
     Object.assign(form, res.data)
+    lastValidCategory.value = form.category || ''
     // 解析图片列表
     if (form.images) {
       try {
@@ -348,24 +347,38 @@ function handleAddCategoryDialogClosed() {
   newCategoryError.value = ''
 }
 
-function confirmAddCategory() {
+async function confirmAddCategory() {
   const name = newCategoryName.value.trim()
   if (!name) {
     newCategoryError.value = '请输入类别名称'
     return
   }
 
-  const exists = categoryOptions.value.some(opt => opt.value.toLowerCase() === name.toLowerCase())
+  // 按中文显示名称去重，避免重复添加同名类别
+  const exists = categoryOptions.value.some(opt => opt.label === name)
   if (exists) {
     newCategoryError.value = '该类别已存在'
     return
   }
 
-  categoryOptions.value.push({ label: name, value: name })
-  form.category = name
-  lastValidCategory.value = name
-  showAddCategoryDialog.value = false
-  ElMessage.success('已新增宠物类别')
+  try {
+    // 仅传中文名称，由后端通过 AI 翻译生成英文编码并写入字典
+    await createPetCategoryAuto(name)
+
+    ElMessage.success('已新增宠物类别')
+    showAddCategoryDialog.value = false
+
+    // 重新加载字典，确保与后端数据保持一致
+    await loadDictData()
+    const newOption = categoryOptions.value.find(opt => opt.label === name)
+    if (newOption) {
+      form.category = newOption.value
+      lastValidCategory.value = newOption.value
+    }
+  } catch (error) {
+    console.error('新增宠物类别失败:', error)
+    ElMessage.error('新增宠物类别失败，请稍后重试')
+  }
 }
 
 function cancelAddCategory() {
@@ -391,7 +404,7 @@ async function uploadImages(petId: number) {
       .then(data => {
         if (data.code === 200) {
           form.coverImage = data.data
-          ElMessage.success('封面图片上传成功')
+          // ElMessage.success('封面图片上传成功')
         } else {
           throw new Error(data.message || '封面图片上传失败')
         }
@@ -457,12 +470,13 @@ async function handleSubmit() {
 
       // 上传图片
       if (coverImageFile.value || imageFiles.value.length > 0) {
-        ElMessage.info('正在上传图片...')
+        // ElMessage.info('正在上传图片...')
         await uploadImages(petId)
 
         // 上传完成后，使用完整表单数据保存（包含最新图片URL）
         await updatePet(petId, form)
-        ElMessage.success('图片已保存')
+        // ElMessage.success('图片已保存')
+        console.log('图片已保存');
       }
 
       router.push('/admin/pet/list')
@@ -605,5 +619,11 @@ onMounted(() => {
     gap: 6px;
     color: #409eff;
   }
+}
+
+.add-category-dialog-body .add-category-tip {
+  font-size: 14px;
+  color: #96979a;
+  margin: 32px 0 0 0;
 }
 </style>
