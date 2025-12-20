@@ -40,7 +40,7 @@
           </div>
           <div class="chat-header-actions">
             <el-button text>查看资料</el-button>
-            <el-button text type="danger">结束会话</el-button>
+            <el-button text type="danger" @click="endSession">结束会话</el-button>
           </div>
         </header>
 
@@ -106,8 +106,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import SockJS from 'sockjs-client'
-import { Client, type IMessage } from '@stomp/stompjs'
+import type { IMessage } from '@stomp/stompjs'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import {
@@ -170,33 +169,12 @@ const messageContainer = ref<HTMLElement | null>(null)
 const loadingSessions = ref(false)
 const loadingMessages = ref(false)
 const sending = ref(false)
-const stompClient = ref<Client | null>(null)
 const wsConnected = ref(false)
 let sessionsPollTimer: number | null = null
 let messagesPollTimer: number | null = null
-let wsReconnectTimer: number | null = null
 let wsSessionsRefreshTimer: number | null = null
-
-const getWsUrl = () => {
-  // 后端设置了 server.servlet.context-path=/api, WebSocket endpoint 实际为 /api/ws
-  // 通过 STOMP CONNECT headers 携带 Authorization, 便于 CONNECT 阶段绑定用户ID
-  const base = '/api/ws'
-  if (typeof window === 'undefined') return base
-  return base
-}
-
-const scheduleWsReconnect = () => {
-  if (typeof window === 'undefined') return
-  if (wsReconnectTimer) return
-  const tokenValue = token.value || localStorage.getItem('token')
-  if (!tokenValue) return
-  wsReconnectTimer = window.setTimeout(() => {
-    wsReconnectTimer = null
-    const latestToken = token.value || localStorage.getItem('token')
-    if (!latestToken) return
-    initWs()
-  }, 5000)
-}
+let chatEventListener: EventListener | null = null
+let presenceEventListener: EventListener | null = null
 
 const scheduleSessionsRefresh = () => {
   if (typeof window === 'undefined') return
@@ -279,6 +257,24 @@ const loadMessages = async (sessionId: number) => {
     // 注意：当 WS 正常但页面仍“需要刷新才能看到”时，常见原因是这里的 HTTP 拉取覆盖了 WS
     // 已追加的新消息。这里改为按 id 合并，避免覆盖掉更“新”的本地消息。
     const existing = messagesMap.value[sessionId] || []
+
+    // 若服务端返回的消息看起来“更旧”（例如缓存/延迟），则不应用本次拉取，避免把 WS 新消息“挤没”。
+    const toNum = (id: string) => {
+      const n = Number(id)
+      return Number.isFinite(n) ? n : null
+    }
+    const existingMax = existing.reduce<number>((max, m) => {
+      const n = toNum(m.id)
+      return n == null ? max : Math.max(max, n)
+    }, 0)
+    const serverMax = serverMsgs.reduce<number>((max, m) => {
+      const n = toNum(m.id)
+      return n == null ? max : Math.max(max, n)
+    }, 0)
+    if (existingMax > 0 && serverMax > 0 && serverMax < existingMax) {
+      return
+    }
+
     const mergedMap = new Map<string, ChatMessage>()
     for (const m of serverMsgs) {
       mergedMap.set(m.id, m)
@@ -288,7 +284,12 @@ const loadMessages = async (sessionId: number) => {
         mergedMap.set(m.id, m)
       }
     }
-    const merged = Array.from(mergedMap.values())
+    const merged = Array.from(mergedMap.values()).sort((a, b) => {
+      const an = toNum(a.id)
+      const bn = toNum(b.id)
+      if (an == null || bn == null) return 0
+      return an - bn
+    })
     messagesMap.value = { ...messagesMap.value, [sessionId]: merged }
 
     scrollToBottom()
@@ -392,201 +393,80 @@ const stopAllPolling = () => {
   }
 }
 
-const initWs = () => {
-  if (stompClient.value) {
-    console.log('[ChatManageView WS] WebSocket 已存在，跳过初始化')
-    return
-  }
-  console.log('[ChatManageView WS] 开始初始化 WebSocket 连接')
-  const tokenValue = token.value || localStorage.getItem('token')
- 
-  const createSocket = () => {
-    const socketUrl = getWsUrl()
-    const latestToken = token.value || localStorage.getItem('token')
-    const socketConnectUrl = latestToken
-      ? `${socketUrl}${socketUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(latestToken)}`
-      : socketUrl
-    return new SockJS(socketConnectUrl)
-  }
-  const client = new Client({
-    webSocketFactory: () => createSocket() as any,
-    connectHeaders: tokenValue ? { Authorization: `Bearer ${tokenValue}` } : {},
-    reconnectDelay: 5000,
-    debug: () => { }
-  })
+const handleChatWsPayload = (payload: any) => {
+  try {
+    const msg = payload as CsMessage
+    const sid = Number((msg as any).sessionId)
+    if (!Number.isFinite(sid) || sid <= 0) {
+      console.warn('[ChatManageView WS] 收到非法 sessionId，已忽略', (msg as any).sessionId)
+      return
+    }
+    const msgId = String((msg as any).id)
+    const existingList = messagesMap.value[sid] || []
+    if (existingList.some((m) => m.id === msgId)) {
+      console.log('[ChatManageView WS] 重复消息，已忽略', { sessionId: sid, msgId })
+      return
+    }
 
-  client.beforeConnect = () => {
-    const latestToken = token.value || localStorage.getItem('token')
-    client.connectHeaders = latestToken ? { Authorization: `Bearer ${latestToken}` } : {}
-  }
+    console.log('[ChatManageView WS] 处理 WS 聊天消息', {
+      sessionId: sid,
+      msgId,
+      senderRole: (msg as any).senderRole,
+      content: (msg as any).content
+    })
 
-  client.onConnect = () => {
-    wsConnected.value = true
-    console.log('[ChatManageView WS] WebSocket 连接成功，订阅 /user/queue/cs/chat')
-    client.subscribe('/user/queue/cs/chat', (frame: IMessage) => {
-      try {
-        const payload = JSON.parse(frame.body) as CsMessage
-        const sid = Number(payload.sessionId)
-        if (!Number.isFinite(sid) || sid <= 0) {
-          console.warn('[WS消息] 收到非法 sessionId，已忽略', payload.sessionId)
-          return
-        }
-        const msgId = String(payload.id)
-        const existingList = messagesMap.value[sid] || []
+    const newMsg = {
+      id: msgId,
+      sender: (msg as any).senderRole === 'AGENT' ? 'agent' : 'user',
+      content: (msg as any).content,
+      time: (msg as any).createTime ? formatTime((msg as any).createTime as unknown as string) : ''
+    }
+    const newList = [...existingList, newMsg]
+    messagesMap.value = { ...messagesMap.value, [sid]: newList }
 
-        console.log('[WS消息] 收到消息', { 
-          sessionId: sid, 
-          msgId, 
-          senderRole: payload.senderRole, 
-          content: payload.content,
-          isCurrentSession: activeSessionId.value === sid 
-        })
+    const s = sessions.value.find((it) => it.id === sid)
+    if (s) {
+      s.lastMessage = (msg as any).content
+      s.lastTime = (msg as any).createTime
+        ? formatTime((msg as any).createTime as unknown as string)
+        : s.lastTime
 
-        // WS 断线重连/重复订阅时可能会收到重复帧，这里按消息ID去重，避免重复渲染 & 重复累加未读
-        if (existingList.some((m) => m.id === msgId)) {
-          console.log('[WS消息] 重复消息，已忽略', msgId)
-          return
-        }
-
-        const newMsg = {
-          id: msgId,
-          sender: payload.senderRole === 'AGENT' ? 'agent' : 'user',
-          content: payload.content,
-          time: payload.createTime ? formatTime(payload.createTime as unknown as string) : ''
-        }
-        
-        // 直接创建新数组，确保Vue响应式系统能检测到变化
-        const newList = [...existingList, newMsg]
-        messagesMap.value = { ...messagesMap.value, [sid]: newList }
-        console.log('[WS消息] 消息已添加到messagesMap', { sessionId: sid, 消息总数: newList.length })
-        
-        const s = sessions.value.find((it) => it.id === sid)
-        if (s) {
-          // 实时更新会话列表中的最新消息和时间
-          s.lastMessage = payload.content
-          s.lastTime = payload.createTime
-            ? formatTime(payload.createTime as unknown as string)
-            : s.lastTime
-          
-          // 只有用户发送的消息才需要累加未读数
-          if (payload.senderRole === 'USER') {
-            if (activeSessionId.value === sid) {
-              // 当前正在查看的会话收到消息：立即发送ack，不增加未读数
-              console.log('[WS消息] 当前会话收到用户消息，立即发送ack')
-              ackAgentRead(sid)
-            } else {
-              // 其他会话收到消息：本地未读数+1
-              s.unread = (s.unread || 0) + 1
-              // 立即重新计算全局未读总数并更新导航栏红点
-              const totalUnread = sessions.value.reduce((sum, sess) => sum + (sess.unread || 0), 0)
-              appStore.setCsUnreadForAgent(totalUnread)
-              console.log('[WS消息] 其他会话收到消息，未读数+1', { sessionId: sid, unread: s.unread, totalUnread })
-            }
-          }
-          
-          // 收到新消息后，将该会话置顶（模拟微信效果）
-          const idx = sessions.value.findIndex(sess => sess.id === sid)
-          if (idx > 0) {
-            const [movedSession] = sessions.value.splice(idx, 1)
-            sessions.value.unshift(movedSession)
-            console.log('[WS消息] 会话已置顶', { sessionId: sid, fromIndex: idx })
-          }
-        } else {
-          scheduleSessionsRefresh()
-        }
-        
+      if ((msg as any).senderRole === 'USER') {
         if (activeSessionId.value === sid) {
-          console.log('[WS消息] 触发滚动到底部')
-          nextTick(() => {
-            scrollToBottom()
-          })
+          console.log('[ChatManageView WS] 当前会话收到用户消息，立即发送 ack', { sessionId: sid })
+          ackAgentRead(sid)
+        } else {
+          s.unread = (s.unread || 0) + 1
+          const totalUnread = sessions.value.reduce((sum, sess) => sum + (sess.unread || 0), 0)
+          appStore.setCsUnreadForAgent(totalUnread)
+          console.log('[ChatManageView WS] 非当前会话收到用户消息，未读+1', { sessionId: sid, unread: s.unread, totalUnread })
         }
-      } catch (e) {
-        console.error('解析客服WS消息失败', e)
       }
-    })
-    // 订阅未读汇总推送，仅作为后端的兜底同步机制
-    // 正常情况下，会话列表的unread由前端本地维护，这里只同步全局红点
-    client.subscribe('/user/queue/cs/unread', (frame: IMessage) => {
-      try {
-        const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
-        if (typeof payload.unreadForAgent === 'number') {
-          // 仅更新全局红点，不影响会话列表的unread数字（由本地维护）
-          appStore.setCsUnreadForAgent(payload.unreadForAgent)
-        }
-      } catch (e) {
-        console.error('解析客服未读汇总失败', e)
+
+      const idx = sessions.value.findIndex(sess => sess.id === sid)
+      if (idx > 0) {
+        const [movedSession] = sessions.value.splice(idx, 1)
+        sessions.value.unshift(movedSession)
       }
-    })
+    } else {
+      console.log('[ChatManageView WS] 收到未知会话的消息，调度刷新会话列表', { sessionId: sid })
+      scheduleSessionsRefresh()
+    }
 
-    // 订阅用户在线状态变更，实时更新会话列表中的 online 状态
-    client.subscribe('/topic/cs/presence', (frame: IMessage) => {
-      try {
-        const payload = JSON.parse(frame.body) as { userId?: number; online?: boolean }
-        if (!payload || typeof payload.userId !== 'number') return
-        const target = sessions.value.find((s) => s.userId === payload.userId)
-        if (target) {
-          target.online = !!payload.online
-        }
-      } catch (e) {
-        console.error('解析客服在线状态推送失败', e)
-      }
-    })
-    loadSessions()
+    if (activeSessionId.value === sid) {
+      nextTick(() => {
+        scrollToBottom()
+      })
+    }
+  } catch (e) {
+    console.error('[ChatManageView WS] 处理 WS 聊天消息异常', e)
   }
-
-  client.onStompError = () => {
-    wsConnected.value = false
-    if (stompClient.value !== client) return
-    stompClient.value = null
-    client.deactivate()
-    scheduleWsReconnect()
-  }
-
-  client.onWebSocketClose = () => {
-    wsConnected.value = false
-    if (stompClient.value !== client) return
-    stompClient.value = null
-    client.deactivate()
-    scheduleWsReconnect()
-  }
- 
-  client.onWebSocketError = (event: Event) => {
-    wsConnected.value = false
-    console.error('[ChatManageView WS] WebSocket 连接异常', event)
-    if (stompClient.value !== client) return
-    stompClient.value = null
-    client.deactivate()
-    scheduleWsReconnect()
-  }
-
-  client.activate()
-  stompClient.value = client
 }
 
-watch(
-  () => token.value,
-  (val, oldVal) => {
-    if (val && val !== oldVal) {
-      if (wsReconnectTimer) {
-        clearTimeout(wsReconnectTimer)
-        wsReconnectTimer = null
-      }
-      if (stompClient.value) {
-        stompClient.value.deactivate()
-        stompClient.value = null
-        wsConnected.value = false
-      }
-      initWs()
-    }
-
-    if (!val && stompClient.value) {
-      stompClient.value.deactivate()
-      stompClient.value = null
-      wsConnected.value = false
-    }
-  }
-)
+const initWs = () => {
+  // 由 AdminLayout 统一维护 WS 连接，这里只消费事件
+  wsConnected.value = true
+}
 
 const sendMessage = async () => {
   const content = draft.value.trim()
@@ -637,26 +517,72 @@ const toggleSide = () => {
   sideCollapsed.value = !sideCollapsed.value
 }
 
+const endSession = async () => {
+  const sid = activeSessionId.value
+  activeSessionId.value = null
+  draft.value = ''
+  if (messagesPollTimer) {
+    window.clearInterval(messagesPollTimer)
+    messagesPollTimer = null
+  }
+  if (sid) {
+    try {
+      await ackAgentRead(sid)
+    } catch (e) {
+    }
+  }
+  loadSessions()
+}
+
 onMounted(async () => {
   await loadSessions()
   initWs()
   startSessionsPolling()
+
+  if (typeof window !== 'undefined') {
+    chatEventListener = ((event: Event) => {
+      const detail = (event as CustomEvent).detail
+      console.log('[ChatManageView WS] 收到 cs-ws-chat 事件', {
+        sessionId: (detail as any)?.sessionId,
+        id: (detail as any)?.id
+      })
+      handleChatWsPayload(detail)
+    }) as EventListener
+    window.addEventListener('cs-ws-chat', chatEventListener)
+
+    presenceEventListener = ((event: Event) => {
+      try {
+        const payload = (event as CustomEvent).detail as { userId?: number; online?: boolean }
+        console.log('[ChatManageView WS] 收到 cs-ws-presence 事件', payload)
+        if (!payload || typeof payload.userId !== 'number') return
+        const target = sessions.value.find((s) => s.userId === payload.userId)
+        if (target) {
+          target.online = !!payload.online
+        }
+      } catch (e) {
+        console.error('[ChatManageView WS] 处理在线状态事件异常', e)
+      }
+    }) as EventListener
+    window.addEventListener('cs-ws-presence', presenceEventListener)
+  }
 })
 
 onUnmounted(() => {
   stopAllPolling()
-  if (wsReconnectTimer) {
-    clearTimeout(wsReconnectTimer)
-    wsReconnectTimer = null
+
+  if (typeof window !== 'undefined') {
+    if (chatEventListener) {
+      window.removeEventListener('cs-ws-chat', chatEventListener)
+      chatEventListener = null
+    }
+    if (presenceEventListener) {
+      window.removeEventListener('cs-ws-presence', presenceEventListener)
+      presenceEventListener = null
+    }
   }
   if (wsSessionsRefreshTimer) {
     clearTimeout(wsSessionsRefreshTimer)
     wsSessionsRefreshTimer = null
-  }
-  if (stompClient.value) {
-    stompClient.value.deactivate()
-    stompClient.value = null
-    wsConnected.value = false
   }
 })
 </script>

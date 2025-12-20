@@ -233,12 +233,22 @@ const initAdminWs = () => {
     webSocketFactory: () => socket as any,
     connectHeaders: tokenValue ? { Authorization: `Bearer ${tokenValue}` } : {},
     reconnectDelay: 5000,
-    debug: () => { }
+    debug: (msg: string) => {
+      // 打印 STOMP 底层调试信息，便于确认是否真的收到了 MESSAGE 帧
+      console.log('[AdminLayout WS debug]', msg)
+    }
   })
 
   client.onConnect = () => {
     adminWsConnected.value = true
     console.log('[AdminLayout WS] WebSocket 连接成功，订阅未读消息推送')
+
+    try {
+      const ws = (client as any)?._stompHandler?._webSocket
+      const rawUrl = ws?._transport?.url || ws?._transport?.ws?.url || ws?.url
+      console.log('[AdminLayout WS] transport url', rawUrl)
+    } catch (e) {
+    }
     
     client.subscribe('/user/queue/cs/unread', (frame: any) => {
       try {
@@ -253,6 +263,31 @@ const initAdminWs = () => {
         }
       } catch (e) {
         console.error('[AdminLayout WS] 解析客服未读汇总失败', e)
+      }
+    })
+
+    client.subscribe('/user/queue/cs/chat', (frame: any) => {
+      console.log('[AdminLayout WS] 收到聊天消息推送', { bodyLength: frame?.body?.length })
+      try {
+        const payload = JSON.parse(frame.body)
+        if (typeof window !== 'undefined') {
+          console.log('[AdminLayout WS] 分发 cs-ws-chat 事件', { sessionId: payload?.sessionId, id: payload?.id })
+          window.dispatchEvent(new CustomEvent('cs-ws-chat', { detail: payload }))
+        }
+      } catch (e) {
+        console.error('[AdminLayout WS] 解析客服聊天消息失败', e)
+      }
+    })
+
+    client.subscribe('/topic/cs/presence', (frame: any) => {
+      console.log('[AdminLayout WS] 收到在线状态推送', { bodyLength: frame?.body?.length })
+      try {
+        const payload = JSON.parse(frame.body)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('cs-ws-presence', { detail: payload }))
+        }
+      } catch (e) {
+        console.error('[AdminLayout WS] 解析客服在线状态失败', e)
       }
     })
   }
