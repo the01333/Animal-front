@@ -52,13 +52,29 @@
                   <span class="message-date-label">{{ getMessageDateLabel(msg) }}</span>
                 </div>
                 <div class="message-row" :class="msg.sender">
-                  <el-avatar v-if="msg.sender === 'user'" :size="34" :src="currentSession.avatar"
-                    class="message-avatar" />
+                  <el-avatar
+                    v-if="msg.sender === 'user'"
+                    :size="34"
+                    :src="currentSession.avatar"
+                    class="message-avatar"
+                  />
                   <div class="message-bubble" :class="msg.sender">
-                    <div class="message-content" v-html="msg.content" />
+                    <div class="message-content">
+                      <template v-if="msg.messageType === 'image'">
+                        <img :src="msg.content" class="message-image" alt="图片消息" />
+                      </template>
+                      <template v-else>
+                        <div v-html="msg.content" />
+                      </template>
+                    </div>
                     <div class="message-time">{{ msg.time }}</div>
                   </div>
-                  <el-avatar v-if="msg.sender === 'agent'" :size="34" :src="agentAvatar" class="message-avatar" />
+                  <el-avatar
+                    v-if="msg.sender === 'agent'"
+                    :size="34"
+                    :src="agentAvatar"
+                    class="message-avatar"
+                  />
                 </div>
               </div>
               <div class="message-bottom-spacer" />
@@ -165,6 +181,7 @@ interface ChatMessage {
   content: string
   time: string
   isoTime?: string | null
+  messageType?: string
 }
 
 interface ChatSession {
@@ -313,12 +330,24 @@ const loadSessions = async () => {
     const pageData = res.data
     const records: CsSession[] = pageData?.records || []
 
+    const normalizeLastMessage = (raw?: string): string => {
+      if (!raw) return ''
+      const text = raw.trim()
+      if (!text) return ''
+      const withoutQuery = text.split('?')[0]
+      const isMaybeImage = /\.(png|jpe?g|gif|webp)$/i.test(withoutQuery)
+      if (isMaybeImage) {
+        return '[图片]'
+      }
+      return text
+    }
+
     sessions.value = records.map<ChatSession>((item) => ({
       id: item.id,
       userId: item.userId,
       name: item.userUsername || item.userNickname || `用户#${item.userId}`,
       avatar: item.userAvatar ? processImageUrl(item.userAvatar) : 'http://localhost:9000/animal-adopt/default.jpg',
-      lastMessage: item.lastMessage || '',
+      lastMessage: normalizeLastMessage(item.lastMessage),
       lastTime: item.lastTime ? formatTime(item.lastTime as unknown as string) : '',
       lastTimeFull: item.lastTime ? formatTimeFull(item.lastTime as unknown as string) : '',
       unread: item.unreadForAgent || 0,
@@ -355,9 +384,10 @@ const loadMessages = async (sessionId: number) => {
     const serverMsgs = list.map<ChatMessage>((item) => ({
       id: String(item.id),
       sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
-      content: item.content,
+      content: item.contentType === 'image' ? processImageUrl(item.content) : item.content,
       time: item.createTime ? formatTime(item.createTime as unknown as string) : '',
-      isoTime: (item.createTime as unknown as string) || ''
+      isoTime: (item.createTime as unknown as string) || '',
+      messageType: item.contentType
     }))
 
     // 注意：当 WS 正常但页面仍“需要刷新才能看到”时，常见原因是这里的 HTTP 拉取覆盖了 WS
@@ -538,19 +568,23 @@ const handleChatWsPayload = (payload: any) => {
       content: (msg as any).content
     })
 
-    const newMsg = {
+    const contentType = (msg as any).contentType as string
+    const rawContent = (msg as any).content as string
+
+    const newMsg: ChatMessage = {
       id: msgId,
       sender: (msg as any).senderRole === 'AGENT' ? 'agent' : 'user',
-      content: (msg as any).content,
+      content: contentType === 'image' ? processImageUrl(rawContent) : rawContent,
       time: (msg as any).createTime ? formatTime((msg as any).createTime as unknown as string) : '',
-      isoTime: (msg as any).createTime as unknown as string
+      isoTime: (msg as any).createTime as unknown as string,
+      messageType: contentType
     }
     const newList = [...existingList, newMsg]
     messagesMap.value = { ...messagesMap.value, [sid]: newList }
 
     const s = sessions.value.find((it) => it.id === sid)
     if (s) {
-      s.lastMessage = (msg as any).content
+      s.lastMessage = contentType === 'image' ? '[图片]' : rawContent
       s.lastTime = (msg as any).createTime
         ? formatTime((msg as any).createTime as unknown as string)
         : s.lastTime
@@ -611,7 +645,8 @@ const sendMessage = async () => {
     sender: 'agent',
     content,
     time,
-    isoTime: new Date().toISOString()
+    isoTime: new Date().toISOString(),
+    messageType: 'text'
   })
   messagesMap.value[sessionId] = list
   draft.value = ''
@@ -642,14 +677,16 @@ const sendMessage = async () => {
         target.isoTime = (serverMsg.createTime as unknown as string) || target.isoTime
       } else if (dupIdx === -1) {
         // 未找到本地回显的那条，则直接追加一条以服务端为准的消息
+        const contentType = serverMsg.contentType
         targetList.push({
           id: serverIdStr,
           sender: serverMsg.senderRole === 'AGENT' ? 'agent' : 'user',
-          content: serverMsg.content,
+          content: contentType === 'image' ? processImageUrl(serverMsg.content) : serverMsg.content,
           time: serverMsg.createTime
             ? formatTime(serverMsg.createTime as unknown as string)
             : '',
-          isoTime: (serverMsg.createTime as unknown as string) || ''
+          isoTime: (serverMsg.createTime as unknown as string) || '',
+          messageType: contentType
         })
       }
 
@@ -960,7 +997,8 @@ onUnmounted(() => {
 .message-pane {
   flex: 1;
   /* background-color: #e5ddd5; */
-  background-color: #daead6;
+  /* background-color: #daead6; */
+  background-color: #d7e8d5;
   padding: 12px 16px;
   overflow-y: auto;
 }
@@ -1034,7 +1072,8 @@ onUnmounted(() => {
 
 .message-date-label {
   padding: 2px 10px;
-  background-color: #ece8e8;
+  /* background-color: #ece8e8; */
+  background-color: rgba(199, 196, 196, 0.04);
   border-radius: 999px;
 }
 

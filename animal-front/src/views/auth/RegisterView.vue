@@ -228,34 +228,53 @@ const countdown = ref(0)
 let countdownTimer: number | null = null
 const sendingCode = ref(false)
 
+const getEmailFormErrorMessage = () => {
+  if (!emailForm.email) return '请输入邮箱'
+  if (!emailForm.code) return '请输入验证码'
+  if (!emailForm.password) return '请输入密码'
+  if (!emailForm.agreeTerms) return '请同意用户协议和隐私政策'
+  return '请完善注册信息'
+}
+
+const getPhoneFormErrorMessage = () => {
+  if (!phoneForm.phone) return '请输入手机号'
+  if (!phoneForm.code) return '请输入验证码'
+  if (!phoneForm.password) return '请输入密码'
+  if (!phoneForm.agreeTerms) return '请同意用户协议和隐私政策'
+  return '请完善注册信息'
+}
+
 // 邮箱注册
 const handleEmailRegister = async () => {
   if (!emailFormRef.value) return
 
   await emailFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        const response = await axios.post('/api/user/register', {
-          email: emailForm.email,
-          password: emailForm.password,
-          code: emailForm.code,
-          registerType: 'email'
-        })
+    if (!valid) {
+      ElMessage.error(getEmailFormErrorMessage())
+      return
+    }
 
-        if (response.data.code === 200) {
-          showSuccessTip('注册成功！正在跳转到登录页...')
-          setTimeout(() => {
-            router.push('/login')
-          }, 1500)
-        } else {
-          ElMessage.error(response.data.message || '注册失败')
-        }
-      } catch (error: any) {
-        ElMessage.error(error.response?.data?.message || '注册失败，请检查网络连接')
-      } finally {
-        loading.value = false
+    loading.value = true
+    try {
+      const response = await axios.post('/api/user/register', {
+        email: emailForm.email,
+        password: emailForm.password,
+        code: emailForm.code,
+        registerType: 'email'
+      })
+
+      if (response.data.code === 200) {
+        showSuccessTip('注册成功！正在跳转到登录页...')
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+      } else {
+        ElMessage.error(response.data.message || '注册失败')
       }
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '注册失败，请检查网络连接')
+    } finally {
+      loading.value = false
     }
   })
 }
@@ -265,29 +284,32 @@ const handlePhoneRegister = async () => {
   if (!phoneFormRef.value) return
 
   await phoneFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        const response = await axios.post('/api/user/register', {
-          phone: phoneForm.phone,
-          password: phoneForm.password,
-          code: phoneForm.code,
-          registerType: 'phone'
-        })
+    if (!valid) {
+      ElMessage.error(getPhoneFormErrorMessage())
+      return
+    }
 
-        if (response.data.code === 200) {
-          showSuccessTip('注册成功！正在跳转到登录页...')
-          setTimeout(() => {
-            router.push('/login')
-          }, 1500)
-        } else {
-          ElMessage.error(response.data.message || '注册失败')
-        }
-      } catch (error: any) {
-        ElMessage.error(error.response?.data?.message || '注册失败，请检查网络连接')
-      } finally {
-        loading.value = false
+    loading.value = true
+    try {
+      const response = await axios.post('/api/user/register', {
+        phone: phoneForm.phone,
+        password: phoneForm.password,
+        code: phoneForm.code,
+        registerType: 'phone'
+      })
+
+      if (response.data.code === 200) {
+        showSuccessTip('注册成功！正在跳转到登录页...')
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+      } else {
+        ElMessage.error(response.data.message || '注册失败')
       }
+    } catch (error: any) {
+      ElMessage.error(error.response?.data?.message || '注册失败，请检查网络连接')
+    } finally {
+      loading.value = false
     }
   })
 }
