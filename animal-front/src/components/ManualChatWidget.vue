@@ -50,7 +50,7 @@
               </svg>
               <div class="agent-info">
                 <div class="agent-name">人工客服</div>
-                <div class="agent-status">通常在几分钟内回复</div>
+                <div class="agent-status">请稍候，消息将会很快回复</div>
               </div>
             </div>
             <div class="header-actions">
@@ -585,6 +585,7 @@ const uploadAndSendImage = async (file: File) => {
     ElMessage.error('图片发送失败，请稍后重试')
   } finally {
     imagePanelVisible.value = false
+    scrollToBottom()
   }
 }
 
@@ -942,7 +943,7 @@ onUnmounted(() => {
 
 .agent-status {
   font-size: 12px;
-  opacity: 0.9;
+  opacity: 0.77;
 }
 
 .header-actions {
@@ -1216,8 +1217,8 @@ onUnmounted(() => {
 }
 
 .chat-image {
-  max-width: 180px;
-  max-height: 180px;
+  max-width: 160px;
+  max-height: 200px;
   border-radius: 8px;
   display: block;
 }

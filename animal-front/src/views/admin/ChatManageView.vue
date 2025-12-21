@@ -1053,6 +1053,17 @@ onUnmounted(() => {
   word-break: break-word;
 }
 
+.message-image {
+  width: 220px;
+  height: 220px;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+  display: block;
+  background-color: #ffffff;
+}
+
 .message-time {
   margin-top: 2px;
   font-size: 11px;
