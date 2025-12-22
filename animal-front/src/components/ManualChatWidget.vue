@@ -50,7 +50,7 @@
               </svg>
               <div class="agent-info">
                 <div class="agent-name">人工客服</div>
-                <div class="agent-status">请稍候，消息将会很快回复</div>
+                <div class="agent-status">请稍候，消息将很快回复</div>
               </div>
             </div>
             <div class="header-actions">
@@ -199,7 +199,7 @@
                 v-model="draft"
                 ref="inputRef"
                 class="chat-input"
-                placeholder="请输入您的问题..."
+                placeholder="在此输入您的问题..."
                 rows="2"
                 @keydown.enter.exact.prevent="handleSend"
                 @keydown.enter.ctrl.stop
@@ -262,6 +262,7 @@ const emojiList = ref<string[]>([
 ])
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 const imagePanelVisible = ref(false)
+const imagePanelLastScrollTop = ref<number | null>(null)
 const imageInputRef = ref<HTMLInputElement | null>(null)
 
 // 后端会话ID (t_cs_session.id)
@@ -506,9 +507,23 @@ const handleEmojiClick = (emoji: string) => {
 }
 
 const toggleImagePanel = () => {
-  imagePanelVisible.value = !imagePanelVisible.value
-  if (imagePanelVisible.value) {
+  const nextVisible = !imagePanelVisible.value
+  imagePanelVisible.value = nextVisible
+  if (nextVisible) {
+    if (messageContainer.value) {
+      imagePanelLastScrollTop.value = messageContainer.value.scrollTop
+    } else {
+      imagePanelLastScrollTop.value = null
+    }
     emojiPanelVisible.value = false
+  } else {
+    nextTick(() => {
+      if (messageContainer.value && imagePanelLastScrollTop.value != null) {
+        messageContainer.value.scrollTop = imagePanelLastScrollTop.value
+      } else {
+        scrollToBottom()
+      }
+    })
   }
 }
 
@@ -585,7 +600,13 @@ const uploadAndSendImage = async (file: File) => {
     ElMessage.error('图片发送失败，请稍后重试')
   } finally {
     imagePanelVisible.value = false
-    scrollToBottom()
+    nextTick(() => {
+      if (messageContainer.value && imagePanelLastScrollTop.value != null) {
+        messageContainer.value.scrollTop = imagePanelLastScrollTop.value
+      } else {
+        scrollToBottom()
+      }
+    })
   }
 }
 
@@ -888,6 +909,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+textarea::placeholder {
+  color: rgb(188, 185, 185);
+}
+
 .manual-chat-root {
   position: fixed;
   right: 24px;
@@ -1291,7 +1316,7 @@ onUnmounted(() => {
   border: none;
   border-radius: 999px;
   padding: 8px 18px;
-  background: linear-gradient(135deg, #ffb27b 0%, #ff8c55 100%);
+  background: linear-gradient(135deg, #f8a265 0%, #ff8c55 100%);
   color: #fff;
   font-size: 14px;
   cursor: pointer;

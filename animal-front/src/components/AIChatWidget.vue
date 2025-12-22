@@ -15,7 +15,7 @@
                 d="M669.84 570.03l-47.55-13.55c-12.88 45.18-54.73 76.74-101.77 76.74-46.52 0-88.24-31.12-101.44-75.66l-47.42 14.07c19.38 65.37 80.6 111.04 148.87 111.04 69-0.01 130.41-46.32 149.31-112.64z"
                 fill="#ffffff" />
             </svg>
-            <span class="header-title">AI客服助手</span>
+            <span class="header-title">智能助手小林</span>
           </div>
           <el-button link :icon="Close" @click="toggleChat" class="close-btn" />
         </div>
@@ -54,7 +54,7 @@
 
         <!-- 输入框 -->
         <div class="chat-input-area">
-          <el-input v-model="userInput" type="textarea" :rows="3" placeholder="输入您的问题..."
+          <el-input v-model="userInput" type="textarea" :rows="3" placeholder="在此输入您的问题..."
             @keyup.enter.ctrl="sendMessage" class="chat-input" :disabled="isLoading" />
           <div class="input-actions">
             <span class="hint">按 Ctrl+Enter 发送</span>
@@ -68,7 +68,7 @@
 
       <!-- 浮动按钮 -->
       <div v-else class="chat-button">
-        <button @click="toggleChat" class="floating-btn" title="AI客服助手">
+        <button @click="toggleChat" class="floating-btn" title="智能助手小林">
           <svg class="ai-avatar-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
             width="32" height="32">
             <path
