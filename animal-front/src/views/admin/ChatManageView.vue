@@ -46,32 +46,7 @@
 
         <div class="chat-body">
           <main class="message-pane" ref="messageContainer">
-            <div
-              v-if="imagePanelVisible"
-              class="image-upload-overlay"
-              @dragover.prevent
-              @dragenter.prevent
-              @drop.prevent="handleImageDrop"
-            >
-              <div class="image-upload-card" @click="triggerImageSelect">
-                <div class="image-upload-folder">📁</div>
-                <div class="image-upload-dropzone">
-                  <div class="image-upload-plus">+</div>
-                </div>
-                <div class="image-upload-desc">
-                  <div class="image-upload-text">拖拽图片到此上传，或点击选择本地图片</div>
-                  <div class="image-upload-tip">支持 JPG / PNG，大小不超过 5MB</div>
-                </div>
-              </div>
-              <input
-                ref="imageInputRef"
-                type="file"
-                accept="image/*"
-                class="hidden-file-input"
-                @change="handleImageSelect"
-              />
-            </div>
-            <div v-else class="message-scroll">
+            <div class="message-scroll">
               <div v-for="(msg, index) in currentMessages" :key="msg.id">
                 <div v-if="shouldShowDateDivider(index)" class="message-date-divider">
                   <span class="message-date-label">{{ getMessageDateLabel(msg) }}</span>
@@ -145,10 +120,42 @@
                   </button>
                 </div>
               </div>
-              <div class="emoji-wrapper">
-                <button class="icon-btn" type="button" @click="toggleImagePanel">
+              <div class="emoji-wrapper" @mouseleave="handleImageHoverLeave">
+                <button
+                  class="icon-btn"
+                  type="button"
+                  @click="toggleImagePanel"
+                  @mouseenter="handleImageIconHover"
+                >
                   📷
                 </button>
+                <transition name="image-upload-fade-slide">
+                  <div
+                    v-if="imagePanelVisible"
+                    class="image-upload-pop"
+                    @dragover.prevent
+                    @dragenter.prevent
+                    @drop.prevent="handleImageDrop"
+                  >
+                    <div class="image-upload-card" @click="triggerImageSelect">
+                      <div class="image-upload-folder">📁</div>
+                      <div class="image-upload-dropzone">
+                        <div class="image-upload-plus">+</div>
+                      </div>
+                      <div class="image-upload-desc">
+                        <div class="image-upload-text">拖拽图片到此上传，或点击选择本地图片</div>
+                        <div class="image-upload-tip">支持 JPG / PNG，大小不超过 5MB</div>
+                      </div>
+                    </div>
+                    <input
+                      ref="imageInputRef"
+                      type="file"
+                      accept="image/*"
+                      class="hidden-file-input"
+                      @change="handleImageSelect"
+                    />
+                  </div>
+                </transition>
               </div>
             </div>
             <el-input
@@ -578,6 +585,20 @@ const handleEmojiClick = (emoji: string) => {
       inputRef.value.focus()
     }
   })
+}
+
+const handleImageIconHover = () => {
+  // 仅在面板当前未打开时响应 hover，避免反复切换
+  if (imagePanelVisible.value) return
+  if (!currentSession.value || !activeSessionId.value) return
+
+  imagePanelVisible.value = true
+  if (messageContainer.value) {
+    imagePanelLastScrollTop.value = messageContainer.value.scrollTop
+  } else {
+    imagePanelLastScrollTop.value = null
+  }
+  emojiPanelVisible.value = false
 }
 
 const toggleImagePanel = () => {
@@ -1481,17 +1502,16 @@ onUnmounted(() => {
   padding: 2px;
 }
 
-.image-upload-overlay {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.image-upload-pop {
+  position: absolute;
+  bottom: 46px;
+  left: -40px;
+  z-index: 20;
 }
 
 .image-upload-card {
-  width: 100%;
-  max-width: 280px;
-  padding: 18px 20px 16px;
+  width: 320px;
+  padding: 14px 18px 12px;
   border-radius: 20px;
   border: 1px solid #f0e2d6;
   background-color: #fffdf9;
@@ -1568,6 +1588,17 @@ onUnmounted(() => {
 
 .hidden-file-input {
   display: none;
+}
+
+.image-upload-fade-slide-enter-active,
+.image-upload-fade-slide-leave-active {
+  transition: all 0.18s ease;
+}
+
+.image-upload-fade-slide-enter-from,
+.image-upload-fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
 }
 
 .chat-input-actions {

@@ -102,9 +102,6 @@
 
     <div class="footer-bottom">
       <el-text type="info">
-        <el-icon>
-          <CopyDocument />
-        </el-icon>
         &copy; 2025 i宠园. 保留所有权利.
       </el-text>
       <el-space>
