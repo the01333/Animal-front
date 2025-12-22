@@ -162,7 +162,7 @@ const adminRoutes: RouteRecordRaw[] = [
         path: 'user/certification',
         name: 'admin-user-certification',
         component: () => import('@/views/admin/user/CertificationListView.vue'),
-        meta: { title: '认证审核' }
+        meta: { title: '认证审核', requireSuperAdmin: true }
       },
       // 文章管理
       {
@@ -195,7 +195,7 @@ const adminRoutes: RouteRecordRaw[] = [
         path: 'settings',
         name: 'admin-settings',
         component: () => import('@/views/admin/SettingsView.vue'),
-        meta: { title: '系统设置' }
+        meta: { title: '系统设置', requireSuperAdmin: true }
       },
       // 个人中心
       {
@@ -217,6 +217,12 @@ const adminRoutes: RouteRecordRaw[] = [
 
 // 独立页面路由
 const standaloneRoutes: RouteRecordRaw[] = [
+  {
+    path: '/forbidden',
+    name: 'forbidden',
+    component: () => import('@/views/NoPermissionView.vue'),
+    meta: { title: '无权限访问' }
+  },
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
@@ -256,9 +262,18 @@ router.beforeEach((to, from, next) => {
     return
   }
 
+  const role = String(userStore.userInfo?.role || '').toLowerCase()
+  const isSuperAdmin = role === 'super_admin'
+
   if (to.meta.requireAdmin && !userStore.isManager) {
     ElMessage.error('您没有权限访问该页面')
-    next({ name: 'home' })
+    next({ name: 'forbidden' })
+    return
+  }
+
+  if (to.meta.requireSuperAdmin && !isSuperAdmin) {
+    ElMessage.error('您没有权限访问该页面')
+    next({ name: 'forbidden' })
     return
   }
 

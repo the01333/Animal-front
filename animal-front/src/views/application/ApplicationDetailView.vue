@@ -38,7 +38,7 @@
         <div class="card applicant-card">
           <h3>申请人信息</h3>
           <ul>
-            <li><span>昵称：</span>{{ detail.applicantNickname || detail.applicantUsername || '—' }}</li>
+            <li><span>用户名：</span>{{ detail.applicantUsername || '—' }}</li>
             <li><span>电话：</span>{{ detail.contactPhone || detail.applicantPhone || '—' }}</li>
             <li><span>邮箱：</span>{{ detail.applicantEmail || '—' }}</li>
             <li><span>地址：</span>{{ detail.contactAddress || detail.applicantAddress || '—' }}</li>

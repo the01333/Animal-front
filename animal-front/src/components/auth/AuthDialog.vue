@@ -123,9 +123,9 @@
                   <el-checkbox v-model="registerPhoneForm.agree">
                     <span class="agreement-text">
                       <span>我已阅读并同意</span>
-                      <el-link type="primary" :underline="false">《用户协议》</el-link>
+                      <el-link type="primary" :underline="false" @click.stop="openPolicyFromAuth('terms')">《用户协议》</el-link>
                       <span>和</span>
-                      <el-link type="primary" :underline="false">《隐私政策》</el-link>
+                      <el-link type="primary" :underline="false" @click.stop="openPolicyFromAuth('privacy')">《隐私政策》</el-link>
                     </span>
                   </el-checkbox>
                 </el-form-item>
@@ -158,9 +158,9 @@
                   <el-checkbox v-model="registerEmailForm.agree">
                     <span class="agreement-text">
                       <span>我已阅读并同意</span>
-                      <el-link type="primary" :underline="false">《用户协议》</el-link>
+                      <el-link type="primary" :underline="false" @click.stop="openPolicyFromAuth('terms')">《用户协议》</el-link>
                       <span>和</span>
-                      <el-link type="primary" :underline="false">《隐私政策》</el-link>
+                      <el-link type="primary" :underline="false" @click.stop="openPolicyFromAuth('privacy')">《隐私政策》</el-link>
                     </span>
                   </el-checkbox>
                 </el-form-item>
@@ -213,6 +213,15 @@ const activeTab = ref<'login' | 'register'>(props.defaultTab || 'login')
 // 当前登录/注册方式
 const loginMethod = ref<'phone' | 'email' | 'password'>('phone')
 const registerMethod = ref<'phone' | 'email'>('phone')
+
+const openPolicyFromAuth = (type: 'terms' | 'privacy') => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent('openPolicyDialog', {
+      detail: { type: type === 'terms' ? 'terms' : 'privacy' }
+    })
+  )
+}
 
 // 登录表单 - 手机
 const loginPhoneFormRef = ref<FormInstance>()

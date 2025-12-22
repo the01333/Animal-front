@@ -49,7 +49,7 @@
 
               <el-descriptions :column="1" size="small" class="card-descriptions">
                 <el-descriptions-item label="申请人">
-                  {{ item.applicantNickname || item.applicantUsername || '匿名用户' }}
+                  {{ item.applicantUsername || '匿名用户' }}
                   <el-tag v-if="item.applicantCertified" size="small" type="success" style="margin-left: 6px">
                     已认证
                   </el-tag>
@@ -116,9 +116,9 @@
               </header>
               <ul>
                 <li>
-                  <label>昵称</label>
+                  <label>用户名</label>
                   <div>
-                    {{ detailData?.applicantNickname || detailData?.applicantUsername || '-' }}
+                    {{ detailData?.applicantUsername || '-' }}
                     <el-tag v-if="detailData?.applicantCertified" size="small" type="success" effect="plain"
                       style="margin-left: 6px">已认证</el-tag>
                   </div>

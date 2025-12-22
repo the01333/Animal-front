@@ -49,7 +49,7 @@
           <p class="tools-tip">系统级操作，请谨慎执行以下工具：</p>
           <div class="tools-actions">
             <el-button type="primary" :loading="refreshing" @click="handleRefreshDictCache">刷新字典缓存</el-button>
-            <el-button type="warning" :loading="syncing" @click="handleManualSyncViewCount">立即同步浏览统计</el-button>
+            <el-button type="warning" :loading="syncing" @click="handleManualSyncViewCount">同步浏览统计</el-button>
           </div>
         </div>
       </div>

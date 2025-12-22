@@ -7,7 +7,7 @@
           <el-input v-model="searchKeyword" placeholder="搜索用户..." :prefix-icon="Search" clearable />
         </div>
         <el-scrollbar class="conversation-list">
-          <div v-for="session in filteredSessions" :key="session.id" class="conversation-item"
+          <div v-for="session in sessions" :key="session.id" class="conversation-item"
             :class="{ active: session.id === activeSessionId }" @click="selectSession(session.id)">
             <div class="conversation-avatar-wrapper">
               <el-avatar :size="40" :src="session.avatar" />
@@ -28,7 +28,7 @@
 
       <section v-if="currentSession" class="chat-main">
         <header class="chat-header">
-          <div class="chat-header-left">
+          <div class="chat-header-left" @click="openUserProfile">
             <el-avatar :size="40" :src="currentSession.avatar" />
             <div class="chat-user-info">
               <div class="chat-user-name">{{ currentSession.name }}</div>
@@ -39,7 +39,7 @@
             </div>
           </div>
           <div class="chat-header-actions">
-            <el-button text>查看资料</el-button>
+            <el-button text @click="openUserProfile">查看资料</el-button>
             <el-button text type="danger" @click="endSession">结束会话</el-button>
           </div>
         </header>
@@ -47,14 +47,35 @@
         <div class="chat-body">
           <main class="message-pane" ref="messageContainer">
             <div class="message-scroll">
-              <div v-for="msg in currentMessages" :key="msg.id" class="message-row" :class="msg.sender">
-                <el-avatar v-if="msg.sender === 'user'" :size="34" :src="currentSession.avatar"
-                  class="message-avatar" />
-                <div class="message-bubble" :class="msg.sender">
-                  <div class="message-content" v-html="msg.content" />
-                  <div class="message-time">{{ msg.time }}</div>
+              <div v-for="(msg, index) in currentMessages" :key="msg.id">
+                <div v-if="shouldShowDateDivider(index)" class="message-date-divider">
+                  <span class="message-date-label">{{ getMessageDateLabel(msg) }}</span>
                 </div>
-                <el-avatar v-if="msg.sender === 'agent'" :size="34" :src="agentAvatar" class="message-avatar" />
+                <div class="message-row" :class="msg.sender">
+                  <el-avatar
+                    v-if="msg.sender === 'user'"
+                    :size="34"
+                    :src="currentSession.avatar"
+                    class="message-avatar"
+                  />
+                  <div class="message-bubble" :class="msg.sender">
+                    <div class="message-content">
+                      <template v-if="msg.messageType === 'image'">
+                        <img :src="msg.content" class="message-image" alt="图片消息" />
+                      </template>
+                      <template v-else>
+                        <div v-html="msg.content" />
+                      </template>
+                    </div>
+                    <div class="message-time">{{ msg.time }}</div>
+                  </div>
+                  <el-avatar
+                    v-if="msg.sender === 'agent'"
+                    :size="34"
+                    :src="agentAvatar"
+                    class="message-avatar"
+                  />
+                </div>
               </div>
               <div class="message-bottom-spacer" />
             </div>
@@ -65,11 +86,9 @@
               <span>{{ sideCollapsed ? '‹' : '›' }}</span>
             </div>
             <div v-if="!sideCollapsed" class="side-content">
-              <div class="side-section">
+              <div class="side-section side-user-info">
                 <div class="side-title">用户信息</div>
                 <div class="side-item"><span>昵称：</span>{{ currentSession.name }}</div>
-                <div class="side-item"><span>宠物偏好：</span>{{ currentSession.preference }}</div>
-                <div class="side-item"><span>历史订单：</span>{{ currentSession.orders }}</div>
               </div>
               <div class="side-section">
                 <div class="side-title">快捷回复</div>
@@ -83,13 +102,77 @@
         </div>
 
         <footer class="chat-input">
-          <el-input v-model="draft" type="textarea" :rows="3" placeholder="在此输入回复内容..."
-            @keydown.ctrl.enter.prevent="sendMessage" />
-          <div class="chat-input-actions">
-            <span class="hint">按 Ctrl+Enter 发送，Enter 换行</span>
-            <el-button type="primary" size="default" @click="sendMessage" :disabled="!draft.trim()">
-              发送
-            </el-button>
+          <div class="chat-input-inner">
+            <div class="chat-input-toolbar">
+              <div class="emoji-wrapper">
+                <button class="icon-btn" type="button" @click="toggleEmojiPanel">
+                  😊
+                </button>
+                <div v-if="emojiPanelVisible" class="emoji-panel">
+                  <button
+                    v-for="emoji in emojiList"
+                    :key="emoji"
+                    type="button"
+                    class="emoji-item"
+                    @click="handleEmojiClick(emoji)"
+                  >
+                    {{ emoji }}
+                  </button>
+                </div>
+              </div>
+              <div class="emoji-wrapper" @mouseleave="handleImageHoverLeave">
+                <button
+                  class="icon-btn"
+                  type="button"
+                  @click="toggleImagePanel"
+                  @mouseenter="handleImageIconHover"
+                >
+                  📷
+                </button>
+                <transition name="image-upload-fade-slide">
+                  <div
+                    v-if="imagePanelVisible"
+                    class="image-upload-pop"
+                    @dragover.prevent
+                    @dragenter.prevent
+                    @drop.prevent="handleImageDrop"
+                  >
+                    <div class="image-upload-card" @click="triggerImageSelect">
+                      <div class="image-upload-folder">📁</div>
+                      <div class="image-upload-dropzone">
+                        <div class="image-upload-plus">+</div>
+                      </div>
+                      <div class="image-upload-desc">
+                        <div class="image-upload-text">拖拽图片到此上传，或点击选择本地图片</div>
+                        <div class="image-upload-tip">支持 JPG / PNG，大小不超过 5MB</div>
+                      </div>
+                    </div>
+                    <input
+                      ref="imageInputRef"
+                      type="file"
+                      accept="image/*"
+                      class="hidden-file-input"
+                      @change="handleImageSelect"
+                    />
+                  </div>
+                </transition>
+              </div>
+            </div>
+            <el-input
+              v-model="draft"
+              ref="inputRef"
+              class="chat-input-textarea"
+              type="textarea"
+              :rows="3"
+              placeholder="在此输入回复内容..."
+              @keydown.ctrl.enter.prevent="sendMessage"
+            />
+            <div class="chat-input-actions">
+              <span class="hint">按 Ctrl+Enter 发送，Enter 换行</span>
+              <el-button type="primary" size="default" @click="sendMessage" :disabled="!draft.trim()">
+                发送
+              </el-button>
+            </div>
           </div>
         </footer>
       </section>
@@ -97,6 +180,40 @@
       <section v-else class="chat-main-empty">
         <el-empty description="请选择左侧的用户会话开始聊天" />
       </section>
+
+      <transition name="user-profile">
+        <div v-if="showUserProfile && currentSession" class="user-profile-overlay" @click="closeUserProfile">
+          <div class="user-profile-dialog" @click.stop>
+            <div class="user-profile-header">
+              <el-avatar :size="64" :src="currentSession.avatar" />
+              <div class="user-profile-basic">
+                <div class="user-profile-name">{{ currentSession.name }}</div>
+                <div class="user-profile-status">
+                  <span class="status-dot" :class="{ online: currentSession.online }" />
+                  <span>{{ currentSession.online ? '在线' : '离线' }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="user-profile-body">
+              <div class="user-profile-row">
+                <span class="label">用户ID：</span>
+                <span class="value">{{ currentSession.userId }}</span>
+              </div>
+              <div class="user-profile-row">
+                <span class="label">最近消息：</span>
+                <span class="value">{{ currentSession.lastMessage || '暂无' }}</span>
+              </div>
+              <div class="user-profile-row">
+                <span class="label">最近时间：</span>
+                <span class="value">{{ currentSession.lastTimeFull || '暂无' }}</span>
+              </div>
+            </div>
+            <div class="user-profile-footer">
+              <el-button size="default" @click="closeUserProfile">关闭</el-button>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -119,6 +236,7 @@ import {
   type CsMessage
 } from '@/api/customerService'
 import { processImageUrl } from '@/utils/image'
+import { uploadArticleCover } from '@/api/article'
 
 type Sender = 'user' | 'agent'
 
@@ -127,6 +245,8 @@ interface ChatMessage {
   sender: Sender
   content: string
   time: string
+  isoTime?: string | null
+  messageType?: string
 }
 
 interface ChatSession {
@@ -136,6 +256,7 @@ interface ChatSession {
   avatar: string
   lastMessage: string
   lastTime: string
+  lastTimeFull: string
   unread: number
   online: boolean
   preference: string
@@ -166,6 +287,38 @@ const activeSessionId = ref<number | null>(null)
 const draft = ref('')
 const sideCollapsed = ref(false)
 const messageContainer = ref<HTMLElement | null>(null)
+const showUserProfile = ref(false)
+const emojiPanelVisible = ref(false)
+const emojiList = ref<string[]>([
+  '😀',
+  '😁',
+  '😂',
+  '🤣',
+  '😊',
+  '😍',
+  '😘',
+  '😜',
+  '🤔',
+  '😄',
+  '😅',
+  '😭',
+  '😡',
+  '👍',
+  '👎',
+  '👏',
+  '🙏',
+  '🐶',
+  '🐱',
+  '🐰',
+  '❤️',
+  '💔',
+  '✨',
+  '🌟'
+])
+const imagePanelVisible = ref(false)
+const imagePanelLastScrollTop = ref<number | null>(null)
+const imageInputRef = ref<HTMLInputElement | null>(null)
+const inputRef = ref<any | null>(null)
 
 const loadingSessions = ref(false)
 const loadingMessages = ref(false)
@@ -195,13 +348,18 @@ const formatTime = (iso?: string | null): string => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-const filteredSessions = computed(() => {
-  const keyword = searchKeyword.value.trim().toLowerCase()
-  if (!keyword) return sessions.value
-  return sessions.value.filter((s) =>
-    s.name.toLowerCase().includes(keyword) || s.lastMessage.toLowerCase().includes(keyword)
-  )
-})
+const formatTimeFull = (iso?: string | null): string => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => (n < 10 ? `0${n}` : String(n))
+  const y = d.getFullYear()
+  const m = pad(d.getMonth() + 1)
+  const day = pad(d.getDate())
+  const h = pad(d.getHours())
+  const min = pad(d.getMinutes())
+  return `${y}-${m}-${day} ${h}:${min}`
+}
 
 const currentSession = computed(() => {
   if (!activeSessionId.value) return null
@@ -213,20 +371,81 @@ const currentMessages = computed(() => {
   return messagesMap.value[activeSessionId.value] || []
 })
 
+const formatDateOnly = (iso?: string | null): string => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => (n < 10 ? `0${n}` : String(n))
+  const y = d.getFullYear()
+  const m = pad(d.getMonth() + 1)
+  const day = pad(d.getDate())
+  return `${y}-${m}-${day}`
+}
+
+const isTodayIso = (iso?: string | null): boolean => {
+  if (!iso) return false
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return false
+  const now = new Date()
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
+}
+
+const getMessageDateLabel = (msg: ChatMessage): string => {
+  if (!msg || !msg.isoTime) return ''
+  if (isTodayIso(msg.isoTime)) return '今天'
+  return formatDateOnly(msg.isoTime)
+}
+
+const shouldShowDateDivider = (index: number): boolean => {
+  const list = currentMessages.value
+  if (index < 0 || index >= list.length) return false
+  const msg = list[index]
+  if (!msg || !msg.isoTime) return false
+  const currentLabel = getMessageDateLabel(msg)
+  if (!currentLabel) return false
+  if (index === 0) return true
+  const prev = list[index - 1]
+  if (!prev || !prev.isoTime) return true
+  const prevLabel = getMessageDateLabel(prev)
+  return currentLabel !== prevLabel
+}
+
 const loadSessions = async () => {
   loadingSessions.value = true
   try {
-    const res = await pageManualCsSessions({ current: 1, size: 50 })
+    const keyword = searchKeyword.value.trim()
+    const res = await pageManualCsSessions({
+      current: 1,
+      size: 50,
+      keyword: keyword || undefined
+    })
     const pageData = res.data
     const records: CsSession[] = pageData?.records || []
+
+    const normalizeLastMessage = (raw?: string): string => {
+      if (!raw) return ''
+      const text = raw.trim()
+      if (!text) return ''
+      const withoutQuery = text.split('?')[0]
+      const isMaybeImage = /\.(png|jpe?g|gif|webp)$/i.test(withoutQuery)
+      if (isMaybeImage) {
+        return '[图片]'
+      }
+      return text
+    }
 
     sessions.value = records.map<ChatSession>((item) => ({
       id: item.id,
       userId: item.userId,
       name: item.userUsername || item.userNickname || `用户#${item.userId}`,
       avatar: item.userAvatar ? processImageUrl(item.userAvatar) : 'http://localhost:9000/animal-adopt/default.jpg',
-      lastMessage: item.lastMessage || '',
+      lastMessage: normalizeLastMessage(item.lastMessage),
       lastTime: item.lastTime ? formatTime(item.lastTime as unknown as string) : '',
+      lastTimeFull: item.lastTime ? formatTimeFull(item.lastTime as unknown as string) : '',
       unread: item.unreadForAgent || 0,
       online: !!item.online,
       preference: '',
@@ -244,6 +463,14 @@ const loadSessions = async () => {
   }
 }
 
+watch(
+  () => searchKeyword.value,
+  () => {
+    // 根据输入关键字走接口按用户账号模糊搜索会话列表
+    loadSessions()
+  }
+)
+
 const loadMessages = async (sessionId: number) => {
   loadingMessages.value = true
   try {
@@ -253,8 +480,10 @@ const loadMessages = async (sessionId: number) => {
     const serverMsgs = list.map<ChatMessage>((item) => ({
       id: String(item.id),
       sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
-      content: item.content,
-      time: item.createTime ? formatTime(item.createTime as unknown as string) : ''
+      content: item.contentType === 'image' ? processImageUrl(item.content) : item.content,
+      time: item.createTime ? formatTime(item.createTime as unknown as string) : '',
+      isoTime: (item.createTime as unknown as string) || '',
+      messageType: item.contentType
     }))
 
     // 注意：当 WS 正常但页面仍“需要刷新才能看到”时，常见原因是这里的 HTTP 拉取覆盖了 WS
@@ -332,6 +561,7 @@ const selectSession = async (id: number) => {
 
   // 点击会话后, 将客服侧未读数清零
   await ackAgentRead(id)
+  scrollToBottom()
 }
 
 const scrollToBottom = () => {
@@ -341,6 +571,189 @@ const scrollToBottom = () => {
   })
 }
 
+const toggleEmojiPanel = () => {
+  emojiPanelVisible.value = !emojiPanelVisible.value
+  if (emojiPanelVisible.value) {
+    imagePanelVisible.value = false
+  }
+}
+
+const handleEmojiClick = (emoji: string) => {
+  draft.value += emoji
+  nextTick(() => {
+    if (inputRef.value && typeof inputRef.value.focus === 'function') {
+      inputRef.value.focus()
+    }
+  })
+}
+
+const handleImageIconHover = () => {
+  // 仅在面板当前未打开时响应 hover，避免反复切换
+  if (imagePanelVisible.value) return
+  if (!currentSession.value || !activeSessionId.value) return
+
+  imagePanelVisible.value = true
+  if (messageContainer.value) {
+    imagePanelLastScrollTop.value = messageContainer.value.scrollTop
+  } else {
+    imagePanelLastScrollTop.value = null
+  }
+  emojiPanelVisible.value = false
+}
+
+const toggleImagePanel = () => {
+  if (!currentSession.value || !activeSessionId.value) {
+    ElMessage.warning('请选择一个会话')
+    return
+  }
+  const nextVisible = !imagePanelVisible.value
+  imagePanelVisible.value = nextVisible
+  if (nextVisible) {
+    // 打开图片面板时收起表情面板
+    if (messageContainer.value) {
+      imagePanelLastScrollTop.value = messageContainer.value.scrollTop
+    } else {
+      imagePanelLastScrollTop.value = null
+    }
+    emojiPanelVisible.value = false
+  } else {
+    // 关闭图片面板后，恢复到打开前的位置；若记录不存在则退回最新消息
+    nextTick(() => {
+      if (messageContainer.value && imagePanelLastScrollTop.value != null) {
+        messageContainer.value.scrollTop = imagePanelLastScrollTop.value
+      } else {
+        scrollToBottom()
+      }
+    })
+  }
+}
+
+const triggerImageSelect = () => {
+  imageInputRef.value?.click()
+}
+
+const uploadAndSendImage = async (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('请选择图片文件')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return
+  }
+
+  if (!currentSession.value || !activeSessionId.value) {
+    ElMessage.warning('请选择一个会话')
+    return
+  }
+
+  const sessionId = activeSessionId.value
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const res = await uploadArticleCover(formData)
+    const imageUrl = res.data
+    if (!imageUrl) {
+      ElMessage.error('图片上传失败，请稍后重试')
+      return
+    }
+
+    const localId = `${Date.now()}-img`
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+    const list = messagesMap.value[sessionId] || []
+    list.push({
+      id: localId,
+      sender: 'agent',
+      content: processImageUrl(imageUrl),
+      time,
+      isoTime: new Date().toISOString(),
+      messageType: 'image'
+    })
+    messagesMap.value[sessionId] = list
+    scrollToBottom()
+
+    try {
+      sending.value = true
+      const resMsg = await sendManualCsMessage(sessionId, { content: imageUrl, messageType: 'image' })
+      const serverMsg = resMsg.data as CsMessage | undefined
+      if (serverMsg && typeof serverMsg.id === 'number') {
+        const serverIdStr = String(serverMsg.id)
+        const targetList = messagesMap.value[sessionId] || []
+        let localIdx = targetList.findIndex((m) => m.id === localId)
+        const dupIdx = targetList.findIndex((m) => m.id === serverIdStr)
+
+        if (localIdx !== -1) {
+          if (dupIdx !== -1 && dupIdx !== localIdx) {
+            targetList.splice(dupIdx, 1)
+            if (dupIdx < localIdx) localIdx -= 1
+          }
+          const target = targetList[localIdx]
+          target.id = serverIdStr
+          target.time = serverMsg.createTime
+            ? formatTime(serverMsg.createTime as unknown as string)
+            : target.time
+          target.isoTime = (serverMsg.createTime as unknown as string) || target.isoTime
+          target.messageType = serverMsg.contentType
+          target.content =
+            serverMsg.contentType === 'image'
+              ? processImageUrl(serverMsg.content)
+              : serverMsg.content
+        } else if (dupIdx === -1) {
+          const contentType = serverMsg.contentType
+          targetList.push({
+            id: serverIdStr,
+            sender: serverMsg.senderRole === 'AGENT' ? 'agent' : 'user',
+            content:
+              contentType === 'image'
+                ? processImageUrl(serverMsg.content)
+                : serverMsg.content,
+            time: serverMsg.createTime
+              ? formatTime(serverMsg.createTime as unknown as string)
+              : '',
+            isoTime: (serverMsg.createTime as unknown as string) || '',
+            messageType: contentType
+          })
+        }
+
+        messagesMap.value[sessionId] = targetList
+        scrollToBottom()
+      }
+    } finally {
+      sending.value = false
+    }
+  } catch (error) {
+    console.error('上传图片并发送失败:', error)
+    ElMessage.error('图片发送失败，请稍后重试')
+  } finally {
+    imagePanelVisible.value = false
+    nextTick(() => {
+      if (messageContainer.value && imagePanelLastScrollTop.value != null) {
+        messageContainer.value.scrollTop = imagePanelLastScrollTop.value
+      } else {
+        scrollToBottom()
+      }
+    })
+  }
+}
+
+const handleImageSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  await uploadAndSendImage(file)
+  target.value = ''
+}
+
+const handleImageDrop = async (event: DragEvent) => {
+  const file = event.dataTransfer?.files?.[0]
+  if (!file) return
+  await uploadAndSendImage(file)
+}
+
+// TODO: 后台消息轮询时间
 const startSessionsPolling = () => {
   // 只有在 WS 未连接时才使用轮询作为降级方案
   if (sessionsPollTimer) {
@@ -354,7 +767,7 @@ const startSessionsPolling = () => {
     } catch (e) {
       console.error('轮询刷新会话列表失败', e)
     }
-  }, 5000)
+  }, 3000)
 }
 
 const startMessagesPolling = (sessionId: number) => {
@@ -434,21 +847,29 @@ const handleChatWsPayload = (payload: any) => {
       content: (msg as any).content
     })
 
-    const newMsg = {
+    const contentType = (msg as any).contentType as string
+    const rawContent = (msg as any).content as string
+
+    const newMsg: ChatMessage = {
       id: msgId,
       sender: (msg as any).senderRole === 'AGENT' ? 'agent' : 'user',
-      content: (msg as any).content,
-      time: (msg as any).createTime ? formatTime((msg as any).createTime as unknown as string) : ''
+      content: contentType === 'image' ? processImageUrl(rawContent) : rawContent,
+      time: (msg as any).createTime ? formatTime((msg as any).createTime as unknown as string) : '',
+      isoTime: (msg as any).createTime as unknown as string,
+      messageType: contentType
     }
     const newList = [...existingList, newMsg]
     messagesMap.value = { ...messagesMap.value, [sid]: newList }
 
     const s = sessions.value.find((it) => it.id === sid)
     if (s) {
-      s.lastMessage = (msg as any).content
+      s.lastMessage = contentType === 'image' ? '[图片]' : rawContent
       s.lastTime = (msg as any).createTime
         ? formatTime((msg as any).createTime as unknown as string)
         : s.lastTime
+      s.lastTimeFull = (msg as any).createTime
+        ? formatTimeFull((msg as any).createTime as unknown as string)
+        : s.lastTimeFull
 
       if ((msg as any).senderRole === 'USER') {
         if (activeSessionId.value === sid) {
@@ -502,7 +923,9 @@ const sendMessage = async () => {
     id: localId,
     sender: 'agent',
     content,
-    time
+    time,
+    isoTime: new Date().toISOString(),
+    messageType: 'text'
   })
   messagesMap.value[sessionId] = list
   draft.value = ''
@@ -530,15 +953,19 @@ const sendMessage = async () => {
         target.time = serverMsg.createTime
           ? formatTime(serverMsg.createTime as unknown as string)
           : target.time
+        target.isoTime = (serverMsg.createTime as unknown as string) || target.isoTime
       } else if (dupIdx === -1) {
         // 未找到本地回显的那条，则直接追加一条以服务端为准的消息
+        const contentType = serverMsg.contentType
         targetList.push({
           id: serverIdStr,
           sender: serverMsg.senderRole === 'AGENT' ? 'agent' : 'user',
-          content: serverMsg.content,
+          content: contentType === 'image' ? processImageUrl(serverMsg.content) : serverMsg.content,
           time: serverMsg.createTime
             ? formatTime(serverMsg.createTime as unknown as string)
-            : ''
+            : '',
+          isoTime: (serverMsg.createTime as unknown as string) || '',
+          messageType: contentType
         })
       }
 
@@ -564,6 +991,15 @@ const appendQuickReply = (text: string) => {
 
 const toggleSide = () => {
   sideCollapsed.value = !sideCollapsed.value
+}
+
+const openUserProfile = () => {
+  if (!currentSession.value) return
+  showUserProfile.value = true
+}
+
+const closeUserProfile = () => {
+  showUserProfile.value = false
 }
 
 const endSession = async () => {
@@ -792,6 +1228,11 @@ onUnmounted(() => {
   gap: 10px;
 }
 
+.chat-header-left:hover {
+  /* 移动鼠标由箭头变指针 */
+  cursor: pointer;
+}
+
 .chat-user-info {
   display: flex;
   flex-direction: column;
@@ -835,7 +1276,8 @@ onUnmounted(() => {
 .message-pane {
   flex: 1;
   /* background-color: #e5ddd5; */
-  background-color: #e8f1f3;
+  /* background-color: #daead6; */
+  background-color: #d7e8d5;
   padding: 12px 16px;
   overflow-y: auto;
 }
@@ -890,11 +1332,35 @@ onUnmounted(() => {
   word-break: break-word;
 }
 
+.message-image {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 8px;
+  display: block;
+}
+
 .message-time {
   margin-top: 2px;
   font-size: 11px;
   color: #909399;
   text-align: right;
+}
+
+.message-date-divider {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+  font-size: 12px;
+  color: #333334;
+  height: 25px;
+  text-align: center;
+}
+
+.message-date-label {
+  padding: 2px 10px;
+  /* background-color: #ece8e8; */
+  background-color: rgba(199, 196, 196, 0.04);
+  border-radius: 999px;
 }
 
 .side-pane {
@@ -970,6 +1436,171 @@ onUnmounted(() => {
   background-color: #fff;
 }
 
+.chat-input-inner {
+  max-width: 820px;
+  margin: 0 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.emoji-wrapper {
+  position: relative;
+}
+
+.emoji-panel {
+  position: absolute;
+  left: 0;
+  bottom: 30px;
+  padding: 6px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #f0e2d6;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  display: grid;
+  grid-template-columns: repeat(8, 1.9em);
+  gap: 4px;
+  max-width: 260px;
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background-color: #f5f7fa;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.icon-btn:hover {
+  background-color: #e4f3ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.25);
+}
+
+.emoji-item {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1.2;
+  padding: 2px;
+}
+
+.image-upload-pop {
+  position: absolute;
+  bottom: 46px;
+  left: -40px;
+  z-index: 20;
+}
+
+.image-upload-card {
+  width: 320px;
+  padding: 14px 18px 12px;
+  border-radius: 20px;
+  border: 1px solid #f0e2d6;
+  background-color: #fffdf9;
+  box-shadow: 0 10px 26px rgba(15, 35, 52, 0.08);
+  text-align: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.image-upload-folder {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+
+.image-upload-dropzone {
+  width: 100%;
+  max-width: 220px;
+  height: 140px;
+  margin: 0 auto 10px;
+  border-radius: 16px;
+  border: 1px dashed #d4d7de;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.image-upload-plus {
+  font-size: 32px;
+  color: #c0c4cc;
+  border-radius: 999px;
+  border: 1px dashed #c0c4cc;
+  padding: 6px 12px;
+  width: 65px;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.image-upload-desc {
+  font-size: 12px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.image-upload-card:hover {
+  border-color: #ffb980;
+  background-color: #fffaf5;
+  box-shadow: 0 14px 32px rgba(15, 35, 52, 0.12);
+  transform: translateY(-2px);
+}
+
+.image-upload-card:hover .image-upload-dropzone {
+  border-color: #ffb980;
+  background-color: #fffdf5;
+}
+
+.image-upload-card:hover .image-upload-plus {
+  color: #ff9f5b;
+  border-color: #ff9f5b;
+  transform: scale(1.08);
+}
+
+.image-upload-text {
+  font-size: 13px;
+  color: #606266;
+}
+
+.image-upload-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.image-upload-fade-slide-enter-active,
+.image-upload-fade-slide-leave-active {
+  transition: all 0.18s ease;
+}
+
+.image-upload-fade-slide-enter-from,
+.image-upload-fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
 .chat-input-actions {
   margin-top: 4px;
   display: flex;
@@ -982,11 +1613,109 @@ onUnmounted(() => {
   color: #909399;
 }
 
+.chat-input-textarea :deep(textarea) {
+  border-radius: 16px;
+  border: 1px solid #dcdfe6;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.chat-input-textarea :deep(textarea:focus) {
+  border-color: #409eff;
+  box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.16);
+}
+
 .chat-main-empty {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #f5f7fa;
+}
+
+.side-user-info:hover {
+  background-color: #f5f7fa;
+}
+
+.user-profile-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.user-profile-dialog {
+  width: 420px;
+  max-width: 90vw;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+  padding: 20px 24px 16px;
+}
+
+.user-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.user-profile-basic {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-profile-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.user-profile-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.user-profile-body {
+  font-size: 14px;
+  color: #606266;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.user-profile-row {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+
+.user-profile-row .label {
+  color: #909399;
+  margin-right: 6px;
+}
+
+.user-profile-footer {
+  text-align: right;
+}
+
+.user-profile-enter-active,
+.user-profile-leave-active {
+  transition: all 0.25s ease;
+}
+
+.user-profile-enter-from,
+.user-profile-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(10px);
 }
 </style>

@@ -46,7 +46,7 @@
               <span>用户管理</span>
             </template>
             <el-menu-item v-if="isSuperAdmin" index="/admin/user/list">用户列表</el-menu-item>
-            <el-menu-item index="/admin/user/certification">认证审核</el-menu-item>
+            <el-menu-item v-if="isSuperAdmin" index="/admin/user/certification">认证审核</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="content">
@@ -79,7 +79,7 @@
             </template>
           </el-menu-item>
 
-          <el-menu-item index="/admin/settings">
+          <el-menu-item v-if="isSuperAdmin" index="/admin/settings">
             <el-icon>
               <Setting />
             </el-icon>
@@ -157,7 +157,7 @@
 
         <!-- 页脚 -->
         <el-footer class="admin-footer">
-          <div>Copyright © 2025 i宠园 - 宠物领养管理系统</div>
+          &copy; 2025 i宠园 - 宠物领养管理系统
         </el-footer>
 
         <AdminAuthDialog v-model="adminAuthVisible" @login-success="handleAdminLoginSuccess" />
@@ -241,10 +241,11 @@ const shouldHandleAgentUnreadFromWs = () => {
   return !(window as any).__csAdminChatViewActive
 }
 
+// TODO: 后台未读红点轮询时间
 const startAdminUnreadPolling = () => {
   if (typeof window === 'undefined') return
   if (adminUnreadPollTimer) return
-  // 兜底轮询未读汇总，避免极端情况下 WS 未读推送丢失时红点不同步
+  // TODO: 兜底轮询未读汇总，避免极端情况下 WS 未读推送丢失时红点不同步
   adminUnreadPollTimer = window.setInterval(() => {
     scheduleAdminUnreadHttpRefresh()
   }, 1000)

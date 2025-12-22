@@ -15,43 +15,46 @@
                 d="M669.84 570.03l-47.55-13.55c-12.88 45.18-54.73 76.74-101.77 76.74-46.52 0-88.24-31.12-101.44-75.66l-47.42 14.07c19.38 65.37 80.6 111.04 148.87 111.04 69-0.01 130.41-46.32 149.31-112.64z"
                 fill="#ffffff" />
             </svg>
-            <span class="header-title">AI客服助手</span>
+            <span class="header-title">智能助手小林</span>
           </div>
           <el-button link :icon="Close" @click="toggleChat" class="close-btn" />
         </div>
 
         <!-- 消息列表 -->
-        <div class="messages-container" ref="messagesContainer">
-          <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
-            <div class="message-avatar" v-if="msg.role === 'assistant'">
-              <svg class="ai-avatar-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                width="24" height="24">
-                <path
-                  d="M891.41 346.29c-46.89-161.32-193.96-272.8-363.47-272.8-166.19 0-312.34 108.65-361.42 265.97-56.86 2.45-102.24 49.18-102.24 106.64v141.34c0 59.03 47.85 106.88 106.88 106.88h35.32c33.43 0 60.53-27.1 60.53-60.53V399.76c0-29.46-21.07-53.96-48.96-59.36 46.65-129.34 170.24-217.45 309.88-217.45 139.96 0 262.38 87.4 309.3 216.28h-19.08c-33.43 0-60.53 27.1-60.53 60.53v234.03c0 29.93 21.78 54.63 50.32 59.5-53.12 85.52-143.18 142.53-243.25 153.88-10.82-27.59-37.53-47.2-68.96-47.2-40.99 0-74.21 33.23-74.21 74.21 0 40.99 33.22 74.21 74.21 74.21 33.07 0 60.76-21.78 70.34-51.66 126.45-12.93 239.52-89.27 298.36-202.97 53.88-5.49 95.91-51 95.91-106.32V446.11c0.01-45.65-28.66-84.51-68.93-99.82z m-673.84 287.5c0 6.11-4.97 11.08-11.08 11.08h-35.32c-31.67 0-57.43-25.76-57.43-57.43V446.11c0-31.67 25.76-57.43 57.43-57.43h35.32c6.11 0 11.08 4.97 11.08 11.08v234.03z m278.17 265.15c-13.65 0-24.76-11.11-24.76-24.76s11.11-24.76 24.76-24.76c13.65 0 24.76 11.11 24.76 24.76s-11.11 24.76-24.76 24.76z m415.16-311.5c0 31.67-25.76 57.43-57.42 57.43h-35.32c-6.11 0-11.08-4.97-11.08-11.08V399.76c0-6.11 4.97-11.08 11.08-11.08h35.32c31.66 0 57.42 25.76 57.42 57.43v141.33z"
-                  fill="#efb336" />
-                <path
-                  d="M669.84 570.03l-47.55-13.55c-12.88 45.18-54.73 76.74-101.77 76.74-46.52 0-88.24-31.12-101.44-75.66l-47.42 14.07c19.38 65.37 80.6 111.04 148.87 111.04 69-0.01 130.41-46.32 149.31-112.64z"
-                  fill="#efb336" />
-              </svg>
+        <div class="messages-container" ref="messagesContainer" @wheel="handleMessagesWheel">
+          <template v-for="(msg, index) in messages" :key="index">
+            <div v-if="shouldShowDateDivider(index)" class="message-date-divider">
+              <span class="message-date-label">{{ getMessageDateLabel(msg) }}</span>
             </div>
-            <div class="message-content">
-              <div class="message-text" v-html="formatMessage(msg.content)"></div>
-              <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
-              <!-- 流式输出时显示光标 -->
-              <span v-if="isLoading && msg.role === 'assistant' && index === messages.length - 1"
-                class="typing-cursor">▌</span>
+            <div :class="['message', msg.role]">
+              <div class="message-avatar" v-if="msg.role === 'assistant'">
+                <svg class="ai-avatar-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                  width="24" height="24">
+                  <path
+                    d="M891.41 346.29c-46.89-161.32-193.96-272.8-363.47-272.8-166.19 0-312.34 108.65-361.42 265.97-56.86 2.45-102.24 49.18-102.24 106.64v141.34c0 59.03 47.85 106.88 106.88 106.88h35.32c33.43 0 60.53-27.1 60.53-60.53V399.76c0-29.46-21.07-53.96-48.96-59.36 46.65-129.34 170.24-217.45 309.88-217.45 139.96 0 262.38 87.4 309.3 216.28h-19.08c-33.43 0-60.53 27.1-60.53 60.53v234.03c0 29.93 21.78 54.63 50.32 59.5-53.12 85.52-143.18 142.53-243.25 153.88-10.82-27.59-37.53-47.2-68.96-47.2-40.99 0-74.21 33.23-74.21 74.21 0 40.99 33.22 74.21 74.21 74.21 33.07 0 60.76-21.78 70.34-51.66 126.45-12.93 239.52-89.27 298.36-202.97 53.88-5.49 95.91-51 95.91-106.32V446.11c0.01-45.65-28.66-84.51-68.93-99.82z m-673.84 287.5c0 6.11-4.97 11.08-11.08 11.08h-35.32c-31.67 0-57.43-25.76-57.43-57.43V446.11c0-31.67 25.76-57.43 57.43-57.43h35.32c6.11 0 11.08 4.97 11.08 11.08v234.03z m278.17 265.15c-13.65 0-24.76-11.11-24.76-24.76s11.11-24.76 24.76-24.76c13.65 0 24.76 11.11 24.76 24.76s-11.11 24.76-24.76 24.76z m415.16-311.5c0 31.67-25.76 57.43-57.42 57.43h-35.32c-6.11 0-11.08-4.97-11.08-11.08V399.76c0-6.11 4.97-11.08 11.08-11.08h35.32c31.66 0 57.42 25.76 57.42 57.43v141.33z"
+                    fill="#efb336" />
+                  <path
+                    d="M669.84 570.03l-47.55-13.55c-12.88 45.18-54.73 76.74-101.77 76.74-46.52 0-88.24-31.12-101.44-75.66l-47.42 14.07c19.38 65.37 80.6 111.04 148.87 111.04 69-0.01 130.41-46.32 149.31-112.64z"
+                    fill="#efb336" />
+                </svg>
+              </div>
+              <div class="message-content">
+                <div class="message-text" v-html="formatMessage(msg.content)"></div>
+                <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
+                <!-- 流式输出时显示光标 -->
+                <span v-if="isLoading && msg.role === 'assistant' && index === messages.length - 1"
+                  class="typing-cursor">▌</span>
+              </div>
+              <div class="message-avatar user" v-if="msg.role === 'user'">
+                <img :src="userAvatar" alt="用户头像" />
+              </div>
             </div>
-            <div class="message-avatar user" v-if="msg.role === 'user'">
-              <el-icon>
-                <User />
-              </el-icon>
-            </div>
-          </div>
+          </template>
         </div>
 
         <!-- 输入框 -->
         <div class="chat-input-area">
-          <el-input v-model="userInput" type="textarea" :rows="3" placeholder="输入您的问题..."
+          <el-input v-model="userInput" type="textarea" :rows="3" placeholder="在此输入您的问题..."
             @keyup.enter.ctrl="sendMessage" class="chat-input" :disabled="isLoading" />
           <div class="input-actions">
             <span class="hint">按 Ctrl+Enter 发送</span>
@@ -65,7 +68,7 @@
 
       <!-- 浮动按钮 -->
       <div v-else class="chat-button">
-        <button @click="toggleChat" class="floating-btn" title="AI客服助手">
+        <button @click="toggleChat" class="floating-btn" title="智能助手小林">
           <svg class="ai-avatar-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
             width="32" height="32">
             <path
@@ -85,13 +88,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch } from 'vue'
+import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ChatDotRound, Close, User } from '@element-plus/icons-vue'
+import { ChatDotRound, Close } from '@element-plus/icons-vue'
 import { chatWithAIMemoryStream, getWelcomeMessage, type ChatMessage } from '@/api/ai'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
 import { openAuthDialog } from '@/utils/authHelper'
+import { processImageUrl } from '@/utils/image'
 
 const isExpanded = ref(false)
 const messages = ref<ChatMessage[]>([])
@@ -101,9 +105,14 @@ const messagesContainer = ref<HTMLElement>()
 const unreadCount = ref(0)
 const sessionId = ref<string>('')
 
-// 获取用户登录状态
+// 获取用户登录状态和信息
 const userStore = useUserStore()
-const { isLoggedIn } = storeToRefs(userStore)
+const { isLoggedIn, userInfo } = storeToRefs(userStore)
+
+const userAvatar = computed(() => {
+  const avatar = userInfo.value?.avatar || ''
+  return avatar ? processImageUrl(avatar) : 'http://localhost:9000/animal-adopt/default.jpg'
+})
 
 // localStorage 键名
 const SESSION_ID_KEY = 'ai_chat_session_id'
@@ -282,6 +291,66 @@ const scrollToBottom = () => {
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
+}
+
+// 在消息区域内滚动滚轮时，只滚动对话内容，不影响外层页面
+const handleMessagesWheel = (event: WheelEvent) => {
+  const el = messagesContainer.value
+  if (!el) return
+
+  // 没有可滚动内容时，允许冒泡给外层页面
+  if (el.scrollHeight <= el.clientHeight) return
+
+  const delta = event.deltaY
+  if (delta === 0) return
+
+  el.scrollTop += delta
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+// 日期分组相关
+const formatDateOnly = (timestamp?: number): string => {
+  if (!timestamp) return ''
+  const d = new Date(timestamp)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => (n < 10 ? `0${n}` : String(n))
+  const y = d.getFullYear()
+  const m = pad(d.getMonth() + 1)
+  const day = pad(d.getDate())
+  return `${y}-${m}-${day}`
+}
+
+const isTodayTimestamp = (timestamp?: number): boolean => {
+  if (!timestamp) return false
+  const d = new Date(timestamp)
+  if (Number.isNaN(d.getTime())) return false
+  const now = new Date()
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
+}
+
+const getMessageDateLabel = (msg: ChatMessage): string => {
+  if (!msg || !msg.timestamp) return ''
+  if (isTodayTimestamp(msg.timestamp)) return '今天'
+  return formatDateOnly(msg.timestamp)
+}
+
+const shouldShowDateDivider = (index: number): boolean => {
+  const list = messages.value
+  if (index < 0 || index >= list.length) return false
+  const msg = list[index]
+  if (!msg || !msg.timestamp) return false
+  const currentLabel = getMessageDateLabel(msg)
+  if (!currentLabel) return false
+  if (index === 0) return true
+  const prev = list[index - 1]
+  if (!prev || !prev.timestamp) return true
+  const prevLabel = getMessageDateLabel(prev)
+  return currentLabel !== prevLabel
 }
 
 // 格式化消息（支持换行和基本格式）
@@ -544,7 +613,7 @@ onMounted(async () => {
   bottom: 20px;
   right: 20px;
   width: 500px;
-  height: 650px;
+  height: 680px;
   max-height: calc(100vh - 40px);
   max-width: calc(100vw - 40px);
   background: white;
@@ -636,6 +705,20 @@ onMounted(async () => {
   background: #999;
 }
 
+.message-date-divider {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 10px;
+}
+
+.message-date-label {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.04);
+  font-size: 12px;
+  color: #909399;
+}
+
 /* 消息 */
 .message {
   display: flex;
@@ -669,6 +752,13 @@ onMounted(async () => {
   justify-content: center;
   flex-shrink: 0;
   color: #666;
+}
+
+.message-avatar.user img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .ai-avatar-icon {
