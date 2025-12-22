@@ -52,7 +52,7 @@
           </template>
         </el-table-column>
         <el-table-column label="创建时间" width="180">
-          <template #default="{ row }">{{ formatDate(row.createdTime) }}</template>
+          <template #default="{ row }">{{ formatDate(row.createTime, 'YYYY-MM-DD') }}</template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">

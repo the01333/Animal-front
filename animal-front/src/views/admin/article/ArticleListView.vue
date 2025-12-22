@@ -8,12 +8,8 @@
         <el-form-item label="分类">
           <el-select v-model="queryForm.category" placeholder="全部" clearable>
             <el-option label="全部" value="" />
-            <el-option
-              v-for="option in categoryOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
+            <el-option v-for="option in categoryOptions" :key="option.value" :label="option.label"
+              :value="option.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -21,26 +17,20 @@
           <el-button :icon="RefreshLeft" @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
-
+  
       <div v-if="activeFilters.length" class="active-filters">
         <span class="label">已选择：</span>
-        <el-tag
-          v-for="filter in activeFilters"
-          :key="filter.key"
-          closable
-          type="info"
-          size="small"
-          @close="handleRemoveFilter(filter.key)"
-        >
+        <el-tag v-for="filter in activeFilters" :key="filter.key" closable type="info" size="small"
+          @close="handleRemoveFilter(filter.key)">
           {{ filter.label }}：{{ filter.value }}
         </el-tag>
         <el-button text type="primary" size="small" @click="handleReset">清空筛选</el-button>
       </div>
-
+  
       <div class="toolbar">
         <el-button type="primary" :icon="Plus" @click="handleAdd">发布文章</el-button>
       </div>
-
+  
       <el-table v-loading="loading" :data="tableData" stripe>
         <el-table-column label="序号" width="80">
           <template #default="{ row }">{{ row.serialNumber }}</template>
@@ -58,7 +48,7 @@
         <el-table-column prop="likeCount" label="点赞" width="90" />
         <el-table-column prop="favoriteCount" label="收藏" width="90" />
         <el-table-column label="创建时间" width="180">
-          <template #default="{ row }">{{ formatDate(row.createdTime) }}</template>
+          <template #default="{ row }">{{ formatDate(row.publishTime, 'YYYY-MM-DD') }}</template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
@@ -67,18 +57,11 @@
           </template>
         </el-table-column>
       </el-table>
-
+  
       <div class="pagination">
-        <el-pagination
-          :current-page="queryForm.current"
-          :page-size="queryForm.size"
-          :page-sizes="[10, 20, 50]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          @size-change="handleSizeChange"
-          @current-change="handlePageChange"
-        />
+        <el-pagination :current-page="queryForm.current" :page-size="queryForm.size" :page-sizes="[10, 20, 50]"
+          :total="total" layout="total, sizes, prev, pager, next, jumper" background @size-change="handleSizeChange"
+          @current-change="handlePageChange" />
       </div>
     </el-card>
   </div>
@@ -197,7 +180,7 @@ function handleDelete(row: Article) {
         ElMessage.error('删除失败')
       }
     })
-    .catch(() => {})
+    .catch(() => { })
 }
 
 function getCategoryText(category: string) {
