@@ -300,6 +300,31 @@ const ensureWelcome = () => {
   }
 }
 
+const handleImageIconHover = () => {
+  // 仅在面板当前未打开时响应 hover，避免反复切换
+  if (imagePanelVisible.value) return
+  const nextVisible = true
+  imagePanelVisible.value = nextVisible
+  if (messageContainer.value) {
+    imagePanelLastScrollTop.value = messageContainer.value.scrollTop
+  } else {
+    imagePanelLastScrollTop.value = null
+  }
+  emojiPanelVisible.value = false
+}
+
+const handleImageHoverLeave = () => {
+  if (!imagePanelVisible.value) return
+  imagePanelVisible.value = false
+  nextTick(() => {
+    if (messageContainer.value && imagePanelLastScrollTop.value != null) {
+      messageContainer.value.scrollTop = imagePanelLastScrollTop.value
+    } else {
+      scrollToBottom()
+    }
+  })
+}
+
 const startPolling = async () => {
   // 队列式长轮询: 始终通过 HTTP 长轮询获取新消息
   if (pollRunning) return
@@ -1165,6 +1190,13 @@ textarea::placeholder {
   max-height: 180px;
   overflow-y: auto;
   z-index: 10;
+}
+
+.image-upload-pop {
+  position: absolute;
+  bottom: 42px;
+  left: -40px;
+  z-index: 20;
 }
 
 .image-upload-overlay {

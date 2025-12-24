@@ -28,8 +28,8 @@
             </div>
             <div :class="['message', msg.role]">
               <div class="message-avatar" v-if="msg.role === 'assistant'">
-                <svg class="ai-avatar-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
-                  width="24" height="24">
+                <svg class="ai-avatar-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="24"
+                  height="24">
                   <path
                     d="M891.41 346.29c-46.89-161.32-193.96-272.8-363.47-272.8-166.19 0-312.34 108.65-361.42 265.97-56.86 2.45-102.24 49.18-102.24 106.64v141.34c0 59.03 47.85 106.88 106.88 106.88h35.32c33.43 0 60.53-27.1 60.53-60.53V399.76c0-29.46-21.07-53.96-48.96-59.36 46.65-129.34 170.24-217.45 309.88-217.45 139.96 0 262.38 87.4 309.3 216.28h-19.08c-33.43 0-60.53 27.1-60.53 60.53v234.03c0 29.93 21.78 54.63 50.32 59.5-53.12 85.52-143.18 142.53-243.25 153.88-10.82-27.59-37.53-47.2-68.96-47.2-40.99 0-74.21 33.23-74.21 74.21 0 40.99 33.22 74.21 74.21 74.21 33.07 0 60.76-21.78 70.34-51.66 126.45-12.93 239.52-89.27 298.36-202.97 53.88-5.49 95.91-51 95.91-106.32V446.11c0.01-45.65-28.66-84.51-68.93-99.82z m-673.84 287.5c0 6.11-4.97 11.08-11.08 11.08h-35.32c-31.67 0-57.43-25.76-57.43-57.43V446.11c0-31.67 25.76-57.43 57.43-57.43h35.32c6.11 0 11.08 4.97 11.08 11.08v234.03z m278.17 265.15c-13.65 0-24.76-11.11-24.76-24.76s11.11-24.76 24.76-24.76c13.65 0 24.76 11.11 24.76 24.76s-11.11 24.76-24.76 24.76z m415.16-311.5c0 31.67-25.76 57.43-57.42 57.43h-35.32c-6.11 0-11.08-4.97-11.08-11.08V399.76c0-6.11 4.97-11.08 11.08-11.08h35.32c31.66 0 57.42 25.76 57.42 57.43v141.33z"
                     fill="#efb336" />
@@ -39,11 +39,20 @@
                 </svg>
               </div>
               <div class="message-content">
-                <div class="message-text" v-html="formatMessage(msg.content)"></div>
+                <div class="message-text">
+                  <template v-if="msg.messageType === 'IMAGE'">
+                    <img :src="processImageUrl(msg.content)" class="chat-image" alt="图片消息" />
+                  </template>
+                  <template v-else>
+                    <div v-html="formatMessage(msg.content)"></div>
+                  </template>
+                </div>
                 <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
                 <!-- 流式输出时显示光标 -->
-                <span v-if="isLoading && msg.role === 'assistant' && index === messages.length - 1"
-                  class="typing-cursor">▌</span>
+                <span
+                  v-if="isLoading && msg.role === 'assistant' && index === messages.length - 1"
+                  class="typing-cursor"
+                >▌</span>
               </div>
               <div class="message-avatar user" v-if="msg.role === 'user'">
                 <img :src="userAvatar" alt="用户头像" />
@@ -54,14 +63,64 @@
 
         <!-- 输入框 -->
         <div class="chat-input-area">
-          <el-input v-model="userInput" type="textarea" :rows="3" placeholder="在此输入您的问题..."
-            @keyup.enter.ctrl="sendMessage" class="chat-input" :disabled="isLoading" />
+          <el-input
+            v-model="userInput"
+            type="textarea"
+            :rows="3"
+            placeholder="在此输入您的问题..."
+            @keyup.enter.ctrl="sendMessage"
+            class="chat-input"
+            :disabled="isLoading"
+          />
           <div class="input-actions">
             <span class="hint">按 Ctrl+Enter 发送</span>
-            <el-button type="primary" @click="sendMessage" :loading="isLoading"
-              :disabled="!userInput.trim() || isLoading">
-              发送
-            </el-button>
+            <div class="input-actions-right">
+              <div class="emoji-wrapper" @mouseleave="handleImageHoverLeave">
+                <button
+                  class="icon-btn"
+                  type="button"
+                  @click="toggleImagePanel"
+                  @mouseenter="handleImageIconHover"
+                >
+                  📷
+                </button>
+                <transition name="image-upload-fade-slide">
+                  <div
+                    v-if="imagePanelVisible"
+                    class="image-upload-pop"
+                    @dragover.prevent
+                    @dragenter.prevent
+                    @drop.prevent="handleImageDrop"
+                  >
+                    <div class="image-upload-card" @click="triggerImageSelect">
+                      <div class="image-upload-folder">📁</div>
+                      <div class="image-upload-dropzone">
+                        <div class="image-upload-plus">+</div>
+                      </div>
+                      <div class="image-upload-desc">
+                        <div class="image-upload-text">拖拽图片到此上传，或点击选择本地图片</div>
+                        <div class="image-upload-tip">支持 JPG / PNG，大小不超过 5MB</div>
+                      </div>
+                    </div>
+                    <input
+                      ref="imageInputRef"
+                      type="file"
+                      accept="image/*"
+                      class="hidden-file-input"
+                      @change="handleImageSelect"
+                    />
+                  </div>
+                </transition>
+              </div>
+              <el-button
+                type="primary"
+                @click="sendMessage"
+                :loading="isLoading"
+                :disabled="!userInput.trim() || isLoading"
+              >
+                发送
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -96,14 +155,20 @@ import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
 import { openAuthDialog } from '@/utils/authHelper'
 import { processImageUrl } from '@/utils/image'
+import { uploadArticleCover } from '@/api/article'
+
+type AiChatMessage = ChatMessage & { messageType?: 'TEXT' | 'IMAGE' }
 
 const isExpanded = ref(false)
-const messages = ref<ChatMessage[]>([])
+const messages = ref<AiChatMessage[]>([])
 const userInput = ref('')
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const unreadCount = ref(0)
 const sessionId = ref<string>('')
+const imagePanelVisible = ref(false)
+const imagePanelLastScrollTop = ref<number | null>(null)
+const imageInputRef = ref<HTMLInputElement | null>(null)
 
 // 获取用户登录状态和信息
 const userStore = useUserStore()
@@ -293,6 +358,122 @@ const scrollToBottom = () => {
   }
 }
 
+const toggleImagePanel = () => {
+  const nextVisible = !imagePanelVisible.value
+  imagePanelVisible.value = nextVisible
+  if (nextVisible) {
+    if (messagesContainer.value) {
+      imagePanelLastScrollTop.value = messagesContainer.value.scrollTop
+    } else {
+      imagePanelLastScrollTop.value = null
+    }
+  } else {
+    nextTick(() => {
+      if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
+        messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
+      } else {
+        scrollToBottom()
+      }
+    })
+  }
+}
+
+const handleImageIconHover = () => {
+  if (imagePanelVisible.value) return
+  imagePanelVisible.value = true
+  if (messagesContainer.value) {
+    imagePanelLastScrollTop.value = messagesContainer.value.scrollTop
+  } else {
+    imagePanelLastScrollTop.value = null
+  }
+}
+
+const handleImageHoverLeave = () => {
+  if (!imagePanelVisible.value) return
+  imagePanelVisible.value = false
+  nextTick(() => {
+    if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
+      messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
+    } else {
+      scrollToBottom()
+    }
+  })
+}
+
+const triggerImageSelect = () => {
+  imageInputRef.value?.click()
+}
+
+const uploadAndAddImageMessage = async (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('请选择图片文件')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return
+  }
+
+  const token = localStorage.getItem('token')
+  if (!token) {
+    ElMessage({
+      message: '当前未登录，请先登录',
+      type: 'warning',
+      duration: 3000
+    })
+    openAuthDialog('login')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const res = await uploadArticleCover(formData)
+    const imageUrl = res.data
+    if (!imageUrl) {
+      ElMessage.error('图片上传失败，请稍后重试')
+      return
+    }
+
+    messages.value.push({
+      role: 'user',
+      content: imageUrl,
+      timestamp: Date.now(),
+      messageType: 'IMAGE'
+    })
+    await nextTick()
+    scrollToBottom()
+    saveSession()
+  } catch (error) {
+    console.error('上传图片失败:', error)
+    ElMessage.error('图片上传失败，请稍后重试')
+  } finally {
+    imagePanelVisible.value = false
+    nextTick(() => {
+      if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
+        messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
+      } else {
+        scrollToBottom()
+      }
+    })
+  }
+}
+
+const handleImageSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  await uploadAndAddImageMessage(file)
+  target.value = ''
+}
+
+const handleImageDrop = async (event: DragEvent) => {
+  const file = event.dataTransfer?.files?.[0]
+  if (!file) return
+  await uploadAndAddImageMessage(file)
+}
+
 // 在消息区域内滚动滚轮时，只滚动对话内容，不影响外层页面
 const handleMessagesWheel = (event: WheelEvent) => {
   const el = messagesContainer.value
@@ -443,7 +624,8 @@ const restoreSession = async () => {
           return {
             role: msg.role,
             content,
-            timestamp
+            timestamp,
+            messageType: msg.messageType
           }
         })
         console.log('✅ 从后端恢复聊天记录:', messages.value.length, '条消息')
@@ -855,6 +1037,142 @@ onMounted(async () => {
 .hint {
   font-size: 12px;
   color: #999;
+}
+
+.input-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emoji-wrapper {
+  position: relative;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background-color: #f5f7fa;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.icon-btn:hover {
+  background-color: #e4f3ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.25);
+}
+
+.image-upload-pop {
+  position: absolute;
+  bottom: 42px;
+  left: -40px;
+  z-index: 20;
+}
+
+.image-upload-card {
+  width: 320px;
+  padding: 14px 18px 12px;
+  border-radius: 20px;
+  border: 1px solid #f0e2d6;
+  background-color: #fffdf9;
+  box-shadow: 0 10px 26px rgba(15, 35, 52, 0.08);
+  text-align: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.image-upload-folder {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+
+.image-upload-dropzone {
+  width: 100%;
+  max-width: 220px;
+  height: 140px;
+  margin: 0 auto 10px;
+  border-radius: 16px;
+  border: 1px dashed #d4d7de;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.image-upload-plus {
+  font-size: 32px;
+  color: #c0c4cc;
+  border-radius: 999px;
+  border: 1px dashed #c0c4cc;
+  padding: 6px 12px;
+  width: 65px;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.image-upload-desc {
+  font-size: 12px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.image-upload-card:hover {
+  border-color: #ffb980;
+  background-color: #fffaf5;
+  box-shadow: 0 14px 32px rgba(15, 35, 52, 0.12);
+  transform: translateY(-2px);
+}
+
+.image-upload-card:hover .image-upload-dropzone {
+  border-color: #ffb980;
+  background-color: #fffdf5;
+}
+
+.image-upload-card:hover .image-upload-plus {
+  color: #ff9f5b;
+  border-color: #ff9f5b;
+  transform: scale(1.08);
+}
+
+.image-upload-text {
+  font-size: 13px;
+  color: #606266;
+}
+
+.image-upload-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.image-upload-fade-slide-enter-active,
+.image-upload-fade-slide-leave-active {
+  transition: all 0.18s ease;
+}
+
+.image-upload-fade-slide-enter-from,
+.image-upload-fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.chat-image {
+  max-width: 160px;
+  max-height: 200px;
+  border-radius: 8px;
+  display: block;
 }
 
 /* 响应式 */

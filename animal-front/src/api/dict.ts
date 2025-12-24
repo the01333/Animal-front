@@ -59,6 +59,16 @@ export function getHealthStatuses(): Promise<ApiResponse<Record<string, string>>
 }
 
 /**
+ * 获取用户角色选项
+ */
+export function getUserRoles(): Promise<ApiResponse<Record<string, string>>> {
+  return request({
+    url: '/dict/userRoles',
+    method: 'get'
+  })
+}
+
+/**
  * 获取所有字典数据
  */
 export function getAllDictData(): Promise<ApiResponse<DictData>> {

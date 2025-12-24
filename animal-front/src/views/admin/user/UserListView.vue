@@ -73,70 +73,95 @@
     </el-card>
 
     <!-- 编辑弹窗 -->
-    <transition name="fade-zoom">
-      <el-dialog v-model="editVisible" title="用户详情" width="780px" destroy-on-close :close-on-click-modal="false"
-        :modal-class="'edit-dialog-overlay'" :custom-class="'edit-dialog-card'">
-        <div class="edit-layout">
-          <div class="user-info-card">
-            <div class="user-info-header">
-              <el-avatar :size="60"
-                :src="processImageUrl(editForm.avatar) || 'http://localhost:9000/animal-adopt/default.jpg'">
-                {{ editForm.username?.charAt(0) }}
-              </el-avatar>
-              <div class="user-text">
-                <div class="name-line">
-                  <span class="username">{{ editForm.username || '-' }}</span>
-                  <el-tag :type="editForm.status === 1 ? 'success' : 'danger'" effect="plain" size="small">
-                    {{ editForm.status === 1 ? '启用' : '禁用' }}
-                  </el-tag>
-                </div>
-                <div class="sub-text">{{ editForm.nickname || '暂无昵称' }}</div>
-              </div>
-            </div>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="label">手机号</span>
-                <span class="value muted">{{ editForm.phone || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">邮箱</span>
-                <span class="value muted">{{ editForm.email || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">角色</span>
-                <el-tag class="user-role-chip" :type="getRoleType(editForm.role || '')" size="small">
-                  {{ getRoleText(editForm.role || '') || '未分配' }}
+    <el-dialog
+      v-model="editVisible"
+      title="用户详情"
+      width="780px"
+      destroy-on-close
+      :close-on-click-modal="false"
+      :modal-class="'edit-dialog-overlay'"
+      :custom-class="'edit-dialog-card'"
+    >
+      <div class="edit-layout">
+        <div class="user-info-card">
+          <div class="user-info-header">
+            <el-avatar
+              :size="60"
+              :src="processImageUrl(editForm.avatar) || 'http://localhost:9000/animal-adopt/default.jpg'"
+            >
+              {{ editForm.username?.charAt(0) }}
+            </el-avatar>
+            <div class="user-text">
+              <div class="name-line">
+                <span class="username">{{ editForm.username || '-' }}</span>
+                <el-tag :type="editForm.status === 1 ? 'success' : 'danger'" effect="plain" size="small">
+                  {{ editForm.status === 1 ? '启用' : '禁用' }}
                 </el-tag>
               </div>
+              <div class="sub-text">{{ editForm.nickname || '暂无昵称' }}</div>
             </div>
-            <div class="hint muted">基础资料仅供查看，如需修改请引导用户自行完善。</div>
           </div>
-
-          <div class="action-card">
-            <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="90px" class="edit-form">
-              <el-form-item label="角色" prop="role" class="role-narrow">
-                <el-select v-model="editForm.role" placeholder="选择角色">
-                  <el-option v-for="item in roleOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="启用状态" prop="status">
-                <el-switch v-model="editForm.status" :active-value="1" :inactive-value="0" />
-              </el-form-item>
-            </el-form>
-            <div class="action-footer">
-              <el-button @click="handleCancel">取 消</el-button>
-              <el-button type="primary" :loading="saving" @click="handleSubmit">保 存</el-button>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">手机号</span>
+              <span class="value muted">{{ editForm.phone || '-' }}</span>
             </div>
+            <div class="info-item">
+              <span class="label">邮箱</span>
+              <span class="value muted">{{ editForm.email || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">角色</span>
+              <el-tag class="user-role-chip" :type="getRoleType(editForm.role || '')" size="small">
+                {{ getRoleText(editForm.role || '') || '未分配' }}
+              </el-tag>
+            </div>
+          </div>
+          <div class="hint muted">基础资料仅供查看，如需修改请引导用户自行完善。</div>
+        </div>
+
+        <div class="action-card">
+          <el-form
+            ref="editFormRef"
+            :model="editForm"
+            :rules="editRules"
+            label-width="90px"
+            class="edit-form"
+          >
+            <el-form-item label="角色" prop="role" class="role-narrow">
+              <!-- 超级管理员角色不可通过界面修改，只展示标签 -->
+              <template v-if="editForm.role === 'super_admin'">
+                <el-tag type="danger">超级管理员</el-tag>
+              </template>
+              <template v-else>
+                <el-select v-model="editForm.role" placeholder="选择角色">
+                  <el-option
+                    v-for="item in editableRoleOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </template>
+            </el-form-item>
+            <el-form-item label="启用状态" prop="status">
+              <el-switch v-model="editForm.status" :active-value="1" :inactive-value="0" />
+            </el-form-item>
+          </el-form>
+          <div class="action-footer">
+            <el-button @click="handleCancel">取 消</el-button>
+            <el-button type="primary" :loading="saving" @click="handleSubmit">保 存</el-button>
           </div>
         </div>
-      </el-dialog>
-    </transition>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { getUserList, deleteUser, updateUserStatus, updateAdminUser } from '@/api/user'
+import { getUserRoles } from '@/api/dict'
 import type { User } from '@/types'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
 import { formatDate } from '@/utils/format'
@@ -153,11 +178,17 @@ const queryForm = reactive({
   size: 10
 })
 
-const roleOptions = [
+// 角色选项从后端字典接口加载，必要时回退到本地默认配置
+const roleOptions = ref<Array<{ label: string; value: string }>>([
   { label: '普通用户', value: 'user' },
   { label: '管理员', value: 'admin' },
   { label: '超级管理员', value: 'super_admin' }
-]
+])
+
+// 编辑用户时可分配的角色（不允许通过界面将其他用户设为超级管理员）
+const editableRoleOptions = computed(() =>
+  roleOptions.value.filter(item => item.value !== 'super_admin')
+)
 
 const activeFilters = computed(() => {
   const filters: Array<{ key: 'keyword' | 'role'; label: string; value: string }> = []
@@ -188,6 +219,26 @@ function processImageUrl(url: string | undefined): string {
   }
 
   return url
+}
+
+// 从后端字典接口加载用户角色选项
+async function fetchRoleOptions() {
+  try {
+    const res = await getUserRoles()
+    const data = res.data || {}
+    const options: Array<{ label: string; value: string }> = []
+
+    // 按后端返回的 code->label 构建下拉，保持 user/admin/super_admin 等编码
+    Object.keys(data).forEach((code) => {
+      options.push({ value: code, label: data[code] })
+    })
+
+    if (options.length) {
+      roleOptions.value = options
+    }
+  } catch (error) {
+    console.error('获取用户角色字典失败，使用本地默认配置:', error)
+  }
 }
 
 async function fetchList() {
@@ -265,7 +316,9 @@ function handleDelete(row: User) {
     .catch(() => { })
 }
 
-function getRoleType(role: string) {
+function getRoleType(role?: string) {
+  if (!role) return undefined
+
   const map: Record<string, any> = {
     super_admin: 'danger',
     admin: 'warning',
@@ -275,7 +328,9 @@ function getRoleType(role: string) {
     ADMIN: 'warning',
     USER: 'success'
   }
-  return map[role] || ''
+
+  // 未匹配到已知角色时，不传递 type 属性，避免 Element Plus 报警告
+  return map[role] || undefined
 }
 
 function getRoleText(role: string) {
@@ -335,6 +390,7 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
+  fetchRoleOptions()
   fetchList()
 })
 </script>

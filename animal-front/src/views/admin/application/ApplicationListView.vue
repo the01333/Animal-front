@@ -333,14 +333,18 @@ async function confirmReview() {
   }
 }
 
-function getStatusType(status: string) {
+function getStatusType(status?: string) {
+  if (!status) return undefined
+
   const map: Record<string, any> = {
     PENDING: 'warning',
     APPROVED: 'success',
     REJECTED: 'danger',
     CANCELLED: 'info'
   }
-  return map[status] || ''
+
+  // 未匹配到已知状态时，不传递 type 属性，避免 Element Plus 报警告
+  return map[status] || undefined
 }
 
 function getStatusText(status: string) {
