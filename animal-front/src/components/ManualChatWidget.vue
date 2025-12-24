@@ -315,14 +315,7 @@ const handleImageIconHover = () => {
 
 const handleImageHoverLeave = () => {
   if (!imagePanelVisible.value) return
-  imagePanelVisible.value = false
-  nextTick(() => {
-    if (messageContainer.value && imagePanelLastScrollTop.value != null) {
-      messageContainer.value.scrollTop = imagePanelLastScrollTop.value
-    } else {
-      scrollToBottom()
-    }
-  })
+  closeImagePanelAndRestoreScroll()
 }
 
 const startPolling = async () => {
@@ -369,6 +362,7 @@ const startPolling = async () => {
             sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
             content: item.content,
             time: formatTime(item.createTime),
+            isoTime: (item.createTime as unknown as string) || null,
             messageType: item.contentType
           })
         }
@@ -510,8 +504,8 @@ const handleMessageWheel = (event: WheelEvent) => {
 
 const toggleEmojiPanel = () => {
   emojiPanelVisible.value = !emojiPanelVisible.value
-  if (emojiPanelVisible.value) {
-    imagePanelVisible.value = false
+  if (emojiPanelVisible.value && imagePanelVisible.value) {
+    closeImagePanelAndRestoreScroll()
   }
 }
 
@@ -531,10 +525,21 @@ const handleEmojiClick = (emoji: string) => {
   })
 }
 
+const closeImagePanelAndRestoreScroll = () => {
+  imagePanelVisible.value = false
+  nextTick(() => {
+    if (messageContainer.value && imagePanelLastScrollTop.value != null) {
+      messageContainer.value.scrollTop = imagePanelLastScrollTop.value
+    } else {
+      scrollToBottom()
+    }
+  })
+}
+
 const toggleImagePanel = () => {
   const nextVisible = !imagePanelVisible.value
-  imagePanelVisible.value = nextVisible
   if (nextVisible) {
+    imagePanelVisible.value = true
     if (messageContainer.value) {
       imagePanelLastScrollTop.value = messageContainer.value.scrollTop
     } else {
@@ -542,13 +547,7 @@ const toggleImagePanel = () => {
     }
     emojiPanelVisible.value = false
   } else {
-    nextTick(() => {
-      if (messageContainer.value && imagePanelLastScrollTop.value != null) {
-        messageContainer.value.scrollTop = imagePanelLastScrollTop.value
-      } else {
-        scrollToBottom()
-      }
-    })
+    closeImagePanelAndRestoreScroll()
   }
 }
 
