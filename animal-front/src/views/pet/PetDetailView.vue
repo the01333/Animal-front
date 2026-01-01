@@ -110,10 +110,10 @@
 
               <el-button :type="favored ? 'warning' : 'default'" :icon="Star" size="large" plain
                 @click="toggleFavorite">
-                {{ favored ? '已收藏' : '收藏' }}
+                {{ favored ? '已收藏' : '收藏' }} ({{ favoriteCount }})
               </el-button>
               <el-button :type="liked ? 'primary' : 'default'" size="large" plain @click="toggleLike">
-                {{ liked ? '已点赞' : '点赞' }}
+                {{ liked ? '已点赞' : '点赞' }} ({{ likeCount }})
               </el-button>
 
               <el-button :icon="Share" size="large" plain>
@@ -515,6 +515,9 @@ const toggleFavorite = async () => {
       favored.value = true
       ElMessage.success('已收藏')
     }
+    // 操作成功后从后端获取最新收藏数量
+    const favCountRes = await getPetFavoriteCount(id)
+    favoriteCount.value = favCountRes.data || 0
   } catch (e: any) {
     // 如果是重复收藏错误，仍然认为操作成功
     if (e.response?.data?.message?.includes('Duplicate') || e.message?.includes('Duplicate')) {
@@ -522,11 +525,12 @@ const toggleFavorite = async () => {
       ElMessage.success('已收藏')
     } else {
       ElMessage.error('操作失败，请稍后重试')
-      // 重新加载状态以确保前端状态与后端一致
-      const petId = parseInt(route.params.id as string)
-      const favRes = await isPetFavorited(petId)
-      favored.value = !!favRes.data
     }
+    // 重新加载状态以确保前端状态与后端一致
+    const favRes = await isPetFavorited(id)
+    favored.value = !!favRes.data
+    const favCountRes = await getPetFavoriteCount(id)
+    favoriteCount.value = favCountRes.data || 0
   }
 }
 
@@ -548,6 +552,9 @@ const toggleLike = async () => {
       liked.value = true
       ElMessage.success('已点赞')
     }
+    // 操作成功后从后端获取最新点赞数量
+    const likeCountRes = await getPetLikeCount(id)
+    likeCount.value = likeCountRes.data || 0
   } catch (e: any) {
     // 如果是重复点赞错误，仍然认为操作成功
     if (e.response?.data?.message?.includes('Duplicate') || e.message?.includes('Duplicate')) {
@@ -555,11 +562,12 @@ const toggleLike = async () => {
       ElMessage.success('已点赞')
     } else {
       ElMessage.error('操作失败，请稍后重试')
-      // 重新加载状态以确保前端状态与后端一致
-      const petId = parseInt(route.params.id as string)
-      const likeRes = await isPetLiked(petId)
-      liked.value = !!likeRes.data
     }
+    // 重新加载状态以确保前端状态与后端一致
+    const likeRes = await isPetLiked(id)
+    liked.value = !!likeRes.data
+    const likeCountRes = await getPetLikeCount(id)
+    likeCount.value = likeCountRes.data || 0
   }
 }
 

@@ -75,7 +75,7 @@
           <div class="input-actions">
             <span class="hint">按 Ctrl+Enter 发送</span>
             <div class="input-actions-right">
-              <div class="emoji-wrapper" @mouseleave="handleImageHoverLeave">
+              <!-- <div class="emoji-wrapper" @mouseleave="handleImageHoverLeave">
                 <button
                   class="icon-btn"
                   type="button"
@@ -111,7 +111,7 @@
                     />
                   </div>
                 </transition>
-              </div>
+              </div> -->
               <el-button
                 type="primary"
                 @click="sendMessage"
