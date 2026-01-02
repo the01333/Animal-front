@@ -46,8 +46,8 @@
                   <template v-else>
                     <div v-html="formatMessage(msg.content)"></div>
                   </template>
+                  <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
                 </div>
-                <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
                 <!-- 流式输出时显示光标 -->
                 <span
                   v-if="isLoading && msg.role === 'assistant' && index === messages.length - 1"
@@ -259,9 +259,40 @@ const sendMessage = async () => {
     })
 
     // 更新会话ID（后端可能创建了新会话）
+    const isNewSession = !sessionId.value && newSessionId
     if (newSessionId && newSessionId !== sessionId.value) {
       console.log('✅ 更新会话ID:', sessionId.value, '->', newSessionId)
       sessionId.value = newSessionId
+      
+      // 如果是新创建的会话，先保存欢迎消息到后端
+      if (isNewSession && messages.value.length > 1) {
+        const welcomeMsg = messages.value.find(m => m.role === 'assistant' && m.content.includes('欢迎'))
+        if (welcomeMsg) {
+          try {
+            const token = localStorage.getItem('token')
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json'
+            }
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`
+            }
+
+            await fetch('/api/ai/service/save-message', {
+              method: 'POST',
+              headers,
+              credentials: 'include',
+              body: JSON.stringify({
+                sessionId: newSessionId,
+                role: 'assistant',
+                content: welcomeMsg.content
+              })
+            })
+            console.log('💾 欢迎消息已保存到后端')
+          } catch (e) {
+            console.error('❌ 保存欢迎消息失败:', e)
+          }
+        }
+      }
     }
 
     // 保存会话到 localStorage
@@ -594,7 +625,7 @@ const restoreSession = async () => {
 
       const result = await response.json()
       console.log('📥 后端返回的原始数据:', result.data)
-      if (result.code === 200 && result.data) {
+      if (result.code === 200 && result.data && result.data.length > 0) {
         // 将后端返回的消息转换为前端格式
         messages.value = result.data.map((msg: any) => {
           // 处理时间戳：后端返回的是格式化字符串如 "2025-11-23 17:40:00"
@@ -712,6 +743,8 @@ onMounted(async () => {
       content: getWelcomeMessage(),
       timestamp: Date.now()
     })
+    // 保存到 localStorage（后端保存会在第一次发送消息时进行）
+    localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages.value))
   }
 
   // 监听来自首页的打开事件
@@ -988,9 +1021,15 @@ onMounted(async () => {
 }
 
 .message-time {
-  font-size: 12px;
+  display: block;
+  font-size: 11px;
   color: #999;
-  padding: 0 4px;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.message.user .message-time {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* 流式输出光标 */

@@ -56,6 +56,13 @@
     <p>抱歉，您查找的故事不存在。</p>
     <router-link to="/stories" class="btn-back">返回故事列表</router-link>
   </div>
+
+  <!-- 分享弹窗 -->
+  <ShareDialog
+    v-model="shareDialogVisible"
+    :image-url="storyCoverImage"
+    :title="story?.title"
+  />
 </template>
 
 <script setup lang="ts">
@@ -68,6 +75,7 @@ import type { Article } from '@/types'
 import { marked } from 'marked'
 import { ElMessage } from 'element-plus'
 import { processImageUrl } from '@/utils/image'
+import ShareDialog from '@/components/share/ShareDialog.vue'
 
 // 路由相关
 const route = useRoute()
@@ -127,6 +135,12 @@ const likeCount = ref(0)
 // 收藏状态
 const isCollected = ref(false)
 const favoriteCount = ref(0)
+
+// 分享弹窗
+const shareDialogVisible = ref(false)
+const openShareDialog = () => {
+  shareDialogVisible.value = true
+}
 
 // 获取用户登录状态和用户信息
 const userStore = useUserStore()
@@ -191,7 +205,7 @@ const likeStoryFn = async () => {
 
 // 分享故事
 const shareStory = () => {
-  alert('分享功能')
+  openShareDialog()
 }
 
 const handleBack = () => {

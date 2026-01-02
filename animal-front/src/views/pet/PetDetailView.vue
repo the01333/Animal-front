@@ -116,7 +116,7 @@
                 {{ liked ? '已点赞' : '点赞' }} ({{ likeCount }})
               </el-button>
 
-              <el-button :icon="Share" size="large" plain>
+              <el-button :icon="Share" size="large" plain @click="openShareDialog">
                 分享
               </el-button>
             </div>
@@ -124,6 +124,13 @@
         </el-col>
       </el-row>
     </el-card>
+
+    <!-- 分享弹窗 -->
+    <ShareDialog
+      v-model="shareDialogVisible"
+      :image-url="(pet.images && pet.images[0]) || defaultImage"
+      :title="pet.name"
+    />
 
     <!-- 宠物介绍 -->
     <el-card class="pet-description-card" shadow="hover">
@@ -224,6 +231,7 @@ import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import { openAuthDialog } from '@/utils/authHelper'
 import { Star, CirclePlus, Document, Share, ArrowLeft, Close, Loading, Grid, Clock, User, MagicStick, Warning, Picture, QuestionFilled } from '@element-plus/icons-vue'
+import ShareDialog from '@/components/share/ShareDialog.vue'
 import { getPetDetail, getRandomPetImages } from '@/api/pet'
 import { addPetFavorite, removePetFavorite, isPetFavorited, getPetFavoriteCount } from '@/api/favorite'
 import { likePet, unlikePet, isPetLiked, getPetLikeCount } from '@/api/like'
@@ -369,6 +377,12 @@ const likeCount = ref(0)
 
 // 当前申请的状态
 const applicationStatus = ref<string>('')
+
+// 分享弹窗
+const shareDialogVisible = ref(false)
+const openShareDialog = () => {
+  shareDialogVisible.value = true
+}
 
 // 判断宠物是否由当前用户领养
 const isCurrentUserAdopted = computed(() => {
