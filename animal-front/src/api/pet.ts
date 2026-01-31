@@ -56,6 +56,17 @@ export function deletePet(id: number): Promise<ApiResponse<void>> {
 }
 
 /**
+ * 批量删除宠物（管理员）
+ */
+export function batchDeletePet(ids: number[]): Promise<ApiResponse<void>> {
+  return request({
+    url: '/pet/batch',
+    method: 'delete',
+    data: ids
+  })
+}
+
+/**
  * 获取推荐宠物
  */
 export function getRecommendedPets(limit: number = 6): Promise<ApiResponse<Pet[]>> {

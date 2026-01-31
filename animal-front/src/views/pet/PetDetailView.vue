@@ -110,13 +110,13 @@
 
               <el-button :type="favored ? 'warning' : 'default'" :icon="Star" size="large" plain
                 @click="toggleFavorite">
-                {{ favored ? '已收藏' : '收藏' }}
+                {{ favored ? '已收藏' : '收藏' }} ({{ favoriteCount }})
               </el-button>
               <el-button :type="liked ? 'primary' : 'default'" size="large" plain @click="toggleLike">
-                {{ liked ? '已点赞' : '点赞' }}
+                {{ liked ? '已点赞' : '点赞' }} ({{ likeCount }})
               </el-button>
 
-              <el-button :icon="Share" size="large" plain>
+              <el-button :icon="Share" size="large" plain @click="openShareDialog">
                 分享
               </el-button>
             </div>
@@ -124,6 +124,13 @@
         </el-col>
       </el-row>
     </el-card>
+
+    <!-- 分享弹窗 -->
+    <ShareDialog
+      v-model="shareDialogVisible"
+      :image-url="(pet.images && pet.images[0]) || defaultImage"
+      :title="pet.name"
+    />
 
     <!-- 宠物介绍 -->
     <el-card class="pet-description-card" shadow="hover">
@@ -224,6 +231,7 @@ import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
 import { openAuthDialog } from '@/utils/authHelper'
 import { Star, CirclePlus, Document, Share, ArrowLeft, Close, Loading, Grid, Clock, User, MagicStick, Warning, Picture, QuestionFilled } from '@element-plus/icons-vue'
+import ShareDialog from '@/components/share/ShareDialog.vue'
 import { getPetDetail, getRandomPetImages } from '@/api/pet'
 import { addPetFavorite, removePetFavorite, isPetFavorited, getPetFavoriteCount } from '@/api/favorite'
 import { likePet, unlikePet, isPetLiked, getPetLikeCount } from '@/api/like'
@@ -370,6 +378,12 @@ const likeCount = ref(0)
 // 当前申请的状态
 const applicationStatus = ref<string>('')
 
+// 分享弹窗
+const shareDialogVisible = ref(false)
+const openShareDialog = () => {
+  shareDialogVisible.value = true
+}
+
 // 判断宠物是否由当前用户领养
 const isCurrentUserAdopted = computed(() => {
   if (!pet.value || !currentUserId.value) return false
@@ -515,6 +529,9 @@ const toggleFavorite = async () => {
       favored.value = true
       ElMessage.success('已收藏')
     }
+    // 操作成功后从后端获取最新收藏数量
+    const favCountRes = await getPetFavoriteCount(id)
+    favoriteCount.value = favCountRes.data || 0
   } catch (e: any) {
     // 如果是重复收藏错误，仍然认为操作成功
     if (e.response?.data?.message?.includes('Duplicate') || e.message?.includes('Duplicate')) {
@@ -522,11 +539,12 @@ const toggleFavorite = async () => {
       ElMessage.success('已收藏')
     } else {
       ElMessage.error('操作失败，请稍后重试')
-      // 重新加载状态以确保前端状态与后端一致
-      const petId = parseInt(route.params.id as string)
-      const favRes = await isPetFavorited(petId)
-      favored.value = !!favRes.data
     }
+    // 重新加载状态以确保前端状态与后端一致
+    const favRes = await isPetFavorited(id)
+    favored.value = !!favRes.data
+    const favCountRes = await getPetFavoriteCount(id)
+    favoriteCount.value = favCountRes.data || 0
   }
 }
 
@@ -548,6 +566,9 @@ const toggleLike = async () => {
       liked.value = true
       ElMessage.success('已点赞')
     }
+    // 操作成功后从后端获取最新点赞数量
+    const likeCountRes = await getPetLikeCount(id)
+    likeCount.value = likeCountRes.data || 0
   } catch (e: any) {
     // 如果是重复点赞错误，仍然认为操作成功
     if (e.response?.data?.message?.includes('Duplicate') || e.message?.includes('Duplicate')) {
@@ -555,11 +576,12 @@ const toggleLike = async () => {
       ElMessage.success('已点赞')
     } else {
       ElMessage.error('操作失败，请稍后重试')
-      // 重新加载状态以确保前端状态与后端一致
-      const petId = parseInt(route.params.id as string)
-      const likeRes = await isPetLiked(petId)
-      liked.value = !!likeRes.data
     }
+    // 重新加载状态以确保前端状态与后端一致
+    const likeRes = await isPetLiked(id)
+    liked.value = !!likeRes.data
+    const likeCountRes = await getPetLikeCount(id)
+    likeCount.value = likeCountRes.data || 0
   }
 }
 

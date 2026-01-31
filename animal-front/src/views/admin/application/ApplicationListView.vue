@@ -1,4 +1,4 @@
-<template>
+<!--  --><template>
   <div class="admin-application-list">
     <el-card shadow="never">
       <!-- 搜索表单 -->
@@ -83,9 +83,16 @@
 
       <!-- 分页 -->
       <div class="pagination" v-if="total > 0">
-        <el-pagination :current-page="queryForm.current" :page-size="queryForm.size" :page-sizes="[6, 12, 24, 48]"
-          :total="total" layout="total, sizes, prev, pager, next, jumper" background @size-change="fetchList"
-          @current-change="fetchList" />
+        <el-pagination 
+          v-model:current-page="queryForm.current" 
+          v-model:page-size="queryForm.size" 
+          :page-sizes="[6, 12, 24, 48]"
+          :total="total" 
+          layout="total, sizes, prev, pager, next, jumper" 
+          background 
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange" 
+        />
       </div>
     </el-card>
 
@@ -288,6 +295,17 @@ function handleRemoveFilter(key: 'keyword' | 'status') {
   fetchList()
 }
 
+function handleSizeChange(size: number) {
+  queryForm.size = size
+  queryForm.current = 1
+  fetchList()
+}
+
+function handleCurrentChange(page: number) {
+  queryForm.current = page
+  fetchList()
+}
+
 async function handleView(row: AdoptionApplication) {
   detailVisible.value = true
   detailLoading.value = true
@@ -333,14 +351,18 @@ async function confirmReview() {
   }
 }
 
-function getStatusType(status: string) {
+function getStatusType(status?: string) {
+  if (!status) return undefined
+
   const map: Record<string, any> = {
     PENDING: 'warning',
     APPROVED: 'success',
     REJECTED: 'danger',
     CANCELLED: 'info'
   }
-  return map[status] || ''
+
+  // 未匹配到已知状态时，不传递 type 属性，避免 Element Plus 报警告
+  return map[status] || undefined
 }
 
 function getStatusText(status: string) {

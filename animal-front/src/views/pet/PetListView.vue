@@ -125,9 +125,16 @@
 
     <!-- 分页 -->
     <div v-if="total > 0" class="pagination-wrapper">
-      <el-pagination :current-page="queryForm.current" :page-size="queryForm.size" :page-sizes="[12, 24, 36, 48]"
-        :total="total" layout="total, sizes, prev, pager, next, jumper" background @size-change="handleSizeChange"
-        @current-change="handleCurrentChange" />
+      <el-pagination 
+        v-model:current-page="queryForm.current" 
+        v-model:page-size="queryForm.size" 
+        :page-sizes="[12, 24, 36, 48]"
+        :total="total" 
+        layout="total, sizes, prev, pager, next, jumper" 
+        background 
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange" 
+      />
     </div>
   </div>
 </template>

@@ -59,9 +59,16 @@
       </el-table>
   
       <div class="pagination">
-        <el-pagination :current-page="queryForm.current" :page-size="queryForm.size" :page-sizes="[10, 20, 50]"
-          :total="total" layout="total, sizes, prev, pager, next, jumper" background @size-change="handleSizeChange"
-          @current-change="handlePageChange" />
+        <el-pagination 
+          v-model:current-page="queryForm.current" 
+          v-model:page-size="queryForm.size" 
+          :page-sizes="[10, 20, 50]"
+          :total="total" 
+          layout="total, sizes, prev, pager, next, jumper" 
+          background 
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange" 
+        />
       </div>
     </el-card>
   </div>
@@ -113,7 +120,7 @@ async function fetchList() {
     const res = await getArticleList(queryForm)
     tableData.value = res.data.records.map((item, index) => ({
       ...item,
-      serialNumber: (queryForm.current - 1) * queryForm.size + index + 1
+      serialNumber: total.value - (queryForm.current - 1) * queryForm.size - index
     }))
     total.value = res.data.total
   } catch (error) {

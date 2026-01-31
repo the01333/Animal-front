@@ -62,11 +62,11 @@
             <el-option v-for="item in tabOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="编码" prop="dictKey">
-          <el-input v-model="form.dictKey" />
-        </el-form-item>
         <el-form-item label="显示名称" prop="dictLabel">
           <el-input v-model="form.dictLabel" />
+        </el-form-item>
+        <el-form-item label="编码" prop="dictKey">
+          <el-input v-model="form.dictKey" placeholder="默认填入英文" clearable />
         </el-form-item>
         <el-form-item label="排序" prop="sortOrder">
           <el-input-number v-model="form.sortOrder" :min="0" />
@@ -130,7 +130,6 @@ const formStatus = computed({
 
 const rules: FormRules = {
   dictType: [{ required: true, message: '请选择字典类型', trigger: 'change' }],
-  dictKey: [{ required: true, message: '请输入编码', trigger: 'blur' }],
   dictLabel: [{ required: true, message: '请输入显示名称', trigger: 'blur' }]
 }
 
@@ -194,7 +193,7 @@ async function handleSubmit() {
     try {
       const payload = {
         dictType: form.dictType,
-        dictKey: form.dictKey,
+        dictKey: form.dictKey || undefined, // 空字符串转为 undefined
         dictLabel: form.dictLabel,
         sortOrder: form.sortOrder,
         status: form.status,
@@ -209,8 +208,10 @@ async function handleSubmit() {
       }
       dialogVisible.value = false
       loadData()
-    } catch (error) {
-      ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
+    } catch (error: any) {
+      console.error('提交失败:', error)
+      const errorMsg = error?.response?.data?.message || error?.message || (isEdit.value ? '更新失败' : '创建失败')
+      ElMessage.error(errorMsg)
     }
   })
 }

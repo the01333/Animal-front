@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@/types'
 import { login as loginApi, getUserInfo as getUserInfoApi } from '@/api/user'
+import { stopTokenCheck } from '@/utils/tokenManager'
+import { stopTokenRefresh } from '@/utils/tokenRefreshManager'
 
 export const useUserStore = defineStore(
   'user',
@@ -43,10 +45,17 @@ export const useUserStore = defineStore(
 
     // 登出
     function logout() {
+      // 停止所有定时器
+      stopTokenCheck()
+      stopTokenRefresh()
+      
+      // 清除登录信息
       token.value = ''
       userInfo.value = null
       localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
+      
+      console.log('✅ 用户已登出，所有定时器已停止')
     }
 
     // 从本地存储恢复

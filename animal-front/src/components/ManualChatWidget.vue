@@ -300,6 +300,24 @@ const ensureWelcome = () => {
   }
 }
 
+const handleImageIconHover = () => {
+  // 仅在面板当前未打开时响应 hover，避免反复切换
+  if (imagePanelVisible.value) return
+  const nextVisible = true
+  imagePanelVisible.value = nextVisible
+  if (messageContainer.value) {
+    imagePanelLastScrollTop.value = messageContainer.value.scrollTop
+  } else {
+    imagePanelLastScrollTop.value = null
+  }
+  emojiPanelVisible.value = false
+}
+
+const handleImageHoverLeave = () => {
+  if (!imagePanelVisible.value) return
+  closeImagePanelAndRestoreScroll()
+}
+
 const startPolling = async () => {
   // 队列式长轮询: 始终通过 HTTP 长轮询获取新消息
   if (pollRunning) return
@@ -344,6 +362,7 @@ const startPolling = async () => {
             sender: item.senderRole === 'AGENT' ? 'agent' : 'user',
             content: item.content,
             time: formatTime(item.createTime),
+            isoTime: (item.createTime as unknown as string) || null,
             messageType: item.contentType
           })
         }
@@ -485,8 +504,8 @@ const handleMessageWheel = (event: WheelEvent) => {
 
 const toggleEmojiPanel = () => {
   emojiPanelVisible.value = !emojiPanelVisible.value
-  if (emojiPanelVisible.value) {
-    imagePanelVisible.value = false
+  if (emojiPanelVisible.value && imagePanelVisible.value) {
+    closeImagePanelAndRestoreScroll()
   }
 }
 
@@ -506,10 +525,21 @@ const handleEmojiClick = (emoji: string) => {
   })
 }
 
+const closeImagePanelAndRestoreScroll = () => {
+  imagePanelVisible.value = false
+  nextTick(() => {
+    if (messageContainer.value && imagePanelLastScrollTop.value != null) {
+      messageContainer.value.scrollTop = imagePanelLastScrollTop.value
+    } else {
+      scrollToBottom()
+    }
+  })
+}
+
 const toggleImagePanel = () => {
   const nextVisible = !imagePanelVisible.value
-  imagePanelVisible.value = nextVisible
   if (nextVisible) {
+    imagePanelVisible.value = true
     if (messageContainer.value) {
       imagePanelLastScrollTop.value = messageContainer.value.scrollTop
     } else {
@@ -517,13 +547,7 @@ const toggleImagePanel = () => {
     }
     emojiPanelVisible.value = false
   } else {
-    nextTick(() => {
-      if (messageContainer.value && imagePanelLastScrollTop.value != null) {
-        messageContainer.value.scrollTop = imagePanelLastScrollTop.value
-      } else {
-        scrollToBottom()
-      }
-    })
+    closeImagePanelAndRestoreScroll()
   }
 }
 
@@ -1165,6 +1189,13 @@ textarea::placeholder {
   max-height: 180px;
   overflow-y: auto;
   z-index: 10;
+}
+
+.image-upload-pop {
+  position: absolute;
+  bottom: 42px;
+  left: -40px;
+  z-index: 20;
 }
 
 .image-upload-overlay {
