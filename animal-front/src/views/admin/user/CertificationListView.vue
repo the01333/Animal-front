@@ -51,7 +51,11 @@
       </el-form>
 
       <el-table :data="records" v-loading="loading" border stripe>
-        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column label="序号" width="80">
+          <template #default="{ $index }">
+            {{ total - (queryForm.current - 1) * queryForm.size - $index }}
+          </template>
+        </el-table-column>
         <el-table-column prop="username" label="用户名" width="140" />
         <el-table-column prop="nickname" label="昵称" width="140" />
         <el-table-column prop="phone" label="手机号" width="150" />
@@ -79,9 +83,16 @@
       </el-table>
 
       <div class="pagination">
-        <el-pagination background layout="total, sizes, prev, pager, next, jumper" :current-page="queryForm.current"
-          :page-size="queryForm.size" :page-sizes="[10, 20, 30, 50]" :total="total" @current-change="handlePageChange"
-          @size-change="handleSizeChange" />
+        <el-pagination 
+          v-model:current-page="queryForm.current"
+          v-model:page-size="queryForm.size"
+          :page-sizes="[10, 20, 30, 50]" 
+          :total="total" 
+          background 
+          layout="total, sizes, prev, pager, next, jumper" 
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange" 
+        />
       </div>
     </el-card>
 

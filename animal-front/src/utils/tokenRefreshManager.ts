@@ -12,6 +12,7 @@ import { useUserStore } from '@/stores/user'
  * 3. 用户操作时也会触发续约
  * 4. 确保用户在线时Token永不过期
  * 5. 用户离线（未点击续约）时Token会过期
+ * 6. 每30秒验证一次Token有效性（检测用户是否被管理员禁用/删除）
  */
 
 let refreshInterval: number | null = null
@@ -45,12 +46,12 @@ export function startTokenRefresh() {
   // 立即续约一次
   performRefresh()
 
-  // 每30秒自动续约一次
+  // 每30秒自动续约一次，同时验证Token有效性
   refreshInterval = window.setInterval(() => {
     performRefresh()
   }, REFRESH_CONFIG.INTERVAL)
 
-  console.log('✅ Token续约定时器已启动，每30秒自动续约一次')
+  console.log('✅ Token续约定时器已启动，每30秒自动续约并验证用户状态')
 }
 
 /**
@@ -99,9 +100,9 @@ async function performRefresh() {
     }
   } catch (error) {
     console.warn('⚠️ Token续约请求失败:', error)
-    // 如果是401错误，说明Token已过期
+    // 如果是401错误，说明Token已过期或用户被禁用
     if ((error as any)?.response?.status === 401) {
-      handleTokenExpired()
+      handleTokenExpiredOrDisabled()
     }
   } finally {
     isRefreshing = false
@@ -163,27 +164,27 @@ function handleRefreshFailed() {
   verifyToken()
     .then((response) => {
       if (response.code !== 200 || !response.data.valid) {
-        handleTokenExpired()
+        handleTokenExpiredOrDisabled()
       }
     })
     .catch(() => {
-      handleTokenExpired()
+      handleTokenExpiredOrDisabled()
     })
 }
 
 /**
- * 处理Token过期
+ * 处理Token过期或用户被禁用
  * 
  * 工作原理：
  * 1. 停止续约定时器
  * 2. 清除登录信息
- * 3. 显示提示信息（不自动跳转）
- * 4. 下次用户操作时，会被重定向到登录页
+ * 3. 显示提示信息并返回首页
+ * 4. 打开登录弹窗
  */
-function handleTokenExpired() {
+function handleTokenExpiredOrDisabled() {
   const userStore = useUserStore()
 
-  console.warn('⚠️ Token已过期，清除登录信息')
+  console.warn('⚠️ Token已过期或用户被禁用，清除登录信息')
 
   // 停止续约定时器
   stopTokenRefresh()
@@ -191,18 +192,23 @@ function handleTokenExpired() {
   // 清除登录信息
   userStore.logout()
 
-  // 显示提示信息（不自动跳转）
+  // 显示提示信息
   ElMessage({
-    message: '登录信息已过期，请重新登录后继续操作',
+    message: '登录状态已失效，请重新登录',
     type: 'warning',
-    duration: 5000
+    duration: 3000
   })
+
+  // 返回首页
   if (window.location.hash !== '#/') {
     window.location.hash = '#/'
   }
 
-  // 不立即跳转，让用户继续查看内容
-  // 下次用户尝试操作时，会被重定向到登录页
+  // 延迟打开登录弹窗，确保页面已跳转
+  setTimeout(() => {
+    const { openAuthDialog } = require('./authHelper')
+    openAuthDialog('login')
+  }, 500)
 }
 
 /**

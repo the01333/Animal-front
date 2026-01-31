@@ -52,13 +52,6 @@ export interface LoginForm {
   password: string
 }
 
-export interface RegisterForm {
-  username: string
-  password: string
-  email: string
-  phone?: string
-}
-
 // 宠物相关
 export interface Pet {
   id: number

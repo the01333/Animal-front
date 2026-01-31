@@ -60,9 +60,11 @@ service.interceptors.response.use(
       handleTokenExpired(message)
       return Promise.reject(new Error(message || '未授权'))
     } else {
+      // 业务错误：创建一个包含完整信息的错误对象
       console.error('❌ 业务错误:', message)
-      ElMessage.error(message || '请求失败')
-      return Promise.reject(new Error(message || '请求失败'))
+      const error: any = new Error(message || '请求失败')
+      error.response = { data: response.data }
+      return Promise.reject(error)
     }
   },
   (error) => {
@@ -71,27 +73,18 @@ service.interceptors.response.use(
 
     if (error.response) {
       const { status, data } = error.response
-      switch (status) {
-        case 400:
-          ElMessage.error('请求参数错误')
-          break
-        case 401:
-          console.warn('⚠️ HTTP 401 - Token已过期或无效')
-          handleTokenExpired(data?.message || '登录信息已过期')
-          break
-        case 403:
-          ElMessage.error('拒绝访问')
-          break
-        case 404:
-          ElMessage.error('请求资源不存在')
-          break
-        case 500:
-          ElMessage.error('服务器错误')
-          break
-        default:
-          ElMessage.error('网络请求失败')
+      
+      // 401 Token过期特殊处理
+      if (status === 401) {
+        console.warn('⚠️ HTTP 401 - Token已过期或无效')
+        handleTokenExpired(data?.message || '登录信息已过期')
+        return Promise.reject(error)
       }
+      
+      // 其他HTTP错误：确保错误信息在 error.response.data.message 中
+      console.error(`HTTP ${status} 错误:`, data?.message || error.message)
     } else {
+      // 网络连接失败才在拦截器中提示
       ElMessage.error('网络连接失败')
     }
     return Promise.reject(error)

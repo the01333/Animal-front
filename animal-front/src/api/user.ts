@@ -3,7 +3,6 @@ import type {
   ApiResponse,
   User,
   LoginForm,
-  RegisterForm,
   PageResponse,
   UserCertificationRecord
 } from '@/types'
@@ -16,17 +15,6 @@ type VerificationPurpose = 'login' | 'register' | 'reset_password' | 'bind'
 export function login(data: LoginForm): Promise<ApiResponse<{ token: string; user: User }>> {
   return request({
     url: '/user/login',
-    method: 'post',
-    data
-  })
-}
-
-/**
- * 用户注册
- */
-export function register(data: RegisterForm): Promise<ApiResponse<void>> {
-  return request({
-    url: '/user/register',
     method: 'post',
     data
   })
@@ -143,6 +131,22 @@ export function sendPhoneVerificationCode(
   purpose: VerificationPurpose = 'login'
 ): Promise<ApiResponse<void>> {
   return request({ url: '/verification/phone/send', method: 'post', data: { phone, purpose } })
+}
+
+/**
+ * 验证码注册（手机或邮箱）
+ */
+export function registerByCode(data: {
+  phone?: string
+  email?: string
+  code: string
+  purpose: string
+}): Promise<ApiResponse<{ token: string; userInfo: User }>> {
+  return request({
+    url: '/user/register/code',
+    method: 'post',
+    data
+  })
 }
 
 /**

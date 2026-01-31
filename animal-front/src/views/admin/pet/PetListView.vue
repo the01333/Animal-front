@@ -65,7 +65,11 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column label="序号" width="80">
+          <template #default="{ $index }">
+            {{ total - (queryForm.current - 1) * queryForm.size - $index }}
+          </template>
+        </el-table-column>
         <el-table-column label="图片" width="100">
           <template #default="{ row }">
             <el-image
@@ -125,8 +129,8 @@
       <!-- 分页 -->
       <div class="pagination">
         <el-pagination
-          :current-page="queryForm.current"
-          :page-size="queryForm.size"
+          v-model:current-page="queryForm.current"
+          v-model:page-size="queryForm.size"
           :page-sizes="[10, 20, 50, 100]"
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
@@ -142,7 +146,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getPetList, deletePet } from '@/api/pet'
+import { getPetList, deletePet, batchDeletePet } from '@/api/pet'
 import { getAllDictData } from '@/api/dict'
 import type { Pet } from '@/types'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -266,8 +270,11 @@ function handleBatchDelete() {
   })
     .then(async () => {
       try {
-        await Promise.all(selectedIds.value.map((id) => deletePet(id)))
+        // 使用批量删除接口，一次请求删除所有选中的宠物
+        await batchDeletePet(selectedIds.value)
         ElMessage.success('删除成功')
+        // 清空选中状态
+        selectedIds.value = []
         fetchList()
       } catch (error) {
         ElMessage.error('删除失败')

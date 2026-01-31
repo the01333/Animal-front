@@ -10,7 +10,7 @@
 
       <div class="nav-center">
         <div class="nav-capsule" :class="{ 'profile-mode': isProfilePage }">
-          <div v-if="!isProfilePage" class="nav-slider" :style="{ left: `${getSliderPosition()}%` }"></div>
+          <div v-if="!isProfilePage && activeMenu" class="nav-slider" :style="{ left: `${getSliderPosition()}%` }"></div>
           <div class="nav-link-item"
             :class="{ active: !isProfilePage && activeMenu === '/', 'profile-mode': isProfilePage }"
             @click="$router.push('/')">
@@ -110,11 +110,14 @@ const activeMenu = computed(() => {
 
   // 根据路由路径判断应该高亮哪个菜单
   if (path === '/') return '/'
-  if (path.startsWith('/pets') || path.startsWith('/pet/') || path.startsWith('/apply/')) return '/pets'
+  if (path.startsWith('/pets') || path.startsWith('/pet/')) return '/pets'
+  // 注意：/apply/ 开头的是领养申请流程页面，应该高亮领养列表
+  // 但 /profile/application/ 是个人中心的申请详情，不应该高亮
+  if (path.startsWith('/apply/')) return '/pets'
   if (path.startsWith('/guides') || path.startsWith('/guide/')) return '/guides'
   if (path.startsWith('/stories') || path.startsWith('/story/')) return '/stories'
 
-  return path
+  return ''
 })
 
 // 处理图片URL（移除@前缀，处理IP地址替换）
@@ -269,6 +272,10 @@ function getSliderPosition(): number {
   color: white;
 }
 
+.nav-link-item.profile-mode {
+  color: #666 !important;
+}
+
 .nav-link-item:hover:not(.active) {
   color: #ff8c42;
 }
@@ -277,6 +284,14 @@ function getSliderPosition(): number {
   background: rgba(255, 255, 255, 0.92);
   border-color: rgba(255, 255, 255, 0.8);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.nav-capsule.profile-mode .nav-link-item {
+  color: #666;
+}
+
+.nav-capsule.profile-mode .nav-link-item:hover {
+  color: #ff8c42;
 }
 
 .logo-item {

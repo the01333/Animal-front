@@ -188,7 +188,8 @@ import {
   loginByPhoneCode,
   sendEmailVerificationCode,
   sendPhoneVerificationCode,
-  login as loginApi
+  login as loginApi,
+  registerByCode
 } from '@/api/user'
 
 defineOptions({
@@ -429,7 +430,7 @@ const sendLoginCode = async (type: 'phone' | 'email') => {
   }
 }
 
-// 发送注册验证码（本质上也是登录验证码，后端会自动完成首次注册）
+// 发送注册验证码
 const sendRegisterCode = async (type: 'phone' | 'email') => {
   if (registerCountdown.value > 0 || registerCodeSending.value) {
     return
@@ -452,7 +453,7 @@ const sendRegisterCode = async (type: 'phone' | 'email') => {
 
   try {
     if (type === 'phone') {
-      const res = await sendPhoneVerificationCode(registerPhoneForm.phone, 'login')
+      const res = await sendPhoneVerificationCode(registerPhoneForm.phone, 'register')
       if (res.code === 200) {
         ElMessage.success('验证码已发送')
         startRegisterCountdown()
@@ -460,7 +461,7 @@ const sendRegisterCode = async (type: 'phone' | 'email') => {
         ElMessage.error(res.message || '发送验证码失败')
       }
     } else {
-      const res = await sendEmailVerificationCode(registerEmailForm.email, 'login')
+      const res = await sendEmailVerificationCode(registerEmailForm.email, 'register')
       if (res.code === 200) {
         ElMessage.success('验证码已发送')
         startRegisterCountdown()
@@ -516,6 +517,9 @@ const handleLoginByCode = async () => {
     }
   } catch (error: any) {
     console.error('登录失败:', error)
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.message || '登录失败，请稍后重试'
+    ElMessage.error(errorMessage)
   } finally {
     loginLoading.value = false
   }
@@ -546,6 +550,9 @@ const handleLoginByPassword = async () => {
     })
   } catch (error: any) {
     console.error('登录失败:', error)
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.message || '登录失败，请稍后重试'
+    ElMessage.error(errorMessage)
   } finally {
     loginLoading.value = false
   }
@@ -557,7 +564,7 @@ const goToResetPassword = () => {
   router.push('/reset-password')
 }
 
-// 注册（验证码，首次登录自动注册）
+// 注册（验证码）
 const handleRegisterByCode = async () => {
   registerLoading.value = true
   try {
@@ -568,7 +575,11 @@ const handleRegisterByCode = async () => {
           ElMessage.error('请完整填写手机号和验证码，并勾选同意协议')
           return
         }
-        const res = await loginByPhoneCode(registerPhoneForm.phone, registerPhoneForm.code)
+        const res = await registerByCode({
+          phone: registerPhoneForm.phone,
+          code: registerPhoneForm.code,
+          purpose: 'register'
+        })
         if (res.code === 200) {
           setLoginState(res.data.token, res.data.userInfo)
           ElMessage.success({ message: '注册并登录成功！', duration: 1800 })
@@ -576,8 +587,6 @@ const handleRegisterByCode = async () => {
           setTimeout(() => {
             dialogVisible.value = false
           }, 300)
-        } else {
-          ElMessage.error(res.message || '注册失败')
         }
       })
     } else {
@@ -587,7 +596,11 @@ const handleRegisterByCode = async () => {
           ElMessage.error('请完整填写邮箱和验证码，并勾选同意协议')
           return
         }
-        const res = await loginByEmailCode(registerEmailForm.email, registerEmailForm.code)
+        const res = await registerByCode({
+          email: registerEmailForm.email,
+          code: registerEmailForm.code,
+          purpose: 'register'
+        })
         if (res.code === 200) {
           setLoginState(res.data.token, res.data.userInfo)
           ElMessage.success({ message: '注册并登录成功！', duration: 1800 })
@@ -595,13 +608,13 @@ const handleRegisterByCode = async () => {
           setTimeout(() => {
             dialogVisible.value = false
           }, 300)
-        } else {
-          ElMessage.error(res.message || '注册失败')
         }
       })
     }
   } catch (error: any) {
-    ElMessage.error(error?.response?.data?.message || '注册失败，请稍后重试')
+    // 优先使用后端返回的错误信息
+    const errorMessage = error?.response?.data?.message || error?.message || '注册失败，请稍后重试'
+    ElMessage.error(errorMessage)
   } finally {
     registerLoading.value = false
   }
