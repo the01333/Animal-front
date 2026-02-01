@@ -73,7 +73,7 @@
         <el-table-column label="图片" width="100">
           <template #default="{ row }">
             <el-image
-              :src="getFirstImage(row) || '/placeholder.png'"
+              :src="getFirstImage(row) || 'http://localhost:9000/animal-adopt/default.jpg'"
               fit="cover"
               style="width: 60px; height: 60px; border-radius: 4px"
               :preview-src-list="getImageList(row)"

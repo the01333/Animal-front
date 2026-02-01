@@ -29,7 +29,11 @@
 
       <!-- 数据表格 -->
       <el-table v-loading="loading" :data="tableData" stripe>
-        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column label="序号" width="80">
+          <template #default="{ $index }">
+            {{ total - (queryForm.current - 1) * queryForm.size - $index }}
+          </template>
+        </el-table-column>
         <el-table-column label="头像" width="80">
           <template #default="{ row }">
             <el-avatar :size="40"
@@ -66,9 +70,16 @@
 
       <!-- 分页 -->
       <div class="pagination">
-        <el-pagination :current-page="queryForm.current" :page-size="queryForm.size" :page-sizes="[10, 20, 50, 100]"
-          :total="total" layout="total, sizes, prev, pager, next, jumper" background @size-change="fetchList"
-          @current-change="fetchList" />
+        <el-pagination 
+          v-model:current-page="queryForm.current" 
+          v-model:page-size="queryForm.size" 
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total" 
+          layout="total, sizes, prev, pager, next, jumper" 
+          background 
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange" 
+        />
       </div>
     </el-card>
 
@@ -98,7 +109,7 @@
                   {{ editForm.status === 1 ? '启用' : '禁用' }}
                 </el-tag>
               </div>
-              <div class="sub-text">{{ editForm.nickname || '暂无昵称' }}</div>
+              <div class="sub-text">{{ editForm.nickname || '暂无角色' }}</div>
             </div>
           </div>
           <div class="info-grid">
@@ -270,6 +281,17 @@ function handleRemoveFilter(key: 'keyword' | 'role') {
   } else {
     queryForm.keyword = ''
   }
+  fetchList()
+}
+
+function handleSizeChange(size: number) {
+  queryForm.size = size
+  queryForm.current = 1
+  fetchList()
+}
+
+function handleCurrentChange(page: number) {
+  queryForm.current = page
   fetchList()
 }
 

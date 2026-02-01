@@ -139,6 +139,7 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import type { EChartsType } from 'echarts'
 import { getStatistics, getPetCategoryStats, getApplicationStatusStats, getVisitTrend } from '@/api/stats'
+import { getAllDictData } from '@/api/dict'
 
 const stats = reactive({
   totalPets: 0,
@@ -149,6 +150,12 @@ const stats = reactive({
   todayVisits: 0
 })
 
+// 字典数据
+const dictData = ref({
+  petCategories: {} as Record<string, string>,
+  adoptionStatuses: {} as Record<string, string>
+})
+
 const categoryChartRef = ref<HTMLElement>()
 const statusChartRef = ref<HTMLElement>()
 const trendChartRef = ref<HTMLElement>()
@@ -156,6 +163,19 @@ const trendChartRef = ref<HTMLElement>()
 let categoryChart: EChartsType | null = null
 let statusChart: EChartsType | null = null
 let trendChart: EChartsType | null = null
+
+// 获取字典数据
+async function fetchDictData() {
+  try {
+    const res = await getAllDictData()
+    if (res.data) {
+      dictData.value.petCategories = res.data.petCategories || {}
+      dictData.value.adoptionStatuses = res.data.adoptionStatuses || {}
+    }
+  } catch (error) {
+    console.error('获取字典数据失败:', error)
+  }
+}
 
 // 获取统计数据
 async function fetchStatistics() {
@@ -362,22 +382,22 @@ async function initTrendChart() {
 }
 
 function getCategoryName(category: string) {
-  const names: Record<string, string> = {
-    CAT: '猫咪',
-    DOG: '狗狗',
-    RABBIT: '兔子',
-    BIRD: '鸟类',
-    OTHER: '其他'
-  }
-  return names[category] || category
+  // 从字典数据中获取宠物类型的中文名称
+  return dictData.value.petCategories[category] || category
 }
 
 function getStatusName(status: string) {
+  // 申请状态映射（从 ApplicationStatusEnum 枚举）
   const names: Record<string, string> = {
     PENDING: '待审核',
     APPROVED: '已通过',
     REJECTED: '已拒绝',
-    CANCELLED: '已取消'
+    CANCELLED: '已取消',
+    // 兼容小写
+    pending: '待审核',
+    approved: '已通过',
+    rejected: '已拒绝',
+    cancelled: '已取消'
   }
   return names[status] || status
 }
@@ -390,6 +410,9 @@ function handleResize() {
 }
 
 onMounted(async () => {
+  // 先加载字典数据
+  await fetchDictData()
+  
   await fetchStatistics()
   await Promise.all([initCategoryChart(), initStatusChart(), initTrendChart()])
 

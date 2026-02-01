@@ -419,7 +419,7 @@ const showModifyInfoButton = computed(
 const syncUserFromStore = () => {
   if (!userInfo.value) return
   const info = userInfo.value
-  adopterInfo.value.name = info.realName || info.nickname || info.username || info.email || '用户'
+  adopterInfo.value.name = info.realName || info.username || info.email || '用户'
   adopterInfo.value.phone = info.phone || ''
   adopterInfo.value.email = info.email || ''
   adopterInfo.value.address = (info as any).address || ''

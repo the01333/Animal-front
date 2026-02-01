@@ -38,15 +38,15 @@
             <el-menu-item index="/admin/application/pending">待审核</el-menu-item>
           </el-sub-menu>
 
-          <el-sub-menu index="user">
+          <el-sub-menu v-if="isSuperAdmin" index="user">
             <template #title>
               <el-icon>
                 <User />
               </el-icon>
               <span>用户管理</span>
             </template>
-            <el-menu-item v-if="isSuperAdmin" index="/admin/user/list">用户列表</el-menu-item>
-            <el-menu-item v-if="isSuperAdmin" index="/admin/user/certification">认证审核</el-menu-item>
+            <el-menu-item index="/admin/user/list">用户列表</el-menu-item>
+            <el-menu-item index="/admin/user/certification">认证审核</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="content">
@@ -173,6 +173,7 @@ import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AdminAuthDialog from '@/components/auth/AdminAuthDialog.vue'
+import { openAuthDialog } from '@/utils/authHelper'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
 import { storeToRefs } from 'pinia'
@@ -511,6 +512,10 @@ function handleLogout() {
       userStore.logout()
       router.push('/')
       ElMessage.success('退出成功')
+      // 延迟弹出登录框，确保页面已跳转
+      setTimeout(() => {
+        openAuthDialog('login')
+      }, 300)
     })
     .catch(() => { })
 }

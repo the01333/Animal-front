@@ -79,7 +79,7 @@ const filters = ref({
 
 // 分页数据
 const currentPage = ref(1)
-const itemsPerPage = ref(6)
+const itemsPerPage = ref(8)
 const totalItems = ref(0)
 
 // 默认图片

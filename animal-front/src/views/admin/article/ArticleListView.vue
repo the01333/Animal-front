@@ -118,11 +118,13 @@ async function fetchList() {
   loading.value = true
   try {
     const res = await getArticleList(queryForm)
+    // 先更新总数
+    total.value = res.data.total
+    // 再计算序号
     tableData.value = res.data.records.map((item, index) => ({
       ...item,
       serialNumber: total.value - (queryForm.current - 1) * queryForm.size - index
     }))
-    total.value = res.data.total
   } catch (error) {
     console.error('获取文章列表失败:', error)
   } finally {

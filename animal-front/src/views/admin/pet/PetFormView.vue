@@ -387,13 +387,16 @@ function cancelAddCategory() {
 
 async function uploadImages(petId: number) {
   const uploadPromises = []
+  // 开发环境使用相对路径（通过Vite代理），生产环境使用完整URL
+  const isDev = import.meta.env.DEV
+  const baseURL = isDev ? '' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api')
 
   // 上传封面图片
   if (coverImageFile.value) {
     const formData = new FormData()
     formData.append('file', coverImageFile.value)
 
-    const coverPromise = fetch(`/api/pet/${petId}/upload-cover`, {
+    const coverPromise = fetch(`${baseURL}/api/pet/${petId}/upload-cover`, {
       method: 'POST',
       headers: {
         ...uploadHeaders.value
@@ -419,7 +422,7 @@ async function uploadImages(petId: number) {
       const formData = new FormData()
       formData.append('file', file)
 
-      return fetch(`/api/pet/${petId}/upload-image`, {
+      return fetch(`${baseURL}/api/pet/${petId}/upload-image`, {
         method: 'POST',
         headers: {
           ...uploadHeaders.value

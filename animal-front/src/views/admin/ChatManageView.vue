@@ -441,7 +441,7 @@ const loadSessions = async () => {
     sessions.value = records.map<ChatSession>((item) => ({
       id: item.id,
       userId: item.userId,
-      name: item.userUsername || item.userNickname || `用户#${item.userId}`,
+      name: item.userUsername || `用户#${item.userId}`,
       avatar: item.userAvatar ? processImageUrl(item.userAvatar) : 'http://localhost:9000/animal-adopt/default.jpg',
       lastMessage: normalizeLastMessage(item.lastMessage),
       lastTime: item.lastTime ? formatTime(item.lastTime as unknown as string) : '',

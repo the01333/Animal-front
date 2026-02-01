@@ -162,8 +162,12 @@ const handleUserCommand = async (command: 'profile' | 'logout') => {
   // 退出登录
   userStore.logout()
 
-  // 如果在个人中心页面，重定向到首页并打开登录注册弹窗
-  if (isProfilePage.value) {
+  // 检查当前路由是否需要登录
+  const currentRoute = router.currentRoute.value
+  const requiresAuth = currentRoute.meta.requireAuth
+
+  // 如果当前页面需要登录，跳转到首页并弹出登录框
+  if (requiresAuth) {
     await router.push('/')
     emitShowAuthDialog('login')
   }
