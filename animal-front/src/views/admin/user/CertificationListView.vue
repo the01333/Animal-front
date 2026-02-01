@@ -57,7 +57,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="username" label="用户名" width="140" />
-        <el-table-column prop="nickname" label="昵称" width="140" />
         <el-table-column prop="phone" label="手机号" width="150" />
         <el-table-column prop="email" label="邮箱" min-width="200" show-overflow-tooltip />
         <el-table-column prop="idCard" label="身份证号" min-width="200" show-overflow-tooltip />
@@ -98,8 +97,8 @@
 
     <el-drawer v-model="detailVisible" title="认证详情" size="40%" destroy-on-close>
       <el-descriptions v-if="currentRecord" :column="2" border>
-        <el-descriptions-item label="用户名">{{ currentRecord.username }}</el-descriptions-item>
-        <el-descriptions-item label="昵称">{{ currentRecord.nickname || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="用户名" :span="2">{{ currentRecord.username }}</el-descriptions-item>
+        <el-descriptions-item label="角色">{{ currentRecord.nickname || '-' }}</el-descriptions-item>
         <el-descriptions-item label="手机号">{{ currentRecord.phone || '-' }}</el-descriptions-item>
         <el-descriptions-item label="邮箱">{{ currentRecord.email || '-' }}</el-descriptions-item>
         <el-descriptions-item label="身份证号" :span="2">{{ currentRecord.idCard || '-' }}</el-descriptions-item>

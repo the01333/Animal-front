@@ -54,7 +54,7 @@
           <el-carousel-item v-for="pet in featuredPets" :key="pet.id">
             <div class="carousel-pet-card" @click="goToPetDetail(pet.id)">
               <div class="pet-image-box">
-                <img :src="pet.image" alt="pet.name" class="pet-carousel-image" />
+                <img :src="pet.image || 'http://localhost:9000/animal-adopt/default.jpg'" alt="pet.name" class="pet-carousel-image" />
                 <div class="pet-status-overlay">
                   <el-tag :type="getStatusTagType(pet.status)" size="large" effect="dark" round>
                     {{ getStatusText(pet.status) }}
