@@ -179,16 +179,14 @@ onActivated(() => {
   border-radius: 20px;
   cursor: pointer;
   transition: background-color 0.3s;
-  color: #666;
 }
 
 .category-item:hover {
-  background-color: #FFE8D6;
-  color: #FF8C42;
+  background-color: #e0e0e0;
 }
 
 .category-item.active {
-  background-color: #FF8C42;
+  background-color: #42b983;
   color: white;
 }
 
@@ -246,11 +244,10 @@ onActivated(() => {
 }
 
 .meta-item {
-  background-color: #F0F0F0;
+  background-color: #e0e0e0;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
-  color: #666;
 }
 
 .pagination {

@@ -136,22 +136,7 @@ const loadStories = async () => {
       size: itemsPerPage.value,
       keyword: keyword || undefined
     })
-    // 处理tags字段，确保是数组格式
-    const records = (response.data?.records || []).map(story => {
-      let tags = story.tags || []
-      // 如果tags是字符串，尝试解析或转换为数组
-      if (typeof tags === 'string') {
-        try {
-          // 尝试JSON解析
-          tags = JSON.parse(tags)
-        } catch {
-          // 如果不是JSON，按逗号分割
-          tags = tags.split(',').map(t => t.trim()).filter(t => t)
-        }
-      }
-      return { ...story, tags }
-    })
-    stories.value = records
+    stories.value = response.data?.records || []
     totalItems.value = response.data?.total || 0
     console.log('加载成功，共', stories.value.length, '条')
   } catch (error) {
@@ -258,13 +243,6 @@ onActivated(() => {
   padding: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  outline: none;
-}
-
-.filter-group select:focus,
-.filter-group input:focus {
-  border-color: #ddd;
-  outline: none;
 }
 
 .search-input {
@@ -272,9 +250,8 @@ onActivated(() => {
 }
 
 .btn-reset {
-  /* background-color: #F0F0F0; */
-  background-color: #fc9454;
-  color: #f1f0f0;
+  background-color: #ff6b6b;
+  color: white;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -283,7 +260,7 @@ onActivated(() => {
 }
 
 .btn-reset:hover {
-  background-color: #f47b2f;
+  background-color: #ff5252;
 }
 
 .stories-grid {
@@ -347,8 +324,8 @@ onActivated(() => {
 }
 
 .tag {
-  background-color: #FFE8D6;
-  color: #FF8C42;
+  background-color: #42b983;
+  color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -395,8 +372,7 @@ onActivated(() => {
 
 .btn-read-more {
   display: inline-block;
-  /* background-color: #44a0ff; */
-  background-color: #f5995f;
+  background-color: #42b983;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -406,7 +382,7 @@ onActivated(() => {
 }
 
 .btn-read-more:hover {
-  background-color: #FF7A2F;
+  background-color: #359c6d;
 }
 
 .pagination {

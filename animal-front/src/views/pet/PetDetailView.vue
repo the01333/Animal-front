@@ -188,7 +188,7 @@
 
       <el-timeline>
         <el-timeline-item v-for="(notice, index) in adoptionNotices" :key="index" :timestamp="notice.title"
-          placement="top" :color="'#ff8c42ba'">
+          placement="top" :color="index % 2 === 0 ? '#409EFF' : '#67C23A'">
           <el-card shadow="never">
             <el-text>{{ notice.content }}</el-text>
           </el-card>
@@ -845,11 +845,6 @@ watch(() => isLoggedIn.value, (newVal) => {
 
 :deep(.el-timeline-item__content) {
   padding-bottom: 20px;
-}
-
-:deep(.el-link) {
-  vertical-align: baseline;
-  display: inline;
 }
 
 @media (max-width: 768px) {

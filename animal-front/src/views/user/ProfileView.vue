@@ -235,7 +235,7 @@
                 <img :src="getPetCover(application)" :alt="application.petName || '宠物封面'" />
                 <div class="application-pet-meta">
                   <p class="pet-name">{{ application.petName || '未命名宠物' }}</p>
-                  <p class="pet-category">{{ application.petCategoryText || application.petCategory || '宠物' }}</p>
+                  <p class="pet-category">{{ formatPetCategory(application.petCategory) }}</p>
                 </div>
               </div>
 
@@ -1088,6 +1088,15 @@ const getPetCover = (application: AdoptionApplication) => {
   return processImageUrl(application.petCoverImage) || defaultPetCover
 }
 
+const formatPetCategory = (category?: string) => {
+  if (!category) return '宠物'
+  const map: Record<string, string> = {
+    dog: '狗狗',
+    cat: '猫咪'
+  }
+  return map[category.toLowerCase()] || category
+}
+
 const loadApplications = async () => {
   if (loadingApplications.value) return
   loadingApplications.value = true
@@ -1357,18 +1366,14 @@ onMounted(async () => {
 }
 
 .user-role {
-  color: #FF8C42;
-  /* color: #53ca7a; */
-  /* color: #6dc3ea; */
+  color: #42b983;
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
 
 .btn-admin {
   display: inline-block;
-  /* background-color: #f49458; */
-  /* background-color: #42aaff; */
-  background-color: #36485d;
+  background-color: #409eff;
   color: #fff;
   border: none;
   padding: 0.5rem 1rem;
@@ -1396,10 +1401,8 @@ onMounted(async () => {
 }
 
 .profile-nav li.active {
-  background-color: #FF8C42;
+  background-color: #42b983;
   color: white;
-  /* background-color: #e1dfdf;
-  color: black; */
 }
 
 .profile-main {
@@ -1456,7 +1459,7 @@ onMounted(async () => {
 }
 
 :deep(.password-dialog .el-dialog__header) {
-  background: linear-gradient(135deg, #FFB380 0%, #FF8C42 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-bottom: none;
   padding: 1.5rem;
   display: flex;
@@ -1507,12 +1510,12 @@ onMounted(async () => {
 }
 
 :deep(.password-dialog .el-input__wrapper:hover) {
-  border-color: #FF8C42;
+  border-color: #667eea;
 }
 
 :deep(.password-dialog .el-input__wrapper.is-focus) {
-  border-color: #FF8C42;
-  box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 :deep(.password-dialog .el-input.is-error .el-input__wrapper) {
@@ -1547,19 +1550,19 @@ onMounted(async () => {
 }
 
 :deep(.password-dialog .el-button--default:hover) {
-  border-color: #FF8C42;
-  color: #FF8C42;
-  background: #FFF4E3;
+  border-color: #667eea;
+  color: #667eea;
+  background: #f8f9ff;
 }
 
 :deep(.password-dialog .el-button--primary) {
-  background: linear-gradient(135deg, #FFB380 0%, #FF8C42 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   color: white;
 }
 
 :deep(.password-dialog .el-button--primary:hover) {
-  box-shadow: 0 8px 20px rgba(255, 140, 66, 0.4);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
   transform: translateY(-2px);
 }
 
@@ -1655,7 +1658,7 @@ onMounted(async () => {
 }
 
 .pill-option.active {
-  background: linear-gradient(120deg, #8acbe5, #e3bca1);;
+  background: linear-gradient(120deg, #ffb347, #ff6bb5 60%, #f87171);
   color: #fff;
   box-shadow: 0 10px 25px rgba(255, 107, 181, 0.35);
 }
@@ -1713,8 +1716,8 @@ onMounted(async () => {
 
 .form-group input:not([readonly]):focus {
   outline: none;
-  border-color: #FF8C42;
-  box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.2);
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
 .form-actions {
@@ -1737,25 +1740,25 @@ onMounted(async () => {
 }
 
 .btn-edit {
-  background-color: #FF8C42;
+  background-color: #409eff;
   color: white;
 }
 
 .btn-edit:hover {
-  background-color: #FF7A2F;
+  background-color: #66b1ff;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
 .btn-save {
-  background-color: #FF8C42;
+  background-color: #42b983;
   color: white;
 }
 
 .btn-save:hover {
-  background-color: #FF7A2F;
+  background-color: #359970;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .certification-status {
@@ -1788,7 +1791,7 @@ onMounted(async () => {
 }
 
 .status-approved {
-  background-color: #FFB380;
+  background-color: #42b983;
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
@@ -1806,8 +1809,7 @@ onMounted(async () => {
   padding: 1.5rem;
   border-radius: 8px;
   margin-bottom: 1rem;
-  /* border-left: 4px solid #FF8C42; */
-  border-left: 4px solid #ede9e2;
+  border-left: 4px solid #409eff;
 }
 
 .status-message p {
@@ -1863,8 +1865,8 @@ onMounted(async () => {
 }
 
 .file-upload:hover {
-  border-color: #FF8C42;
-  background-color: #FFF4E3;
+  border-color: #409eff;
+  background-color: #f0f9ff;
 }
 
 .file-upload input[type='file'] {
@@ -1890,7 +1892,7 @@ onMounted(async () => {
 }
 
 .btn-submit-certification {
-  background-color: #FFB380;
+  background-color: #42b983;
   color: white;
   padding: 0.75rem 1.5rem;
   border: none;
@@ -1904,9 +1906,9 @@ onMounted(async () => {
 }
 
 .btn-submit-certification:hover {
-  background-color: #FF9A5C;
+  background-color: #359970;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 179, 128, 0.3);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .applications-loading,
@@ -1918,7 +1920,7 @@ onMounted(async () => {
 
 .btn-browse-pets {
   display: inline-block;
-  background-color: #FFB380;
+  background-color: #42b983;
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 4px;
@@ -2029,9 +2031,8 @@ onMounted(async () => {
 }
 
 .btn-view {
-  /* background-color: #FF8C42; */
-  background-color: #efeded;
-  color: rgb(20, 20, 20);
+  background-color: #2196f3;
+  color: white;
 }
 
 .btn-cancel {
@@ -2180,9 +2181,8 @@ onMounted(async () => {
 .btn-view-item {
   flex: 1;
   padding: 0.5rem 1rem;
-  /* background-color: #FF8C42; */
-  background-color: #ece9e9;
-  color: rgb(57, 57, 57);
+  background-color: #2196f3;
+  color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -2192,8 +2192,7 @@ onMounted(async () => {
 }
 
 .btn-view-item:hover {
-  /* background-color: #FF7A2F; */
-  background-color: #e0c9bc;
+  background-color: #1976d2;
 }
 
 .section-head {
@@ -2241,14 +2240,14 @@ onMounted(async () => {
 }
 
 .btn-update-certification {
-  background-color: #ff8c42;
+  background-color: #2196f3;
   color: white;
 }
 
 .btn-update-certification:hover {
-  background-color: #ff7a2f;
+  background-color: #1976d2;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
 }
 
 .form-actions {
@@ -2269,15 +2268,15 @@ onMounted(async () => {
 }
 
 .form-actions .btn-submit-certification {
-  background-color: #FFB380;
+  background-color: #42b983;
   color: white;
   grid-column: 1;
 }
 
 .form-actions .btn-submit-certification:hover {
-  background-color: #FF9A5C;
+  background-color: #359970;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 179, 128, 0.3);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .form-actions .btn-cancel {

@@ -256,9 +256,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .footer {
-  /* background: #E3F2FD; */
-  background: #fff4e3;
-  color: #333;
+  background: #4f9ae4;
+  color: white;
   padding: 40px 20px 20px;
   margin-top: 40px;
 }
@@ -274,7 +273,7 @@ onBeforeUnmount(() => {
 
 .footer-section h3 {
   margin-bottom: 20px;
-  color: #FF8C42;
+  color: #ffd04b;
   font-size: 20px;
   font-weight: bold;
   display: flex;
@@ -285,7 +284,7 @@ onBeforeUnmount(() => {
 .footer-section p {
   line-height: 1.8;
   margin-bottom: 15px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 15px;
   font-weight: 500;
 }
@@ -294,19 +293,19 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 15px;
   font-weight: 500;
   transition: all 0.3s;
 }
 
 .contact-item:hover {
-  color: #FF8C42;
+  color: #ffd04b;
   transform: translateX(5px);
 }
 
 .footer-link {
-  color: #666 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -316,14 +315,14 @@ onBeforeUnmount(() => {
 }
 
 .footer-link:hover {
-  color: #FF8C42 !important;
+  color: #ffd04b !important;
   transform: translateX(5px);
 }
 
 .footer-bottom {
   text-align: center;
   padding-top: 20px;
-  color: #666;
+  color: white;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -331,38 +330,19 @@ onBeforeUnmount(() => {
 }
 
 :deep(.el-divider) {
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: rgba(237, 218, 218, 0.2);
 }
 
 :deep(.el-link.el-link--info) {
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 :deep(.el-link.el-link--info:hover) {
-  color: #FF8C42;
+  color: #ffd04b;
 }
 
 :deep(.el-text.el-text--info) {
-  color: #666 !important;
-}
-
-:deep(.el-tag.el-tag--success) {
-  background-color: #FFE8D6;
-  border-color: #FF8C42;
-  color: #FF8C42;
-}
-
-:deep(.el-tag.el-tag--warning) {
-  background-color: #FFE8D6;
-  border-color: #FF8C42;
-  color: #FF8C42;
-}
-
-:deep(.el-tag.el-tag--info) {
-  /* background-color: #E3F2FD; */
-  background: #fff4e3;
-  border-color: #2196F3;
-  color: #2196F3;
+  color: white !important;
 }
 
 @media (max-width: 768px) {

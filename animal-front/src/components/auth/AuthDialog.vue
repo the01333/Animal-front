@@ -438,46 +438,16 @@ const sendRegisterCode = async (type: 'phone' | 'email') => {
 
   // 先校验输入是否完整
   if (type === 'phone') {
-    // 检查是否勾选协议
-    if (!registerPhoneForm.agree) {
-      ElMessage.warning('请先勾选用户协议和隐私政策')
-      return
-    }
-    
-    // 检查手机号是否为空
     if (!registerPhoneForm.phone) {
       ElMessage.warning('请先输入手机号')
       return
     }
-    
-    // 验证手机号格式
-    const phonePattern = /^1[3-9]\d{9}$/
-    if (!phonePattern.test(registerPhoneForm.phone)) {
-      ElMessage.warning('请输入有效的手机号')
-      return
-    }
-    
     registerCodeSending.value = true
   } else {
-    // 检查是否勾选协议
-    if (!registerEmailForm.agree) {
-      ElMessage.warning('请先勾选用户协议和隐私政策')
-      return
-    }
-    
-    // 检查邮箱是否为空
     if (!registerEmailForm.email) {
       ElMessage.warning('请先输入邮箱')
       return
     }
-    
-    // 验证邮箱格式
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailPattern.test(registerEmailForm.email)) {
-      ElMessage.warning('请输入有效的邮箱地址')
-      return
-    }
-    
     registerCodeSending.value = true
   }
 
