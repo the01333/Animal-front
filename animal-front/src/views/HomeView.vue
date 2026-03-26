@@ -406,7 +406,7 @@ const adoptionSteps = ref([
   }
 ])
 
-const timelineColors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
+const timelineColors = ['#FFB380', '#FFB380', '#FFB380', '#FFB380', '#FFB380']
 const stepIcons = [
   markRaw(ReadingIcon),
   markRaw(Search),
@@ -689,30 +689,32 @@ function openAIChatWidget() {
 }
 
 .hero-btn-primary {
-  background: linear-gradient(135deg, #42b983 0%, #35a572 100%);
+  /* background: #f79457; */
+  background: #e9a880;
   color: white;
 }
 
 .hero-btn-primary:hover {
-  background: linear-gradient(135deg, #35a572 0%, #2d8f61 100%);
+  background: #fc7f36;
 }
 
 .hero-btn-success {
-  background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+  /* background: #2196F3; */
+  background: #68b0ea;
   color: white;
 }
 
 .hero-btn-success:hover {
-  background: linear-gradient(135deg, #40c057 0%, #37b24d 100%);
+  background: #1976D2;
 }
 
 .hero-btn-warning {
-  background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+  background: #F0F0F0;
   color: #333;
 }
 
 .hero-btn-warning:hover {
-  background: linear-gradient(135deg, #fab005 0%, #f59f00 100%);
+  background: #E0E0E0;
 }
 
 .featured-pets,
@@ -728,7 +730,8 @@ function openAIChatWidget() {
 
 .section-icon {
   font-size: 40px;
-  color: #409EFF;
+  color: #4c9df2;
+  /* color: #FF8C42; */
   margin-bottom: 10px;
 }
 
@@ -804,7 +807,7 @@ function openAIChatWidget() {
 
 .name-icon {
   font-size: 26px;
-  color: #ffd43b;
+  color: #FF8C42;
 }
 
 .pet-card-details {
@@ -823,7 +826,7 @@ function openAIChatWidget() {
 
 .detail-item .el-icon {
   font-size: 18px;
-  color: #409EFF;
+  color: #666;
 }
 
 .adopt-btn {
@@ -831,15 +834,16 @@ function openAIChatWidget() {
   height: 48px;
   font-size: 16px;
   font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #bca0d8 100%);
+  background: #FFB380;
   border: none;
   transition: all 0.3s ease;
+  color: white;
 }
 
 .adopt-btn:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  background: #FF9A5C;
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 16px rgba(255, 154, 92, 0.3);
 }
 
 .adopt-btn .el-icon {
@@ -875,19 +879,63 @@ function openAIChatWidget() {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+  background-color: #FF8C42;
+  box-shadow: 0 2px 8px rgba(255, 140, 66, 0.4);
 }
 
 :deep(.el-carousel__arrow) {
-  background-color: rgba(139, 157, 240, 0.8);
-  width: 45px;
-  height: 45px;
-  font-size: 18px;
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  width: 45px !important;
+  height: 45px !important;
+  font-size: 20px !important;
+  color: #FF8C42 !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
 }
 
 :deep(.el-carousel__arrow):hover {
-  background-color: #879bf6;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #FF7A2F !important;
+  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3) !important;
+}
+
+:deep(.el-carousel__arrow--left) {
+  left: 16px !important;
+}
+
+:deep(.el-carousel__arrow--left):hover {
+  animation: arrowBounceLeft 0.6s ease-in-out infinite;
+  transform: translateY(-50%) !important;
+}
+
+:deep(.el-carousel__arrow--right) {
+  right: 16px !important;
+}
+
+:deep(.el-carousel__arrow--right):hover {
+  animation: arrowBounceRight 0.6s ease-in-out infinite;
+  transform: translateY(-50%) !important;
+}
+
+@keyframes arrowBounceLeft {
+  0%, 100% {
+    transform: translateY(-50%) translateX(0);
+  }
+  50% {
+    transform: translateY(-50%) translateX(-3px);
+  }
+}
+
+@keyframes arrowBounceRight {
+  0%, 100% {
+    transform: translateY(-50%) translateX(0);
+  }
+  50% {
+    transform: translateY(-50%) translateX(3px);
+  }
 }
 
 .view-all {
@@ -913,7 +961,8 @@ function openAIChatWidget() {
 .step-number {
   min-width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, #667eea 0%, #b896da 100%);
+  /* background: #4c9df2; */
+  background: #f4975d;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -996,7 +1045,7 @@ function openAIChatWidget() {
 }
 
 .action-card {
-  background: linear-gradient(135deg, #f093fb 0%, #f95f73 100%);
+  background: linear-gradient(135deg, #f0b283 0%, #f59a61 70%);
   border: none;
   border-radius: 16px;
 }
@@ -1007,6 +1056,20 @@ function openAIChatWidget() {
   gap: 30px;
   padding: 20px;
   color: white;
+}
+
+.action-content .el-button {
+  background: white !important;
+  color: #FF8C42 !important;
+  border: 2px solid white !important;
+  font-weight: bold !important;
+  transition: all 0.3s !important;
+}
+
+.action-content .el-button:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 .action-icon {
