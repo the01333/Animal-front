@@ -304,7 +304,10 @@ const fetchStoryDetail = async () => {
     isCollected.value = story.value?.favorited ?? false
 
     const relatedResponse = await getStoryList({ current: 1, size: 20 })
-    relatedStories.value = (relatedResponse.data?.records || []).filter(s => s.id !== story.value?.id)
+    const allRelated = (relatedResponse.data?.records || []).filter(s => s.id !== story.value?.id)
+    // 随机选择6个相关故事
+    const shuffled = [...allRelated].sort(() => Math.random() - 0.5)
+    relatedStories.value = shuffled.slice(0, 6)
   } catch (error) {
     console.error('获取故事详情失败:', error)
   }

@@ -256,8 +256,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .footer {
-  background: #4f9ae4;
-  color: white;
+  /* background: #E3F2FD; */
+  background: #fff4e3;
+  color: #333;
   padding: 40px 20px 20px;
   margin-top: 40px;
 }
@@ -273,7 +274,7 @@ onBeforeUnmount(() => {
 
 .footer-section h3 {
   margin-bottom: 20px;
-  color: #ffd04b;
+  color: #FF8C42;
   font-size: 20px;
   font-weight: bold;
   display: flex;
@@ -284,7 +285,7 @@ onBeforeUnmount(() => {
 .footer-section p {
   line-height: 1.8;
   margin-bottom: 15px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #666;
   font-size: 15px;
   font-weight: 500;
 }
@@ -293,19 +294,19 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #666;
   font-size: 15px;
   font-weight: 500;
   transition: all 0.3s;
 }
 
 .contact-item:hover {
-  color: #ffd04b;
+  color: #FF8C42;
   transform: translateX(5px);
 }
 
 .footer-link {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: #666 !important;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -315,14 +316,14 @@ onBeforeUnmount(() => {
 }
 
 .footer-link:hover {
-  color: #ffd04b !important;
+  color: #FF8C42 !important;
   transform: translateX(5px);
 }
 
 .footer-bottom {
   text-align: center;
   padding-top: 20px;
-  color: white;
+  color: #666;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -330,19 +331,38 @@ onBeforeUnmount(() => {
 }
 
 :deep(.el-divider) {
-  border-color: rgba(237, 218, 218, 0.2);
+  border-color: rgba(0, 0, 0, 0.1);
 }
 
 :deep(.el-link.el-link--info) {
-  color: rgba(255, 255, 255, 0.8);
+  color: #666;
 }
 
 :deep(.el-link.el-link--info:hover) {
-  color: #ffd04b;
+  color: #FF8C42;
 }
 
 :deep(.el-text.el-text--info) {
-  color: white !important;
+  color: #666 !important;
+}
+
+:deep(.el-tag.el-tag--success) {
+  background-color: #FFE8D6;
+  border-color: #FF8C42;
+  color: #FF8C42;
+}
+
+:deep(.el-tag.el-tag--warning) {
+  background-color: #FFE8D6;
+  border-color: #FF8C42;
+  color: #FF8C42;
+}
+
+:deep(.el-tag.el-tag--info) {
+  /* background-color: #E3F2FD; */
+  background: #fff4e3;
+  border-color: #2196F3;
+  color: #2196F3;
 }
 
 @media (max-width: 768px) {
