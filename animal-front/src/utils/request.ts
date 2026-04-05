@@ -47,13 +47,13 @@ service.interceptors.response.use(
   (response: AxiosResponse) => {
     NProgress.done()
     const { code, message, data } = response.data
-    console.log('🔍 响应拦截器 - 原始响应:', response.data)
+    console.log('响应拦截器 - 原始响应:', response.data)
 
     // 根据业务状态码统一处理
     if (code === 200 || code === 0) {
       // 统一返回整个 Result 对象（ApiResponse<T>）
       // 这样现有代码中的 res.code / res.data 都可以正常工作
-      console.log('✅ 响应成功，返回数据:', response.data)
+      console.log('响应成功，返回数据:', response.data)
       return response.data
     } else if (code === 401) {
       console.warn('⚠️ Token已过期或无效:', message)
@@ -61,7 +61,7 @@ service.interceptors.response.use(
       return Promise.reject(new Error(message || '未授权'))
     } else {
       // 业务错误：创建一个包含完整信息的错误对象
-      console.error('❌ 业务错误:', message)
+      console.error('业务错误:', message)
       const error: any = new Error(message || '请求失败')
       error.response = { data: response.data }
       return Promise.reject(error)
@@ -76,7 +76,7 @@ service.interceptors.response.use(
       
       // 401 Token过期特殊处理
       if (status === 401) {
-        console.warn('⚠️ HTTP 401 - Token已过期或无效')
+        console.warn('HTTP 401 - Token已过期或无效')
         handleTokenExpired(data?.message || '登录信息已过期')
         return Promise.reject(error)
       }

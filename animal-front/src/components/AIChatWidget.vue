@@ -390,121 +390,121 @@ const scrollToBottom = () => {
   }
 }
 
-const toggleImagePanel = () => {
-  const nextVisible = !imagePanelVisible.value
-  imagePanelVisible.value = nextVisible
-  if (nextVisible) {
-    if (messagesContainer.value) {
-      imagePanelLastScrollTop.value = messagesContainer.value.scrollTop
-    } else {
-      imagePanelLastScrollTop.value = null
-    }
-  } else {
-    nextTick(() => {
-      if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
-        messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
-      } else {
-        scrollToBottom()
-      }
-    })
-  }
-}
+// const toggleImagePanel = () => {
+//   const nextVisible = !imagePanelVisible.value
+//   imagePanelVisible.value = nextVisible
+//   if (nextVisible) {
+//     if (messagesContainer.value) {
+//       imagePanelLastScrollTop.value = messagesContainer.value.scrollTop
+//     } else {
+//       imagePanelLastScrollTop.value = null
+//     }
+//   } else {
+//     nextTick(() => {
+//       if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
+//         messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
+//       } else {
+//         scrollToBottom()
+//       }
+//     })
+//   }
+// }
 
-const handleImageIconHover = () => {
-  if (imagePanelVisible.value) return
-  imagePanelVisible.value = true
-  if (messagesContainer.value) {
-    imagePanelLastScrollTop.value = messagesContainer.value.scrollTop
-  } else {
-    imagePanelLastScrollTop.value = null
-  }
-}
+// const handleImageIconHover = () => {
+//   if (imagePanelVisible.value) return
+//   imagePanelVisible.value = true
+//   if (messagesContainer.value) {
+//     imagePanelLastScrollTop.value = messagesContainer.value.scrollTop
+//   } else {
+//     imagePanelLastScrollTop.value = null
+//   }
+// }
 
-const handleImageHoverLeave = () => {
-  if (!imagePanelVisible.value) return
-  imagePanelVisible.value = false
-  nextTick(() => {
-    if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
-      messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
-    } else {
-      scrollToBottom()
-    }
-  })
-}
+// const handleImageHoverLeave = () => {
+//   if (!imagePanelVisible.value) return
+//   imagePanelVisible.value = false
+//   nextTick(() => {
+//     if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
+//       messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
+//     } else {
+//       scrollToBottom()
+//     }
+//   })
+// }
 
-const triggerImageSelect = () => {
-  imageInputRef.value?.click()
-}
+// const triggerImageSelect = () => {
+//   imageInputRef.value?.click()
+// }
 
-const uploadAndAddImageMessage = async (file: File) => {
-  if (!file.type.startsWith('image/')) {
-    ElMessage.error('请选择图片文件')
-    return
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    ElMessage.error('图片大小不能超过 5MB')
-    return
-  }
+// const handleImageSelect = async (event: Event) => {
+//   const target = event.target as HTMLInputElement
+//   const file = target.files?.[0]
+//   if (!file) return
+//   await uploadAndAddImageMessage(file)
+//   target.value = ''
+// }
 
-  const token = localStorage.getItem('token')
-  if (!token) {
-    ElMessage({
-      message: '当前未登录，请先登录',
-      type: 'warning',
-      duration: 3000
-    })
-    openAuthDialog('login')
-    return
-  }
+// const handleImageDrop = async (event: DragEvent) => {
+//   const file = event.dataTransfer?.files?.[0]
+//   if (!file) return
+//   await uploadAndAddImageMessage(file)
+// }
 
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
+// const uploadAndAddImageMessage = async (file: File) => {
+//   if (!file.type.startsWith('image/')) {
+//     ElMessage.error('请选择图片文件')
+//     return
+//   }
+//   if (file.size > 5 * 1024 * 1024) {
+//     ElMessage.error('图片大小不能超过 5MB')
+//     return
+//   }
 
-    const res = await uploadArticleCover(formData)
-    const imageUrl = res.data
-    if (!imageUrl) {
-      ElMessage.error('图片上传失败，请稍后重试')
-      return
-    }
+//   const token = localStorage.getItem('token')
+//   if (!token) {
+//     ElMessage({
+//       message: '当前未登录，请先登录',
+//       type: 'warning',
+//       duration: 3000
+//     })
+//     openAuthDialog('login')
+//     return
+//   }
 
-    messages.value.push({
-      role: 'user',
-      content: imageUrl,
-      timestamp: Date.now(),
-      messageType: 'IMAGE'
-    })
-    await nextTick()
-    scrollToBottom()
-    saveSession()
-  } catch (error) {
-    console.error('上传图片失败:', error)
-    ElMessage.error('图片上传失败，请稍后重试')
-  } finally {
-    imagePanelVisible.value = false
-    nextTick(() => {
-      if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
-        messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
-      } else {
-        scrollToBottom()
-      }
-    })
-  }
-}
+//   try {
+//     const formData = new FormData()
+//     formData.append('file', file)
 
-const handleImageSelect = async (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
-  await uploadAndAddImageMessage(file)
-  target.value = ''
-}
+//     const res = await uploadArticleCover(formData)
+//     const imageUrl = res.data
+//     if (!imageUrl) {
+//       ElMessage.error('图片上传失败，请稍后重试')
+//       return
+//     }
 
-const handleImageDrop = async (event: DragEvent) => {
-  const file = event.dataTransfer?.files?.[0]
-  if (!file) return
-  await uploadAndAddImageMessage(file)
-}
+//     messages.value.push({
+//       role: 'user',
+//       content: imageUrl,
+//       timestamp: Date.now(),
+//       messageType: 'IMAGE'
+//     })
+//     await nextTick()
+//     scrollToBottom()
+//     saveSession()
+//   } catch (error) {
+//     console.error('上传图片失败:', error)
+//     ElMessage.error('图片上传失败，请稍后重试')
+//   } finally {
+//     imagePanelVisible.value = false
+//     nextTick(() => {
+//       if (messagesContainer.value && imagePanelLastScrollTop.value != null) {
+//         messagesContainer.value.scrollTop = imagePanelLastScrollTop.value
+//       } else {
+//         scrollToBottom()
+//       }
+//     })
+//   }
+// }
 
 // 在消息区域内滚动滚轮时，只滚动对话内容，不影响外层页面
 const handleMessagesWheel = (event: WheelEvent) => {
