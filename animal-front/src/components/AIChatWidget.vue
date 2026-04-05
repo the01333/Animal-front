@@ -160,6 +160,7 @@ import { uploadArticleCover } from '@/api/article'
 type AiChatMessage = ChatMessage & { messageType?: 'TEXT' | 'IMAGE' }
 
 const isExpanded = ref(false)
+// 消息列表
 const messages = ref<AiChatMessage[]>([])
 const userInput = ref('')
 const isLoading = ref(false)
@@ -206,7 +207,7 @@ const toggleChat = () => {
 const sendMessage = async () => {
   if (!userInput.value.trim() || isLoading.value) return
 
-  // ⚠️ 在发送消息前检查登录状态
+  // 在发送消息前检查登录状态
   const token = localStorage.getItem('token')
   if (!token) {
     ElMessage({
@@ -220,7 +221,7 @@ const sendMessage = async () => {
 
   const content = userInput.value.trim()
 
-  // 添加用户消息
+  // 添加用户消息到界面（角色和内容）
   messages.value.push({
     role: 'user',
     content,
@@ -235,7 +236,7 @@ const sendMessage = async () => {
     await nextTick()
     scrollToBottom()
 
-    // 创建AI回复消息（初始为空）
+    // 创建 AI 回复消息（初始为空，接收 AI 回复）
     const aiMessageIndex = messages.value.length
     messages.value.push({
       role: 'assistant',
@@ -243,11 +244,11 @@ const sendMessage = async () => {
       timestamp: Date.now()
     })
 
-    // 调用流式AI服务（使用会话记忆）
-    console.log('📤 发送消息:', content)
-    console.log('📋 当前会话ID:', sessionId.value)
+    console.log('发送消息:', content)
+    console.log('当前会话ID:', sessionId.value)
     let fullContent = ''
 
+    // 调用 api，获取 AI 答复，通过 chunk 回调函数 - 每次收到一小段消息就调用
     const newSessionId = await chatWithAIMemoryStream(content, sessionId.value, (chunk: string) => {
       fullContent += chunk
       // 更新AI消息内容
@@ -261,7 +262,7 @@ const sendMessage = async () => {
     // 更新会话ID（后端可能创建了新会话）
     const isNewSession = !sessionId.value && newSessionId
     if (newSessionId && newSessionId !== sessionId.value) {
-      console.log('✅ 更新会话ID:', sessionId.value, '->', newSessionId)
+      console.log('更新会话ID:', sessionId.value, '->', newSessionId)
       sessionId.value = newSessionId
       
       // 如果是新创建的会话，先保存欢迎消息到后端

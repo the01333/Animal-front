@@ -100,7 +100,7 @@
                 <el-text line-clamp="2" size="small">{{ item.description }}</el-text>
               </div>
               <div class="pet-actions">
-                <el-button type="primary" size="small" :disabled="item.adoptionStatus !== 'available'"
+                <el-button class="adopt-btn" type="primary" size="small" :disabled="item.adoptionStatus !== 'available'"
                   @click.stop="applyAdoption(item.id)">
                   <el-icon>
                     <Star />
@@ -468,6 +468,19 @@ watch(() => route.path, (newPath) => {
   width: 100%;
   padding: 8px 2px;
   height: 27px;
+}
+
+.pet-actions :deep(.adopt-btn.el-button--primary) {
+  --el-button-bg-color: #4b525a;
+  --el-button-border-color: #4b525a;
+  --el-button-text-color: #ffffff;
+  --el-button-hover-bg-color: #3f454c;
+  --el-button-hover-border-color: #3f454c;
+  --el-button-active-bg-color: #34393f;
+  --el-button-active-border-color: #34393f;
+  --el-button-disabled-bg-color: #b6bcc3;
+  --el-button-disabled-border-color: #b6bcc3;
+  --el-button-disabled-text-color: #ffffff;
 }
 
 .pagination-wrapper {

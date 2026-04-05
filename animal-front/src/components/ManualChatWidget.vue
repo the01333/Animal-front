@@ -318,6 +318,9 @@ const handleImageHoverLeave = () => {
   closeImagePanelAndRestoreScroll()
 }
 
+/**
+ * 启动长轮询
+ */
 const startPolling = async () => {
   // 队列式长轮询: 始终通过 HTTP 长轮询获取新消息
   if (pollRunning) return
@@ -382,6 +385,9 @@ const startPolling = async () => {
   pollRunning = false
 }
 
+/**
+ * 停止长轮询
+ */
 const stopPolling = () => {
   pollStopped = true
 }
@@ -681,6 +687,9 @@ const getWsUrl = () => {
   return base
 }
 
+/**
+ * 初始化 WebSocket 连接，用于接收客服未读数推送
+ */
 const initWs = () => {
   if (stompClient.value) return
   const socketUrl = getWsUrl()
@@ -837,6 +846,9 @@ const minimize = () => {
   ackUserRead()
 }
 
+/**
+ * 通过 http 发送消息（包括文本和表情）
+ */
 const handleSend = async () => {
   const content = draft.value.trim()
   if (!content || sending.value) return

@@ -19,13 +19,16 @@
       <el-tabs v-model="resetMethod" class="reset-tabs">
         <!-- 邮箱重置 -->
         <el-tab-pane label="邮箱重置" name="email">
-          <el-form ref="emailFormRef" :model="emailForm" :rules="emailRules" size="large">
+          <el-form ref="emailFormRef" :model="emailForm" :rules="emailRules" size="large" :key="formKey">
             <div class="form-label">邮箱</div>
             <el-form-item prop="email">
               <el-input
                 v-model="emailForm.email"
                 placeholder="请输入注册邮箱"
                 clearable
+                autocomplete="off"
+                :readonly="isReadonly"
+                @focus="removeReadonly"
               />
             </el-form-item>
 
@@ -35,6 +38,10 @@
                 <el-input
                   v-model="emailForm.code"
                   placeholder="请输入验证码"
+                  autocomplete="off"
+                  clearable
+                  :readonly="isReadonly"
+                  @focus="removeReadonly"
                 />
                 <el-button
                   :disabled="emailCountdown > 0 || emailCodeSending"
@@ -52,6 +59,9 @@
                 type="password"
                 placeholder="请输入新密码（至少6个字符）"
                 show-password
+                autocomplete="new-password"
+                :readonly="isReadonly"
+                @focus="removeReadonly"
               />
             </el-form-item>
 
@@ -62,6 +72,9 @@
                 type="password"
                 placeholder="请再次输入新密码"
                 show-password
+                autocomplete="new-password"
+                :readonly="isReadonly"
+                @focus="removeReadonly"
               />
             </el-form-item>
 
@@ -78,13 +91,16 @@
 
         <!-- 手机重置 -->
         <el-tab-pane label="手机重置" name="phone">
-          <el-form ref="phoneFormRef" :model="phoneForm" :rules="phoneRules" size="large">
+          <el-form ref="phoneFormRef" :model="phoneForm" :rules="phoneRules" size="large" :key="formKey">
             <div class="form-label">手机号</div>
             <el-form-item prop="phone">
               <el-input
                 v-model="phoneForm.phone"
                 placeholder="请输入注册手机号"
                 clearable
+                autocomplete="off"
+                :readonly="isReadonly"
+                @focus="removeReadonly"
               />
             </el-form-item>
 
@@ -94,6 +110,10 @@
                 <el-input
                   v-model="phoneForm.code"
                   placeholder="请输入验证码"
+                  autocomplete="off"
+                  clearable
+                  :readonly="isReadonly"
+                  @focus="removeReadonly"
                 />
                 <el-button
                   :disabled="phoneCountdown > 0 || phoneCodeSending"
@@ -111,6 +131,9 @@
                 type="password"
                 placeholder="请输入新密码（至少6个字符）"
                 show-password
+                autocomplete="new-password"
+                :readonly="isReadonly"
+                @focus="removeReadonly"
               />
             </el-form-item>
 
@@ -121,6 +144,9 @@
                 type="password"
                 placeholder="请再次输入新密码"
                 show-password
+                autocomplete="new-password"
+                :readonly="isReadonly"
+                @focus="removeReadonly"
               />
             </el-form-item>
 
@@ -140,12 +166,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
-import { sendEmailVerificationCode, sendPhoneVerificationCode } from '@/api/user'
+import { sendEmailVerificationCode, sendPhoneVerificationCode, resetPasswordByEmail, resetPasswordByPhone } from '@/api/user'
 
 defineOptions({
   name: 'ResetPasswordView'
@@ -153,6 +179,7 @@ defineOptions({
 
 const router = useRouter()
 const resetMethod = ref<'email' | 'phone'>('email')
+const formKey = ref(0)
 
 // 邮箱重置表单
 const emailFormRef = ref<FormInstance>()
@@ -161,6 +188,57 @@ const emailForm = reactive({
   code: '',
   newPassword: '',
   confirmPassword: ''
+})
+
+// 手机重置表单
+const phoneFormRef = ref<FormInstance>()
+const phoneForm = reactive({
+  phone: '',
+  code: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+// 控制 readonly 状态，用于防止自动填充
+const isReadonly = ref(true)
+
+// 重置表单
+const resetForms = () => {
+  emailForm.email = ''
+  emailForm.code = ''
+  emailForm.newPassword = ''
+  emailForm.confirmPassword = ''
+  
+  phoneForm.phone = ''
+  phoneForm.code = ''
+  phoneForm.newPassword = ''
+  phoneForm.confirmPassword = ''
+  
+  emailFormRef.value?.clearValidate()
+  phoneFormRef.value?.clearValidate()
+  
+  // 强制重新渲染
+  formKey.value++
+}
+
+// 移除 readonly 属性
+const removeReadonly = () => {
+  isReadonly.value = false
+}
+
+// 组件挂载时重置表单，使用 nextTick 确保在浏览器自动填充之后执行
+onMounted(() => {
+  nextTick(() => {
+    resetForms()
+  })
+  // 延迟再次重置，确保覆盖浏览器的自动填充
+  setTimeout(() => {
+    resetForms()
+    // 100ms 后移除 readonly，允许用户输入
+    setTimeout(() => {
+      isReadonly.value = false
+    }, 100)
+  }, 100)
 })
 
 const validateEmailPassword = (rule: any, value: any, callback: any) => {
@@ -190,15 +268,6 @@ const emailRules: FormRules = {
     { required: true, validator: validateEmailPassword, trigger: 'blur' }
   ]
 }
-
-// 手机重置表单
-const phoneFormRef = ref<FormInstance>()
-const phoneForm = reactive({
-  phone: '',
-  code: '',
-  newPassword: '',
-  confirmPassword: ''
-})
 
 const validatePhonePassword = (rule: any, value: any, callback: any) => {
   if (value === '') {
@@ -323,8 +392,11 @@ const handleEmailReset = async () => {
     }
     emailLoading.value = true
     try {
-      // TODO: 调用后端重置密码接口
-      // const res = await resetPasswordByEmail({...})
+      await resetPasswordByEmail({
+        email: emailForm.email,
+        code: emailForm.code,
+        newPassword: emailForm.newPassword
+      })
       ElMessage.success('密码重置成功，请重新登录')
       setTimeout(() => {
         router.push('/')
@@ -347,8 +419,11 @@ const handlePhoneReset = async () => {
     }
     phoneLoading.value = true
     try {
-      // TODO: 调用后端重置密码接口
-      // const res = await resetPasswordByPhone({...})
+      await resetPasswordByPhone({
+        phone: phoneForm.phone,
+        code: phoneForm.code,
+        newPassword: phoneForm.newPassword
+      })
       ElMessage.success('密码重置成功，请重新登录')
       setTimeout(() => {
         router.push('/')
@@ -381,8 +456,8 @@ const goBack = () => {
   background: white;
   border-radius: 24px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  padding: 40px;
-  max-width: 500px;
+  padding: 40px 45px;
+  max-width: 520px;
   width: 100%;
   animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -400,6 +475,7 @@ const goBack = () => {
 
 .header {
   margin-bottom: 24px;
+  margin-left: -10px;
 }
 
 .back-btn {
@@ -446,6 +522,11 @@ const goBack = () => {
   padding: 4px;
 }
 
+:deep(.el-tabs__nav) {
+  width: 100%;
+  display: flex;
+}
+
 :deep(.el-tabs__item) {
   flex: 1;
   height: 40px;
@@ -456,6 +537,10 @@ const goBack = () => {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   margin: 0;
   border: none;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 :deep(.el-tabs__item:hover) {
@@ -478,6 +563,7 @@ const goBack = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  margin-top: 4px;
   font-size: 14px;
   color: #4b5563;
   font-weight: 600;
@@ -491,20 +577,20 @@ const goBack = () => {
   border: 2px solid #e8eaef;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  height: 40px;
+  height: 44px;
 }
 
 :deep(.el-input__wrapper:hover) {
   border-color: #d4d8e0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 :deep(.el-input__wrapper.is-focus) {
   border-color: #ff8c42;
   background: #fffaf5;
   box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.15), 0 4px 16px rgba(255, 140, 66, 0.2);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .code-input-wrapper {
@@ -519,38 +605,44 @@ const goBack = () => {
 
 .code-input-wrapper :deep(.el-button) {
   flex-shrink: 0;
-  min-width: 100px;
-  height: 40px;
+  min-width: 110px;
+  height: 44px;
   border-radius: 10px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   border: 2px solid #e8eaef;
   background: #ffffff;
   color: #ff8c42;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   white-space: nowrap;
-  padding: 0 12px;
+  padding: 0 14px;
 }
 
 .code-input-wrapper :deep(.el-button:hover:not(:disabled)) {
   border-color: #ff8c42;
   background: rgba(255, 140, 66, 0.08);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(255, 140, 66, 0.2);
+}
+
+.code-input-wrapper :deep(.el-button:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .submit-btn {
   width: 100%;
-  height: 44px;
-  font-size: 15px;
+  height: 48px;
+  font-size: 16px;
   font-weight: 700;
-  border-radius: 10px;
-  margin-top: 24px;
+  border-radius: 12px;
+  margin-top: 28px;
   background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 50%, #f97316 100%);
   border: none;
   color: #ffffff;
   box-shadow: 0 12px 32px rgba(255, 140, 66, 0.35);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  letter-spacing: 0.5px;
 }
 
 .submit-btn:hover:not(:disabled) {
@@ -559,17 +651,24 @@ const goBack = () => {
   transform: translateY(-2px);
 }
 
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 8px 24px rgba(255, 140, 66, 0.3);
+}
+
 :deep(.el-form-item) {
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 
 :deep(.el-form-item__error) {
-  font-size: 13px;
+  font-size: 12px;
   color: #f56c6c;
-  margin-top: 6px;
-  margin-bottom: 8px;
+  margin-top: 1px;
+  padding-top: 2px;
+  line-height: 1.4;
   animation: errorShake 0.3s ease;
   display: block;
+  font-weight: 500;
 }
 
 @keyframes errorShake {

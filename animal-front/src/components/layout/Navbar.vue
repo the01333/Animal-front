@@ -196,11 +196,9 @@ function getSliderPosition(): number {
 
 <style scoped>
 .navbar-wrapper {
-  background: linear-gradient(135deg, #fffbf5 0%, #fff8f0 25%, #fffcf9 50%, #fff8f0 75%, #fffbf5 100%);
-  background-size: 400% 400%;
+  background: #FFF4E3;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: sticky;
-  animation: gradientShift 15s ease infinite;
   top: 0;
   z-index: 1000;
 }
@@ -245,7 +243,7 @@ function getSliderPosition(): number {
   position: absolute;
   height: 32px;
   width: 25%;
-  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  background: #FF8C42;
   border-radius: 22px;
   top: 4px;
   left: 0;
@@ -259,7 +257,7 @@ function getSliderPosition(): number {
   position: relative;
   z-index: 1;
   font-size: 14px;
-  color: #666;
+  color: #666666;
   cursor: pointer;
   font-weight: 500;
   transition: color 0.3s;
@@ -277,11 +275,11 @@ function getSliderPosition(): number {
 }
 
 .nav-link-item.profile-mode {
-  color: #666 !important;
+  color: #666666 !important;
 }
 
 .nav-link-item:hover:not(.active) {
-  color: #ff8c42;
+  color: #FF8C42;
 }
 
 .nav-capsule.profile-mode {
@@ -291,11 +289,11 @@ function getSliderPosition(): number {
 }
 
 .nav-capsule.profile-mode .nav-link-item {
-  color: #666;
+  color: #666666;
 }
 
 .nav-capsule.profile-mode .nav-link-item:hover {
-  color: #ff8c42;
+  color: #FF8C42;
 }
 
 .logo-item {
@@ -316,19 +314,19 @@ function getSliderPosition(): number {
 
 .logo-icon {
   font-size: 28px;
-  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  background: #FF8C42;
   padding: 6px;
   border-radius: 8px;
   color: white;
 }
 
 .logo-text {
-  color: #1a1a1a;
+  color: #FF8C42;
 }
 
 .nav-link {
   font-size: 14px;
-  color: #666;
+  color: #666666;
   cursor: pointer;
   transition: all 0.3s;
   padding: 0;
@@ -336,11 +334,11 @@ function getSliderPosition(): number {
 }
 
 .nav-link:hover {
-  color: #ff8c42;
+  color: #FF8C42;
 }
 
 .push-btn {
-  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%) !important;
+  background: #FF8C42 !important;
   color: white !important;
   border: none !important;
   padding: 8px 20px !important;
@@ -352,7 +350,7 @@ function getSliderPosition(): number {
 }
 
 .push-btn:hover {
-  background: linear-gradient(135deg, #ff7a1f 0%, #ff5a1f 100%) !important;
+  background: #FF8D6 !important;
   box-shadow: 0 4px 12px rgba(255, 140, 66, 0.4) !important;
   transform: translateY(-2px) !important;
 }
@@ -377,10 +375,10 @@ function getSliderPosition(): number {
   border-radius: 999px;
   padding: 6px 14px;
   font-size: 13px;
-  background: linear-gradient(135deg, #ff9557 0%, #ff6b35 100%);
+  background: #FF8C42;
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 4px 10px rgba(255, 140, 66, 0.3);
 }
 
 .manual-chat-entry:hover {
@@ -403,7 +401,7 @@ function getSliderPosition(): number {
   gap: 8px;
   padding: 0 10px;
   cursor: pointer;
-  color: #666;
+  color: #666666;
   font-weight: 500;
   transition: all 0.3s;
   border: none !important;
@@ -412,7 +410,7 @@ function getSliderPosition(): number {
 }
 
 .user-entry:hover {
-  color: #ff8c42;
+  color: #FF8C42;
 }
 
 .user-entry:focus {
@@ -480,15 +478,18 @@ function getSliderPosition(): number {
   color: white !important;
   border: none !important;
   padding: 8px 20px !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   font-weight: 600 !important;
   font-size: 14px !important;
   transition: all 0.3s !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
 .login-btn:hover {
-  background: #333 !important;
+  background: #333333 !important;
+  color: white !important;
   transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
 
 @media (max-width: 1200px) {
@@ -549,21 +550,18 @@ function getSliderPosition(): number {
   outline: none !important;
 }
 
-:deep(.el-avatar img) {
-  border: none !important;
+/* 下拉菜单项hover样式 */
+:deep(.el-dropdown-menu__item:hover) {
+  background-color: #FFF4E3 !important;
+  color: #FF8C42 !important;
 }
 
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
+:deep(.el-dropdown-menu__item:focus) {
+  background-color: #FFF4E3 !important;
+  color: #FF8C42 !important;
+}
 
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
+:deep(.el-avatar img) {
+  border: none !important;
 }
 </style>

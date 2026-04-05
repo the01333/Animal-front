@@ -63,12 +63,6 @@ const frontRoutes: RouteRecordRaw[] = [
         meta: { title: '个人中心', requireAuth: true }
       },
       {
-        path: 'ai-chat',
-        name: 'ai-chat',
-        component: () => import('@/views/chat/AIChatView.vue'),
-        meta: { title: 'AI客服' }
-      },
-      {
         path: 'guides',
         name: 'guides',
         component: () => import('@/views/content/GuideListView.vue'),
