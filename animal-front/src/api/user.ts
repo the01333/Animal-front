@@ -104,6 +104,36 @@ export function changePassword(data: {
   })
 }
 
+/**
+ * 通过邮箱重置密码
+ */
+export function resetPasswordByEmail(data: {
+  email: string
+  code: string
+  newPassword: string
+}): Promise<ApiResponse<void>> {
+  return request({
+    url: '/user/password/reset/email',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 通过手机号重置密码
+ */
+export function resetPasswordByPhone(data: {
+  phone: string
+  code: string
+  newPassword: string
+}): Promise<ApiResponse<void>> {
+  return request({
+    url: '/user/password/reset/phone',
+    method: 'post',
+    data
+  })
+}
+
 // 验证码登录
 export function loginByEmailCode(
   email: string,

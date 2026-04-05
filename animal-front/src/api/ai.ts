@@ -138,10 +138,8 @@ export async function chatWithAIMemoryStream(
         errorMessage = errorData.message
       }
     } catch (e) {
-      // 忽略 JSON 解析错误
+      // TODO: 先忽略 JSON 解析错误
     }
-    
-    // 抛出错误，让调用者处理
     throw new Error(errorMessage)
   }
 
@@ -149,6 +147,7 @@ export async function chatWithAIMemoryStream(
     throw new Error(`HTTP error! status: ${response.status}`)
   }
 
+  // 根据 fetch 拿到的结果再获取 readableStream，循环拿到每一个chunk（二进制块），再解析成字符串，最后再格式化拼接，实现流式效果
   const reader = response.body?.getReader()
   if (!reader) {
     throw new Error('Response body is not readable')
@@ -160,12 +159,13 @@ export async function chatWithAIMemoryStream(
   
   try {
     while (true) {
+      // 每次读一小块数据（chunk）
       const { done, value } = await reader.read()
       if (done) break
       
       buffer += decoder.decode(value, { stream: true })
       
-      // 处理 SSE 格式的数据
+      // 解析 SSE 格式 - data: { ... }\n
       const lines = buffer.split('\n')
       
       // 保留最后一个不完整的行
@@ -181,7 +181,7 @@ export async function chatWithAIMemoryStream(
             try {
               // 解析JSON字符串，恢复转义的换行符等特殊字符
               const data = JSON.parse(jsonStr)
-              // data 现在是解析后的字符串，可以直接使用
+              // 调用回调函数，data 现在是解析后的字符串，可以直接使用
               onChunk(data)
             } catch (e) {
               console.warn('Failed to parse JSON:', jsonStr, e)
