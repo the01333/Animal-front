@@ -173,9 +173,7 @@
           <footer class="manual-chat-footer">
             <div class="toolbar">
               <div class="emoji-wrapper">
-                <button class="icon-btn" type="button" @click="toggleEmojiPanel">
-                  😊
-                </button>
+                <button class="icon-btn" type="button" @click="toggleEmojiPanel">😊</button>
                 <div v-if="emojiPanelVisible" class="emoji-panel">
                   <button
                     v-for="emoji in emojiList"
@@ -189,9 +187,7 @@
                 </div>
               </div>
               <div class="emoji-wrapper">
-                <button class="icon-btn" type="button" @click="toggleImagePanel">
-                  📷
-                </button>
+                <button class="icon-btn" type="button" @click="toggleImagePanel">📷</button>
               </div>
             </div>
             <div class="input-row">
@@ -216,7 +212,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineEmits, defineProps, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import {
+  computed,
+  defineEmits,
+  defineProps,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+} from 'vue'
 import { ElMessage } from 'element-plus'
 import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
@@ -226,7 +231,7 @@ import {
   longPollManualCsMessages,
   sendManualCsMessage,
   readAckManualCs,
-  type CsMessage
+  type CsMessage,
 } from '@/api/customerService'
 import { uploadArticleCover } from '@/api/article'
 import { useAppStore } from '@/stores/app'
@@ -250,15 +255,37 @@ const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
 }>()
 
+// 窗口是否展开
 const isExpanded = ref(false)
 const messages = ref<ManualMessage[]>([])
 const draft = ref('')
 const messageContainer = ref<HTMLElement | null>(null)
 const emojiPanelVisible = ref(false)
 const emojiList = ref<string[]>([
-  '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '😜',
-  '🤔', '😄', '😅', '😭', '😡', '👍', '👎', '👏',
-  '🙏', '🐶', '🐱', '🐰', '❤️', '💔', '✨', '🌟'
+  '😀',
+  '😁',
+  '😂',
+  '🤣',
+  '😊',
+  '😍',
+  '😘',
+  '😜',
+  '🤔',
+  '😄',
+  '😅',
+  '😭',
+  '😡',
+  '👍',
+  '👎',
+  '👏',
+  '🙏',
+  '🐶',
+  '🐱',
+  '🐰',
+  '❤️',
+  '💔',
+  '✨',
+  '🌟',
 ])
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 const imagePanelVisible = ref(false)
@@ -295,28 +322,28 @@ const ensureWelcome = () => {
       content:
         '您好，我是人工客服小宠。如果您在领养流程、宠物健康或平台使用上有任何问题，都可以直接在这里告诉我哦~',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isoTime: new Date().toISOString()
+      isoTime: new Date().toISOString(),
     })
   }
 }
 
-const handleImageIconHover = () => {
-  // 仅在面板当前未打开时响应 hover，避免反复切换
-  if (imagePanelVisible.value) return
-  const nextVisible = true
-  imagePanelVisible.value = nextVisible
-  if (messageContainer.value) {
-    imagePanelLastScrollTop.value = messageContainer.value.scrollTop
-  } else {
-    imagePanelLastScrollTop.value = null
-  }
-  emojiPanelVisible.value = false
-}
-
-const handleImageHoverLeave = () => {
-  if (!imagePanelVisible.value) return
-  closeImagePanelAndRestoreScroll()
-}
+// const handleImageIconHover = () => {
+//   // 仅在面板当前未打开时响应 hover，避免反复切换
+//   if (imagePanelVisible.value) return
+//   const nextVisible = true
+//   imagePanelVisible.value = nextVisible
+//   if (messageContainer.value) {
+//     imagePanelLastScrollTop.value = messageContainer.value.scrollTop
+//   } else {
+//     imagePanelLastScrollTop.value = null
+//   }
+//   emojiPanelVisible.value = false
+// }
+//
+// const handleImageHoverLeave = () => {
+//   if (!imagePanelVisible.value) return
+//   closeImagePanelAndRestoreScroll()
+// }
 
 /**
  * 启动长轮询
@@ -330,7 +357,7 @@ const startPolling = async () => {
     try {
       const res = await longPollManualCsMessages(
         sessionId.value,
-        lastMessageId.value == null ? undefined : lastMessageId.value
+        lastMessageId.value == null ? undefined : lastMessageId.value,
       )
       if (pollStopped || !isExpanded.value) {
         break
@@ -366,7 +393,7 @@ const startPolling = async () => {
             content: item.content,
             time: formatTime(item.createTime),
             isoTime: (item.createTime as unknown as string) || null,
-            messageType: item.contentType
+            messageType: item.contentType,
           })
         }
         lastMessageId.value = list[list.length - 1].id
@@ -392,6 +419,9 @@ const stopPolling = () => {
   pollStopped = true
 }
 
+/**
+ * 发送用户已读回执
+ */
 const ackUserRead = async () => {
   if (sendingReadAck.value) return
   const tokenValue = token.value || localStorage.getItem('token')
@@ -524,9 +554,7 @@ const handleEmojiClick = (emoji: string) => {
       const len = el.value.length
       try {
         el.setSelectionRange(len, len)
-      } catch {
-        // ignore selection errors in some browsers
-      }
+      } catch {}
     }
   })
 }
@@ -596,20 +624,25 @@ const uploadAndSendImage = async (file: File) => {
       content: imageUrl,
       time: now,
       isoTime: new Date().toISOString(),
-      messageType: 'image'
+      messageType: 'image',
     })
     scrollToBottom()
 
     sending.value = true
     try {
-      const resMsg = await sendManualCsMessage(sessionId.value, { content: imageUrl, messageType: 'image' })
+      const resMsg = await sendManualCsMessage(sessionId.value, {
+        content: imageUrl,
+        messageType: 'image',
+      })
       const serverMsg = resMsg.data
       if (serverMsg && typeof serverMsg.id === 'number') {
         lastMessageId.value = serverMsg.id
         const serverId = serverMsg.id
         const serverIdStr = String(serverId)
         let localIdx = messages.value.findIndex((m) => m.id === localId)
-        const dupIdx = messages.value.findIndex((m) => m.serverId === serverId || m.id === serverIdStr)
+        const dupIdx = messages.value.findIndex(
+          (m) => m.serverId === serverId || m.id === serverIdStr,
+        )
 
         if (localIdx !== -1) {
           if (dupIdx !== -1 && dupIdx !== localIdx) {
@@ -618,7 +651,8 @@ const uploadAndSendImage = async (file: File) => {
           }
           messages.value[localIdx].serverId = serverId
           messages.value[localIdx].time = formatTime(serverMsg.createTime)
-          messages.value[localIdx].isoTime = (serverMsg.createTime as unknown as string) || messages.value[localIdx].isoTime
+          messages.value[localIdx].isoTime =
+            (serverMsg.createTime as unknown as string) || messages.value[localIdx].isoTime
           messages.value[localIdx].messageType = serverMsg.contentType
         }
       }
@@ -699,7 +733,7 @@ const initWs = () => {
     webSocketFactory: () => socket as any,
     connectHeaders: tokenValue ? { Authorization: `Bearer ${tokenValue}` } : {},
     reconnectDelay: 5000,
-    debug: () => { }
+    debug: () => {},
   })
 
   client.onConnect = () => {
@@ -709,7 +743,10 @@ const initWs = () => {
     client.subscribe('/user/queue/cs/unread', (frame: any) => {
       try {
         console.log('[WS] 收到未读汇总原始帧', frame)
-        const payload = JSON.parse(frame.body) as { unreadForUser?: number; unreadForAgent?: number }
+        const payload = JSON.parse(frame.body) as {
+          unreadForUser?: number
+          unreadForAgent?: number
+        }
         console.log('[WS] 解析后的未读汇总', payload)
         if (typeof payload.unreadForUser === 'number') {
           if (isExpanded.value && sessionId.value && payload.unreadForUser > 0) {
@@ -762,7 +799,7 @@ watch(
       appStore.setCsUnreadForUser(0)
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const loadHistory = async () => {
@@ -779,7 +816,7 @@ const loadHistory = async () => {
         content: item.content,
         time: formatTime(item.createTime),
         isoTime: (item.createTime as unknown as string) || null,
-        messageType: item.contentType
+        messageType: item.contentType,
       }))
       // 记录当前最新消息ID, 供后续长轮询只拉取增量
       lastMessageId.value = list[list.length - 1].id
@@ -868,7 +905,7 @@ const handleSend = async () => {
     content,
     time: now,
     isoTime: new Date().toISOString(),
-    messageType: 'text'
+    messageType: 'text',
   })
   draft.value = ''
   scrollToBottom()
@@ -882,7 +919,9 @@ const handleSend = async () => {
       const serverId = serverMsg.id
       const serverIdStr = String(serverId)
       let localIdx = messages.value.findIndex((m) => m.id === localId)
-      const dupIdx = messages.value.findIndex((m) => m.serverId === serverId || m.id === serverIdStr)
+      const dupIdx = messages.value.findIndex(
+        (m) => m.serverId === serverId || m.id === serverIdStr,
+      )
 
       if (localIdx !== -1) {
         if (dupIdx !== -1 && dupIdx !== localIdx) {
@@ -891,7 +930,8 @@ const handleSend = async () => {
         }
         messages.value[localIdx].serverId = serverId
         messages.value[localIdx].time = formatTime(serverMsg.createTime)
-        messages.value[localIdx].isoTime = (serverMsg.createTime as unknown as string) || messages.value[localIdx].isoTime
+        messages.value[localIdx].isoTime =
+          (serverMsg.createTime as unknown as string) || messages.value[localIdx].isoTime
         messages.value[localIdx].messageType = serverMsg.contentType
       }
     }
@@ -920,7 +960,7 @@ watch(
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 onMounted(async () => {
@@ -1021,7 +1061,9 @@ textarea::placeholder {
   font-size: 16px;
   padding: 4px;
   border-radius: 999px;
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 .icon-btn:hover {
@@ -1227,7 +1269,10 @@ textarea::placeholder {
   box-shadow: 0 10px 26px rgba(15, 35, 52, 0.08);
   text-align: center;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease,
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease,
     background-color 0.2s ease;
 }
 
@@ -1247,7 +1292,10 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .image-upload-plus {
@@ -1257,7 +1305,10 @@ textarea::placeholder {
   border: 1px dashed #c0c4cc;
   padding: 6px 12px;
   width: 65px;
-  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .image-upload-desc {
@@ -1365,7 +1416,10 @@ textarea::placeholder {
   cursor: pointer;
   white-space: nowrap;
   box-shadow: 0 4px 10px rgba(255, 140, 85, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
   margin-bottom: 8px;
 }
 
