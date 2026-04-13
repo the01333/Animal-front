@@ -21,7 +21,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="领养状态">
+        <el-form-item label="助养状态">
           <el-select v-model="queryForm.adoptionStatus" placeholder="全部" clearable @change="handleSearch"
             @clear="queryForm.adoptionStatus = ''" filterable>
             <el-option label="全部" :value="''" />
@@ -96,8 +96,8 @@
                   <span>{{ item.weight }}kg</span>
                 </div>
               </div>
-              <div v-if="item.description" class="pet-desc">
-                <el-text line-clamp="2" size="small">{{ item.description }}</el-text>
+              <div class="pet-desc" :class="{ 'is-empty': !item.description }">
+                <el-text line-clamp="2" size="small">{{ item.description || ' ' }}</el-text>
               </div>
               <div class="pet-actions">
                 <el-button class="adopt-btn" type="primary" size="small" :disabled="item.adoptionStatus !== 'available'"
@@ -105,7 +105,7 @@
                   <el-icon>
                     <Star />
                   </el-icon>
-                  申请领养
+                  申请助养
                 </el-button>
                 <el-button size="small" @click.stop="goToDetail(item.id)">
                   <el-icon>
@@ -254,10 +254,10 @@ function goToDetail(id: number) {
   router.push(`/pet/${id}`)
 }
 
-// 申请领养
+// 申请助养
 function applyAdoption(petId: number) {
   if (!isLoggedIn.value) {
-    ElMessage.warning('请先登录后再申请领养')
+    ElMessage.warning('请先登录后再申请助养')
     openAuthDialog('login')
     return
   }
@@ -290,9 +290,9 @@ function getStatusType(status: string) {
 // 获取状态文本
 function getStatusText(status: string) {
   const texts: Record<string, string> = {
-    available: '可领养',
+    available: '可助养',
     pending: '待审核',
-    adopted: '已领养',
+    adopted: '已助养',
     reserved: '已预订'
   }
   return texts[status?.toLowerCase()] || status
@@ -375,6 +375,7 @@ watch(() => route.path, (newPath) => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: 360px;
 }
 
 .pet-waterfall-card:hover {
@@ -386,7 +387,7 @@ watch(() => route.path, (newPath) => {
   position: relative;
   width: 100%;
   overflow: hidden;
-  height: 135px;
+  height: 230px;
   background: #f5f7fa;
 
   :deep(.lazy-img) {
@@ -394,11 +395,37 @@ watch(() => route.path, (newPath) => {
     height: 100%;
     display: block;
     transition: transform 0.3s;
-    object-fit: cover;
+    background: transparent;
+  }
+
+  :deep(.lazy__box) {
+    padding-bottom: 0 !important;
+    height: 100% !important;
+  }
+
+  :deep(.lazy__resource) {
+    height: 100% !important;
+  }
+
+  :deep(.lazy__img) {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    display: block;
+    transform: scale(1.06);
+  }
+
+  :deep(.lazy-img img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
   }
 
   &:hover :deep(.lazy-img) {
-    transform: scale(1.1);
+    transform: scale(1.02);
   }
 
   .pet-status-badge {
@@ -414,6 +441,16 @@ watch(() => route.path, (newPath) => {
   flex-direction: column;
   gap: 0.75rem;
   flex: 1;
+}
+
+.pet-desc {
+  min-height: calc(1.2em * 2);
+  display: flex;
+  align-items: flex-start;
+}
+
+.pet-desc.is-empty {
+  opacity: 0;
 }
 
 .pet-name {
