@@ -1,7 +1,7 @@
 <template>
   <div class="story-list-container">
-    <h1>领养故事</h1>
-    <p class="subtitle">每一只被领养的宠物都有一个温暖的故事</p>
+    <h1>助养故事</h1>
+    <p class="subtitle">每一只被助养的宠物都有一个温暖的故事</p>
 
     <div class="stories-filter">
       <div class="filter-group">

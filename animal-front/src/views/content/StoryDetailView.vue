@@ -3,7 +3,7 @@
     <el-page-header @back="handleBack" class="page-header">
       <template #content>
         <div class="header-content">
-          <span class="header-title">领养故事</span>
+          <span class="header-title">助养故事</span>
         </div>
       </template>
     </el-page-header>

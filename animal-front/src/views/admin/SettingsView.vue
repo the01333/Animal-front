@@ -14,7 +14,7 @@
       <div v-if="activeSection === 'dict'">
         <el-tabs v-model="activeTab" class="dict-tabs">
           <el-tab-pane label="宠物类型" name="pet_category" />
-          <el-tab-pane label="领养状态" name="adoption_status" />
+          <el-tab-pane label="助养状态" name="adoption_status" />
           <el-tab-pane label="健康状态" name="health_status" />
           <el-tab-pane label="文章分类" name="article_category" />
         </el-tabs>
@@ -96,7 +96,7 @@ type DictType = 'pet_category' | 'adoption_status' | 'health_status' | 'article_
 
 const tabOptions: { label: string; value: DictType }[] = [
   { label: '宠物类型', value: 'pet_category' },
-  { label: '领养状态', value: 'adoption_status' },
+  { label: '助养状态', value: 'adoption_status' },
   { label: '健康状态', value: 'health_status' },
   { label: '文章分类', value: 'article_category' }
 ]

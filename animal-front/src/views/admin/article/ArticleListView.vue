@@ -218,8 +218,8 @@ async function loadCategories() {
     categoryOptions.value = res.data || []
   } catch (error) {
     categoryOptions.value = [
-      { value: 'GUIDE', label: '领养指南' },
-      { value: 'STORY', label: '领养故事' }
+      { value: 'GUIDE', label: '助养指南' },
+      { value: 'STORY', label: '助养故事' }
     ]
     console.warn('获取文章分类失败，使用默认分类', error)
   }

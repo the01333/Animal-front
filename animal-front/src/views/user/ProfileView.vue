@@ -99,9 +99,9 @@
           </el-dialog>
         </div>
 
-        <!-- 领养者认证 -->
+        <!-- 助养者认证 -->
         <div v-if="activeTab === 'certification'" class="profile-section">
-          <h3>领养者认证</h3>
+          <h3>助养者认证</h3>
           <div class="certification-status">
             <div class="status-info">
               <span class="status-label">认证状态:</span>
@@ -124,7 +124,7 @@
             </div>
 
             <div v-if="user.certificationStatus === 'approved'" class="status-message">
-              <p>您已通过领养者认证，可以进行领养申请。</p>
+              <p>您已通过助养者认证，可以进行助养申请。</p>
               <button @click="updateCertification" class="btn-update-certification">
                 更新认证信息
               </button>
@@ -132,7 +132,7 @@
 
             <div v-if="showCertificationForm" class="certification-form">
               <p v-if="pendingResubmitMode" class="notice">* 当前为重新上传模式，提交后将覆盖原申请</p>
-              <p>您尚未提交领养者认证申请，请填写以下信息进行认证。</p>
+              <p>您尚未提交助养者认证申请，请填写以下信息进行认证。</p>
 
               <form @submit.prevent="submitCertificationHandler">
                 <div class="form-group">
@@ -216,7 +216,7 @@
         <!-- 我的申请 -->
         <div v-if="activeTab === 'applications'" class="profile-section">
           <div class="section-head">
-            <h3>我的领养申请</h3>
+            <h3>我的助养申请</h3>
             <span v-if="applications.length" class="application-count">共 {{ applications.length }} 条</span>
           </div>
 
@@ -225,8 +225,8 @@
           </div>
 
           <div v-else-if="applications.length === 0" class="no-applications">
-            <p>您还没有提交任何领养申请。</p>
-            <router-link to="/pets" class="btn-browse-pets">浏览可领养宠物</router-link>
+            <p>您还没有提交任何助养申请。</p>
+            <router-link to="/pets" class="btn-browse-pets">浏览可助养宠物</router-link>
           </div>
 
           <div v-else class="applications-list">
@@ -603,7 +603,7 @@ watch(activeTab, (tab, prev) => {
 // 导航项
 const navItems = [
   { key: 'basic', label: '基本信息' },
-  { key: 'certification', label: '领养者认证' },
+  { key: 'certification', label: '助养者认证' },
   { key: 'applications', label: '我的申请' },
   { key: 'likes', label: '我的点赞' },
   { key: 'favorites', label: '我的收藏' }
@@ -612,7 +612,7 @@ const navItems = [
 // 编辑基本信息状态
 const editingBasic = ref(false)
 
-// 领养申请列表
+// 助养申请列表
 const applications = ref<AdoptionApplication[]>([])
 const loadingApplications = ref(false)
 const cancelingId = ref<number | null>(null)
@@ -1111,7 +1111,7 @@ const viewApplication = (id: number) => {
 const cancelApplication = async (id: number) => {
   if (cancelingId.value) return
   try {
-    await ElMessageBox.confirm('确定要撤销此领养申请吗？', '提示', {
+    await ElMessageBox.confirm('确定要撤销此助养申请吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
@@ -1155,8 +1155,8 @@ const getItemImage = (item: LikeItem): string => {
 const getItemTypeLabel = (type: string): string => {
   const typeMap: Record<string, string> = {
     pet: '宠物',
-    guide: '领养指南',
-    story: '领养故事'
+    guide: '助养指南',
+    story: '助养故事'
   }
   return typeMap[type] || type
 }

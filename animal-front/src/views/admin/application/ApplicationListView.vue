@@ -102,7 +102,7 @@
         <div class="drawer-header">
           <div>
             <p class="drawer-eyebrow">申请详情</p>
-            <h3>{{ detailData?.petName || '领养申请' }}</h3>
+            <h3>{{ detailData?.petName || '助养申请' }}</h3>
           </div>
           <el-tag class="drawer-tag" :type="getStatusType(detailData?.status)">
             {{ getStatusText(detailData?.status) }}
@@ -390,8 +390,8 @@ function getPetCategoryText(category?: string) {
 function getPetAdoptionStatusText(status?: string) {
   if (!status) return '未知'
   const map: Record<string, string> = {
-    available: '可领养',
-    adopted: '已领养',
+    available: '可助养',
+    adopted: '已助养',
     pending: '待审核',
     reserved: '已预订'
   }

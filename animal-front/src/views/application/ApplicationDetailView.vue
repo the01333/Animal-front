@@ -13,7 +13,7 @@
     <div v-else-if="detail" class="detail-content">
       <section class="summary-card">
         <div class="summary-text">
-          <h1>{{ detail.petName || '领养申请详情' }}</h1>
+          <h1>{{ detail.petName || '助养申请详情' }}</h1>
           <p>提交时间：{{ formatDateTime(detail.createTime) }}</p>
           <p>最近更新：{{ formatDateTime(detail.updateTime) }}</p>
         </div>
@@ -119,9 +119,9 @@ const formatPetCategory = (category?: string) => {
 const formatPetStatus = (status?: string) => {
   if (!status) return '未知'
   const map: Record<string, string> = {
-    available: '可领养',
+    available: '可助养',
     pending: '审核中',
-    adopted: '已领养'
+    adopted: '已助养'
   }
   return map[status.toLowerCase()] || status
 }
@@ -149,7 +149,7 @@ const fetchDetail = async () => {
 const handleCancel = async () => {
   if (!detail.value || canceling.value) return
   try {
-    await ElMessageBox.confirm('确定要撤销此领养申请吗？', '提示', {
+    await ElMessageBox.confirm('确定要撤销此助养申请吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'

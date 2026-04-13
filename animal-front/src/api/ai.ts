@@ -141,7 +141,7 @@ export async function chatWithAIMemoryStream(
 export function getWelcomeMessage(): string {
   return `👋 欢迎来到i宠园AI客服！
 
-我是您的宠物领养顾问，很高兴为您服务。我可以帮助您：
+我是您的宠物助养顾问，很高兴为您服务。我可以帮助您：
 
 🐱 **宠物推荐** - 根据您的需求推荐合适的宠物
   例如："有什么推荐的宠物吗？"

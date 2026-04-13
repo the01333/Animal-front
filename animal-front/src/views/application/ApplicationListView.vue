@@ -1,13 +1,13 @@
 <template>
   <div class="applications-container">
-    <h1>我的领养申请</h1>
+    <h1>我的助养申请</h1>
 
     <div class="applications-content">
       <div v-if="applications.length === 0" class="empty-state">
         <div class="empty-icon">📋</div>
-        <h3>暂无领养申请</h3>
-        <p>您还没有提交任何领养申请</p>
-        <router-link to="/pets" class="btn-browse-pets">浏览可领养宠物</router-link>
+        <h3>暂无助养申请</h3>
+        <p>您还没有提交任何助养申请</p>
+        <router-link to="/pets" class="btn-browse-pets">浏览可助养宠物</router-link>
       </div>
 
       <div v-else>
@@ -231,7 +231,7 @@ const viewApplication = (id: string) => {
 
 // 撤销申请
 const cancelApplication = (id: string) => {
-  if (confirm('确定要撤销此领养申请吗？')) {
+  if (confirm('确定要撤销此助养申请吗？')) {
     // 在实际应用中，这里会调用后端API撤销申请
     const application = applications.value.find(app => app.id === id)
     if (application) {

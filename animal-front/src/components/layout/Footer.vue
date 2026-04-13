@@ -4,15 +4,15 @@
       <el-row :gutter="40">
         <el-col :xs="24" :sm="8">
           <div class="footer-section">
-            <h3>
+            <h3 class="footer-title">
               <el-icon>
                 <InfoFilled />
               </el-icon>
               关于我们
             </h3>
-            <p>i宠园致力于为流浪动物寻找温暖的家，连接爱心领养者与需要关爱的小动物。</p>
+            <p>i宠园致力于为流浪动物寻找温暖的家，连接爱心助养者与需要关爱的小动物。</p>
             <el-space wrap>
-              <el-tag type="success" effect="plain">爱心领养</el-tag>
+              <el-tag type="success" effect="plain">爱心助养</el-tag>
               <el-tag type="warning" effect="plain">责任饲养</el-tag>
               <el-tag type="info" effect="plain">终身陪伴</el-tag>
             </el-space>
@@ -136,7 +136,7 @@
                   <h4 class="policy-section-title">一、定义说明</h4>
                   <p>“用户 / 您”：指访问或使用本网站的个人或组织。</p>
                   <p>“本网站 / 我们”：指 i宠园及其运营方。</p>
-                  <p>“服务”：指本网站提供的动物信息展示、领养相关服务及其他功能。</p>
+                  <p>“服务”：指本网站提供的动物信息展示、助养相关服务及其他功能。</p>
                   <h4 class="policy-section-title">二、使用规则</h4>
                   <p>用户在使用本网站时，不得从事以下行为：</p>
                   <ul class="policy-list">

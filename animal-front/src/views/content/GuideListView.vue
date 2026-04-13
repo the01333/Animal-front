@@ -1,6 +1,6 @@
 <template>
   <div class="guide-list-container">
-    <h1>领养指南</h1>
+    <h1>助养指南</h1>
 
     <div class="guide-categories">
       <div v-for="category in categories" :key="category.id" class="category-item"

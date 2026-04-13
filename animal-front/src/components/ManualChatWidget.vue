@@ -320,7 +320,7 @@ const ensureWelcome = () => {
       id: Date.now().toString(),
       sender: 'agent',
       content:
-        '您好，我是人工客服小宠。如果您在领养流程、宠物健康或平台使用上有任何问题，都可以直接在这里告诉我哦~',
+        '您好，我是人工客服小宠。如果您在助养流程、宠物健康或平台使用上有任何问题，都可以直接在这里告诉我哦~',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isoTime: new Date().toISOString(),
     })

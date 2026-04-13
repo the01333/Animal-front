@@ -24,7 +24,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ stats.availablePets }}</div>
-              <div class="stat-label">可领养</div>
+              <div class="stat-label">可助养</div>
             </div>
           </div>
         </el-card>

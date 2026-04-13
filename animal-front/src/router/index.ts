@@ -42,7 +42,7 @@ const frontRoutes: RouteRecordRaw[] = [
         path: 'apply/:petId',
         name: 'apply',
         component: () => import('@/views/application/ApplyView.vue'),
-        meta: { title: '申请领养', requireAuth: true }
+        meta: { title: '申请助养', requireAuth: true }
       },
       {
         path: 'applications',
@@ -66,7 +66,7 @@ const frontRoutes: RouteRecordRaw[] = [
         path: 'guides',
         name: 'guides',
         component: () => import('@/views/content/GuideListView.vue'),
-        meta: { title: '领养指南' }
+        meta: { title: '助养指南' }
       },
       {
         path: 'guide/:id',
@@ -78,7 +78,7 @@ const frontRoutes: RouteRecordRaw[] = [
         path: 'stories',
         name: 'stories',
         component: () => import('@/views/content/StoryListView.vue'),
-        meta: { title: '领养故事' }
+        meta: { title: '助养故事' }
       },
       {
         path: 'story/:id',

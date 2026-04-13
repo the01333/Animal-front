@@ -12,20 +12,20 @@
           </div>
           <h1 class="hero-title">为流浪动物寻找温暖的家</h1>
           <p class="hero-description">
-            i宠园致力于连接爱心领养者与流浪小动物，让每一只动物都能找到属于自己的幸福家庭。
+            i宠园致力于连接爱心助养者与流浪小动物，让每一只动物都能找到属于自己的幸福家庭。
           </p>
           <div class="hero-buttons">
             <el-button class="hero-btn hero-btn-primary" size="large" @click="$router.push('/pets')">
               <el-icon>
                 <Search />
               </el-icon>
-              <span>查看可领养宠物</span>
+              <span>查看可助养宠物</span>
             </el-button>
             <el-button class="hero-btn hero-btn-success" size="large" @click="$router.push('/guides')">
               <el-icon>
                 <Reading />
               </el-icon>
-              <span>领养指南</span>
+              <span>助养指南</span>
             </el-button>
             <el-button class="hero-btn hero-btn-warning" size="large" @click="openAIChatWidget">
               <el-icon>
@@ -86,7 +86,7 @@
                   <el-icon>
                     <CircleCheckFilled />
                   </el-icon>
-                  申请领养
+                  申请助养
                 </el-button>
               </div>
             </div>
@@ -118,13 +118,13 @@
       </div>
     </section>
 
-    <!-- 领养步骤 -->
+    <!-- 助养步骤 -->
     <section class="adoption-guide">
       <div class="section-header">
         <el-icon class="section-icon">
           <List />
         </el-icon>
-        <h2>领养流程</h2>
+        <h2>助养流程</h2>
         <el-divider />
       </div>
 
@@ -158,7 +158,7 @@
               </template>
             </el-image>
             <div class="guide-stats">
-              <el-statistic title="成功领养" :value="1268" suffix="只">
+              <el-statistic title="成功助养" :value="1268" suffix="只">
                 <template #prefix>
                   <el-icon>
                     <TrophyBase />
@@ -179,13 +179,13 @@
       </el-row>
     </section>
 
-    <!-- 领养故事 -->
+    <!-- 助养故事 -->
     <section class="adoption-stories">
       <div class="section-header">
         <el-icon class="section-icon">
           <ChatLineSquare />
         </el-icon>
-        <h2>成功领养故事</h2>
+        <h2>成功助养故事</h2>
         <el-divider />
       </div>
 
@@ -219,8 +219,8 @@
             <Promotion />
           </el-icon>
           <div>
-            <h3>准备好领养一只宠物了吗？</h3>
-            <p>浏览我们的宠物列表，找到您心仪的小伙伴，开始您的领养之旅！</p>
+            <h3>准备好助养一只宠物了吗？</h3>
+            <p>浏览我们的宠物列表，找到您心仪的小伙伴，开始您的助养之旅！</p>
           </div>
           <el-button type="primary" size="large" round :icon="ArrowRight" @click="$router.push('/pets')">
             立即开始
@@ -385,8 +385,8 @@ async function loadStories() {
 
 const adoptionSteps = ref([
   {
-    title: '了解领养',
-    description: '阅读领养指南，了解领养流程和责任'
+    title: '了解助养',
+    description: '阅读助养指南，了解助养流程和责任'
   },
   {
     title: '选择宠物',
@@ -394,15 +394,15 @@ const adoptionSteps = ref([
   },
   {
     title: '提交申请',
-    description: '填写领养申请表，等待审核'
+    description: '填写助养申请表，等待审核'
   },
   {
     title: '见面交流',
     description: '与宠物和工作人员见面，确认合适'
   },
   {
-    title: '正式领养',
-    description: '签署领养协议，带宠物回家'
+    title: '正式助养',
+    description: '签署助养协议，带宠物回家'
   }
 ])
 
@@ -448,9 +448,9 @@ function getStatusTagType(status: string) {
 
 function getStatusText(status: string) {
   const textMap: Record<string, string> = {
-    available: '可领养',
+    available: '可助养',
     pending: '待审核',
-    adopted: '已领养'
+    adopted: '已助养'
   }
   return textMap[status] || status
 }

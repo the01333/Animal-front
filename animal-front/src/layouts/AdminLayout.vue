@@ -157,7 +157,7 @@
 
         <!-- 页脚 -->
         <el-footer class="admin-footer">
-          &copy; 2025 i宠园 - 宠物领养管理系统
+          &copy; 2025 i宠园 - 宠物助养管理系统
         </el-footer>
 
         <AdminAuthDialog v-model="adminAuthVisible" @login-success="handleAdminLoginSuccess" />

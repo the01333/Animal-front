@@ -19,17 +19,17 @@
           <div class="nav-link-item"
             :class="{ active: !isProfilePage && activeMenu === '/pets', 'profile-mode': isProfilePage }"
             @click="$router.push('/pets')">
-            领养列表
+            助养列表
           </div>
           <div class="nav-link-item"
             :class="{ active: !isProfilePage && activeMenu === '/guides', 'profile-mode': isProfilePage }"
             @click="$router.push('/guides')">
-            领养指南
+            助养指南
           </div>
           <div class="nav-link-item"
             :class="{ active: !isProfilePage && activeMenu === '/stories', 'profile-mode': isProfilePage }"
             @click="$router.push('/stories')">
-            领养故事
+            助养故事
           </div>
         </div>
       </div>
@@ -111,7 +111,7 @@ const activeMenu = computed(() => {
   // 根据路由路径判断应该高亮哪个菜单
   if (path === '/') return '/'
   if (path.startsWith('/pets') || path.startsWith('/pet/')) return '/pets'
-  // 注意：/apply/ 开头的是领养申请流程页面，应该高亮领养列表
+  // 注意：/apply/ 开头的是助养申请流程页面，应该高亮助养列表
   // 但 /profile/application/ 是个人中心的申请详情，不应该高亮
   if (path.startsWith('/apply/')) return '/pets'
   if (path.startsWith('/guides') || path.startsWith('/guide/')) return '/guides'

@@ -84,10 +84,10 @@
             </el-descriptions>
 
             <div class="pet-actions">
-              <!-- 当前用户已领养 -->
+              <!-- 当前用户已助养 -->
               <el-button v-if="isCurrentUserAdopted" type="success" size="large"
                 :icon="Document" disabled>
-                已领养
+                已助养
               </el-button>
 
               <!-- 当前用户有有效申请（待审核或已批准） -->
@@ -96,16 +96,16 @@
                 {{ applicationStatusText }}
               </el-button>
 
-              <!-- 其他用户已领养 -->
+              <!-- 其他用户已助养 -->
               <el-button v-else-if="pet.adoptionStatus?.toLowerCase() === 'adopted'" type="info" size="large"
                 :icon="Document" disabled>
-                已被领养
+                已被助养
               </el-button>
 
-              <!-- 宠物可领养且当前用户未申请（或申请被拒/已撤销） -->
+              <!-- 宠物可助养且当前用户未申请（或申请被拒/已撤销） -->
               <el-button v-else-if="pet.adoptionStatus?.toLowerCase() === 'available'" type="primary" size="large"
                 :icon="CirclePlus" @click="applyForAdoption">
-                申请领养
+                申请助养
               </el-button>
 
               <el-button :type="favored ? 'warning' : 'default'" :icon="Star" size="large" plain
@@ -150,8 +150,8 @@
 
       <el-alert title="温馨提示" type="info" :closable="false" show-icon>
         <template #default>
-          <p>领养宠物是一项长期承诺，请确保您有足够的时间、精力和经济能力来照顾它。</p>
-          <p>领养前建议先阅读我们的<el-link type="primary" @click="$router.push('/guides')">领养指南</el-link>，了解更多养宠知识。</p>
+          <p>助养宠物是一项长期承诺，请确保您有足够的时间、精力和经济能力来照顾它。</p>
+          <p>助养前建议先阅读我们的<el-link type="primary" @click="$router.push('/guides')">助养指南</el-link>，了解更多养宠知识。</p>
         </template>
       </el-alert>
     </el-card>
@@ -175,14 +175,14 @@
       </el-space>
     </el-card>
 
-    <!-- 领养须知 -->
+    <!-- 助养须知 -->
     <el-card class="adoption-notice-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <el-icon>
             <Warning />
           </el-icon>
-          <span>领养须知</span>
+          <span>助养须知</span>
         </div>
       </template>
 
@@ -264,7 +264,7 @@ const allGalleryImages = computed(() => {
 const adoptionNotices = ref([
   {
     title: '年龄要求',
-    content: '领养者需年满18周岁，具有完全民事行为能力'
+    content: '助养者需年满18周岁，具有完全民事行为能力'
   },
   {
     title: '居住环境',
@@ -280,7 +280,7 @@ const adoptionNotices = ref([
   },
   {
     title: '家人同意',
-    content: '家庭成员都同意领养宠物，且无人对宠物过敏'
+    content: '家庭成员都同意助养宠物，且无人对宠物过敏'
   },
   {
     title: '终身承诺',
@@ -297,9 +297,9 @@ const statusText = computed(() => {
   if (!pet.value) return ''
   const s = String(pet.value.adoptionStatus || '')
   switch (s.toLowerCase()) {
-    case 'available': return '可领养'
-    case 'adopted': return '已领养'
-    case 'pending': return '领养中'
+    case 'available': return '可助养'
+    case 'adopted': return '已助养'
+    case 'pending': return '助养中'
     default: return '未知'
   }
 })
@@ -357,7 +357,7 @@ const handleBack = () => {
 
 const applyForAdoption = () => {
   if (!isLoggedIn.value) {
-    ElMessage.warning('请先登录后再申请领养')
+    ElMessage.warning('请先登录后再申请助养')
     openAuthDialog('login')
     return
   }
@@ -384,10 +384,10 @@ const openShareDialog = () => {
   shareDialogVisible.value = true
 }
 
-// 判断宠物是否由当前用户领养
+// 判断宠物是否由当前用户助养
 const isCurrentUserAdopted = computed(() => {
   if (!pet.value || !currentUserId.value) return false
-  // 检查宠物是否已被领养，且领养者是当前用户
+  // 检查宠物是否已被助养，且助养者是当前用户
   return pet.value.adoptionStatus?.toLowerCase() === 'adopted' && pet.value.adoptedBy === currentUserId.value
 })
 

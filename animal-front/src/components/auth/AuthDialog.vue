@@ -267,6 +267,7 @@ const loginPasswordForm = reactive({
   password: ''
 })
 
+// 表单校验规则
 const loginPasswordRules: FormRules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },

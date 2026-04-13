@@ -87,7 +87,7 @@ export interface PetQuery {
   size: number
 }
 
-// 领养申请相关
+// 助养申请相关
 export interface AdoptionApplication {
   id: number
   applicationNo?: string

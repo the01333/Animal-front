@@ -39,7 +39,7 @@ export function getGenders(): Promise<ApiResponse<Record<number, string>>> {
 }
 
 /**
- * 获取领养状态选项
+ * 获取助养状态选项
  */
 export function getAdoptionStatuses(): Promise<ApiResponse<Record<string, string>>> {
   return request({

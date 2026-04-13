@@ -104,7 +104,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="领养状态" width="120">
+        <el-table-column label="助养状态" width="120">
           <template #default="{ row }">
             <el-tag :type="getAdoptionStatusType(row.adoptionStatus)">
               {{ getAdoptionStatusText(row.adoptionStatus) }}
@@ -396,9 +396,9 @@ function getAdoptionStatusType(status: string) {
 
 function getAdoptionStatusText(status: string) {
   const map: Record<string, string> = {
-    available: '可领养',
+    available: '可助养',
     pending: '待审核',
-    adopted: '已领养'
+    adopted: '已助养'
   }
   return map[status] || status
 }

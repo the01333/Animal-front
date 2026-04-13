@@ -2,7 +2,7 @@ import request from '@/utils/request'
 import type { ApiResponse, AdoptionApplication, ApplicationForm, PageResponse } from '@/types'
 
 /**
- * 提交领养申请
+ * 提交助养申请
  */
 export function submitApplication(data: ApplicationForm): Promise<ApiResponse<void>> {
   return request({

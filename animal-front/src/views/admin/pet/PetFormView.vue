@@ -85,8 +85,8 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="领养状态" prop="adoptionStatusText">
-                <el-select v-model="form.adoptionStatusText" placeholder="请选择领养状态">
+              <el-form-item label="助养状态" prop="adoptionStatusText">
+                <el-select v-model="form.adoptionStatusText" placeholder="请选择助养状态">
                   <el-option v-for="opt in adoptionStatusOptions" :key="opt.value" :label="opt.label"
                     :value="opt.value" />
                 </el-select>

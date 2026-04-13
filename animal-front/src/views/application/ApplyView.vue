@@ -1,7 +1,7 @@
 <template>
   <div class="apply-container">
     <div class="apply-header">
-      <h1>申请领养 - {{ pet?.name || '——' }}</h1>
+      <h1>申请助养 - {{ pet?.name || '——' }}</h1>
       <div class="pet-info-summary" v-if="pet">
         <img :src="petImage" :alt="pet.name" />
         <div class="pet-details">
@@ -70,7 +70,7 @@
 
           <div class="certification-status">
             <div class="status-item">
-              <label>领养者认证：</label>
+              <label>助养者认证：</label>
               <span :class="certificationStatusClass">{{ certificationStatusText }}</span>
               <div v-if="showStatusActions" class="status-actions">
                 <button v-if="adopterInfo.certificationStatus !== 'approved'" class="btn-go-certification"
@@ -201,7 +201,7 @@
               </div>
 
               <div class="form-group">
-                <label for="reason">申请领养的原因：</label>
+                <label for="reason">申请助养的原因：</label>
                 <textarea id="reason" v-model="applicationForm.reason" rows="3" placeholder="分享您选择这只宠物的原因，以及未来生活规划"
                   required></textarea>
               </div>
@@ -239,18 +239,18 @@
               <div class="agreement-box">
                 <h3>我理解</h3>
                 <ol>
-                  <li>领养是严肃的承诺，需要长期责任。</li>
-                  <li>救助站有权对领养申请进行审核。</li>
+                  <li>助养是严肃的承诺，需要长期责任。</li>
+                  <li>救助站有权对助养申请进行审核。</li>
                   <li>如发现违反承诺的行为，救助站有权收回宠物。</li>
                 </ol>
               </div>
             </div>
             <div class="commitment-quote">
-              “每一次领养，都是对生命的再次托付。感谢你愿意伸出双手给予它新的家。”
+              “每一次助养，都是对生命的再次托付。感谢你愿意伸出双手给予它新的家。”
             </div>
             <label class="checkbox-label agreement-check">
               <input type="checkbox" v-model="applicationForm.agreeAgreement" required />
-              <span>我已阅读并同意以上领养承诺书</span>
+              <span>我已阅读并同意以上助养承诺书</span>
             </label>
           </div>
 
@@ -266,7 +266,7 @@
         <div v-if="currentStep === 5" class="form-step success-step">
           <div class="success-icon">✓</div>
           <h2>申请提交成功</h2>
-          <p>您的领养申请已成功提交，申请编号：<strong>{{ applicationId }}</strong></p>
+          <p>您的助养申请已成功提交，申请编号：<strong>{{ applicationId }}</strong></p>
           <p>我们将在 3-5 个工作日内完成审核，请您耐心等待。</p>
           <p>您可以在个人中心查看申请状态。</p>
           <div class="success-actions">
@@ -381,11 +381,11 @@ const statusText = computed(() => {
   const status = String(pet.value.adoptionStatus || '').toLowerCase()
   switch (status) {
     case 'available':
-      return '可领养'
+      return '可助养'
     case 'pending':
       return '审核中'
     case 'adopted':
-      return '已领养'
+      return '已助养'
     default:
       return '未知状态'
   }
@@ -507,7 +507,7 @@ const validateStep = (step: number) => {
         return false
       }
       if (adopterInfo.value.certificationStatus !== 'approved') {
-        ElMessage.warning('请先完成领养者认证')
+        ElMessage.warning('请先完成助养者认证')
         return false
       }
       return true
@@ -545,7 +545,7 @@ const validateStep = (step: number) => {
       return true
     case 4:
       if (!applicationForm.value.agreeAgreement) {
-        ElMessage.warning('请勾选领养承诺书')
+        ElMessage.warning('请勾选助养承诺书')
         return false
       }
       return true
